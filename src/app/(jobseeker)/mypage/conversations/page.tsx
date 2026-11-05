@@ -8,7 +8,6 @@ import { isUnreadMessage, type MessageLike } from "@/lib/conversations/unread";
 import { listIncomingRequests } from "@/lib/conversations/messageRequest";
 import { messagePreviewLine } from "@/lib/conversations/previewLine";
 import { loadIncomingApproachViews } from "@/lib/approaches/incomingView";
-import { autoDeclinedForRequester } from "@/lib/talk/server";
 
 /* ⚠️ **ログイン後のページにもタイトルを付ける。** 付けないとサイト既定の
       「IT業界の転職・求人情報 | OPINIO」になり、**タブを何枚開いても全部同じ名前**で
@@ -25,9 +24,11 @@ export const dynamic = "force-dynamic";
 export default async function ConversationsPage({
   searchParams,
 }: {
-  searchParams?: { open?: string; tab?: string };
+  searchParams?: { open?: string; tab?: string; consult?: string };
 }) {
   const initialOpenConvId = searchParams?.open ?? null;
+  /* ★「この経験について聞く」から既にある会話へ来たとき、その職歴（相談の画面をその会社で開く。2026-11-05） */
+  const initialConsultExperienceId = searchParams?.consult && /^[0-9a-f-]{36}$/i.test(searchParams.consult) ? searchParams.consult : null;
   /* ★「未返信」タブ（2026-10-11）。旧 /mypage/approaches はここへ 301 転送（?tab=unreplied） */
   const initialTab = searchParams?.tab === "unreplied" ? "unreplied" : "all";
   const supabase = createClient();
@@ -91,7 +92,8 @@ export default async function ConversationsPage({
   const conversationIds = Array.from(participantMap.keys());
 
   if (conversationIds.length === 0) {
-    return <ConversationsClient initialConversations={[]} initialOpenConvId={null} initialRequests={incomingRequests} initialApproaches={incomingApproaches} initialTab={initialTab} />;
+    /* ★届いた相談（未返信）は参加者行が無くても開ける（?open= を一覧が「未返信」の1件へ振り分ける） */
+    return <ConversationsClient initialConversations={[]} initialOpenConvId={initialOpenConvId} initialRequests={incomingRequests} initialApproaches={incomingApproaches} initialTab={initialTab} />;
   }
 
   // 参加している会話だけを取得（本文の取得もこの範囲に閉じる）
@@ -114,7 +116,7 @@ export default async function ConversationsPage({
       /* ★会話 id を分けて、1,000 行ずつ最後まで引く（2026-10-19。超えると未読と冒頭1行が黙って欠けていた） */
       inChunks(conversationIds, (part, from, to) => adminSupabase
         .from("ow_conversation_messages")
-        .select("id, conversation_id, sender_participant_id, sent_at, body")
+        .select("id, conversation_id, sender_participant_id, sent_at, body, kind")
         .in("conversation_id", part)
         .is("deleted_at", null)
         .order("sent_at", { ascending: true }).order("id").range(from, to), "mypage conversations messages")
@@ -140,11 +142,10 @@ export default async function ConversationsPage({
         : c,
   );
 
-  /* ★自分が送った「話を聞く」依頼のうち、14日で自動の辞退になったもの（2026-11-03）。⚠️ 送った本人の分だけ（lib/talk/server.ts） */
-  const autoDeclined = await autoDeclinedForRequester(owUser.id as string, conversations.map((c) => c.id));
-
   const conversationsWithUnread = conversations.map((c) => {
-    const conv = { ...c, talk_auto_declined: autoDeclined.has(c.id) };
+    /* ★キャリア相談が1通でもある会話（一覧に「キャリア相談」のラベルを出す。2026-11-05） */
+    const hasConsult = (messages ?? []).some((m: { conversation_id: string; kind?: string | null }) => m.conversation_id === c.id && m.kind === "consult");
+    const conv = { ...c, hasConsult };
     const myPart = participantMap.get(conv.id);
     /* ★最後のメッセージの冒頭（2026-10-11 / 一覧を LinkedIn の受信箱と同じ形にした）。⚠️ 自分が参加している会話だけ（上で絞ってある） */
     const last = (messages ?? [])
@@ -165,5 +166,5 @@ export default async function ConversationsPage({
     return { ...conv, hasUnread, lastMessage };
   });
 
-  return <ConversationsClient initialConversations={conversationsWithUnread} initialOpenConvId={initialOpenConvId} initialRequests={incomingRequests} initialApproaches={incomingApproaches} initialTab={initialTab} />;
+  return <ConversationsClient initialConversations={conversationsWithUnread} initialOpenConvId={initialOpenConvId} initialConsultExperienceId={initialConsultExperienceId} initialRequests={incomingRequests} initialApproaches={incomingApproaches} initialTab={initialTab} />;
 }

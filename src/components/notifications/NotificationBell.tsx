@@ -6,7 +6,7 @@ import Link from "next/link";
 
 type NotificationItem = {
   id: string;
-  type: "like" | "comment" | "reply" | "comment_like" | "message" | "proposal" | "introduction" | "message_request" | "message_request_accepted" | "company_approach" | "meeting_canceled" | "follow" | "interest_no_reply" | "interest_company_joined";
+  type: "like" | "comment" | "reply" | "comment_like" | "message" | "proposal" | "introduction" | "message_request" | "message_request_accepted" | "company_approach" | "meeting_canceled" | "follow" | "interest_no_reply" | "interest_company_joined" | "career_consult";
   /** フォロー通知のときだけ入る。自分がその人を既にフォローしているか（2026-10-20） */
   followingBack?: boolean;
   /** ⚠️ スカウト・メッセージの通知には投稿が無いので null になる */
@@ -44,6 +44,8 @@ function notifHref(notif: NotificationItem): string {
   /* ★メッセージのお願い（段階3）。⚠️ 受け手は承認前は会話を開けないので、一覧の「お願い」の欄へ */
   if (notif.type === "message_request") return "/mypage/conversations?tab=unreplied";
   if (notif.type === "message_request_accepted") return `/mypage/conversations/${notif.conversationId}`;
+  /* ★キャリア相談（2026-11-05）。返信前なら「未返信」のその1件、返信後なら会話が開く（一覧が ?open= を見て振り分ける） */
+  if (notif.type === "career_consult") return `/mypage/conversations?open=${notif.conversationId}`;
   /* ★②の提案は一覧へ。⚠️ 提案ごとの詳細ページは無い */
   if (notif.type === "proposal") return "/mypage/proposals";
   /* ★③の紹介は会話そのものへ。⚠️ 提案一覧に戻さない —— 双方が答え終わっていて、
@@ -76,6 +78,10 @@ function notifText(notif: NotificationItem): { who: string; what: string } {
   }
   if (notif.type === "message_request_accepted") {
     return { who: notif.actor?.name ?? "誰か", what: "さんから返信がありました" };
+  }
+  /* ★キャリア相談（2026-11-05）。⚠️ 中身（聞きたい話・ひとこと）は出さない */
+  if (notif.type === "career_consult") {
+    return { who: notif.actor?.name ?? "誰か", what: "さんからキャリア相談が届きました" };
   }
   /* ⚠️★**根拠の中身を出さない。** ベルはヘッダーに常設なので、
         「◯◯から3人が移っています」まで出すと肩越しに読まれる。

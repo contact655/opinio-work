@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { isDmSendable } from "@/lib/conversations/messageRequest";
 import { candidateApproachFirst } from "@/lib/approaches/server";
+import { commonPointsFor } from "@/lib/consult/commonPointsServer";
 
 export async function GET(request: NextRequest) {
   const supabase = createClient();
@@ -70,8 +71,14 @@ export async function GET(request: NextRequest) {
   /* ★企業から届いたメッセージの1通目を見出しなしで出す（2026-10-12）。⚠️ 自分宛ての送ったメッセージとだけ照合する */
   const approachFirst = conv.kind === "company" && messages ? await candidateApproachFirst(conversationId, owMe.id, messages) : null;
 
+  /* ★相手から届いたキャリア相談があれば、相手との共通点（2026-11-05）。⚠️ 受け取った側にだけ返す（自分が送った相談には付けない） */
+  const other = conv.kind === "direct_message" ? (conv.candidate_user_id === owMe.id ? conv.partner_user_id : conv.candidate_user_id) : null;
+  const receivedConsult = !!other && (messages ?? []).some((m: { kind?: string; sender_participant_id: string | null }) => m.kind === "consult" && m.sender_participant_id !== myParticipantId);
+  const commonPoints = receivedConsult && other ? ((await commonPointsFor(owMe.id as string, [other as string])).get(other as string) ?? []).map((p) => p.label) : [];
+
   return NextResponse.json({
     messages: messages ?? [],
+    commonPoints,
     approachFirst,
     myParticipantId,
     myName: owMe.name,

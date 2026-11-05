@@ -630,6 +630,7 @@ export default function ProfileTab({
   initialContentLinks,
   initialAddCompany = null,
   initialAddFirst = false,
+  returnAfterCareer = null,
   initialFocus = null,
   initialCareerHistoryCompleteAt = null,
   onSavedChange,
@@ -691,6 +692,8 @@ export default function ProfileTab({
   initialAddCompany?: { id: string; name: string } | null;
   /** ★ホーム（/home）の「職歴を1件入れる」から来たとき（`/mypage?add=career`。2026-10-27）。職歴の追加を短い形で開く */
   initialAddFirst?: boolean;
+  /** ★職歴を登録したあとに戻る画面（2026-11-05）。メッセージを送ろうとして職歴の登録を案内された人が、登録後に戻るため */
+  returnAfterCareer?: string | null;
   /** ★ホームの左のカードの「次の1件」から来たとき（`/mypage?focus=`。2026-11-04）。その欄へ寄せる */
   initialFocus?: ProfileFocusKey | null;
   /** ★「これ以上の経歴はない」を押した日時（2026-10-16）。null＝まだ答えていない */
@@ -1402,6 +1405,20 @@ export default function ProfileTab({
 
   return (
     <>
+        {/* ★メッセージを送る前に職歴の登録を案内された人の帰り道（2026-11-05）。登録が済んだら「元の画面に戻る」を目立たせる */}
+        {returnAfterCareer && (
+          <div data-state={careerStints.length > 0 ? "career-return-ready" : "career-return-waiting"}
+            style={{ maxWidth: PROFILE_CONTENT_MAX, marginBottom: 12, padding: "12px 14px", borderRadius: 10, border: "1px solid var(--royal-100)", background: "var(--royal-50)", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <span style={{ flex: "1 1 220px", minWidth: 0, fontSize: 13, lineHeight: 1.7, color: "var(--ink)" }}>
+              {careerStints.length > 0 ? "職歴を登録しました。元の画面に戻って、メッセージを送れます。" : "職歴を1件登録すると、メッセージを送れます。登録が済んだら、元の画面に戻れます。"}
+            </span>
+            <a href={returnAfterCareer} data-action="career-return"
+              style={{ flexShrink: 0, padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none",
+                background: careerStints.length > 0 ? "var(--royal)" : "#fff", color: careerStints.length > 0 ? "#fff" : "var(--royal)", border: "1.5px solid var(--royal)" }}>
+              元の画面に戻る
+            </a>
+          </div>
+        )}
         {/* ⚠️★「公開プロフィールを見る」のアクション行は 2026-10-17 に外した（柴さんの指示）。
                ボタンはヘッダーのメタ行の下（`metaActions`）に移した。⚠️ **この1つだけ。** 幅で出し分けない。
                ⚠️ 単独の行に右寄せで置いていたとき、モバイルでは何の操作か分かりにくかった。 */}

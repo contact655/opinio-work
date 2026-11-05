@@ -39,11 +39,38 @@ export const GENERAL_FIRST_MESSAGE_MAX = 500;
 export const MESSAGE_REQUEST_DAILY_LIMIT = 10;
 
 /**
- * 承認待ちのまま並べられるお願いの数。
- * ⚠️★**断られたものも数える。** 送り手には断られたことを伝えない決まりなので、
- *    断られた分だけ枠が空くと、枠の増減から断られたことが分かってしまう。
+ * ★返事待ちにできる新しい相手の数（2026-11-05 に 20 → 5 / 柴さんの指示）。
+ *   値は ow_settings の `message_request_open_limit` で運営が変えられる（無い・壊れていればこの値）。読むのは openRequestLimit。
+ * ⚠️★**黙って見送られたものも数える。** 送り手には断られたことを伝えない決まりなので、
+ *    見送られた分だけ枠が空くと、枠の増減から断られたことが分かってしまう。
+ *    ⚠️ 代わりに、送ってから MESSAGE_REQUEST_OPEN_WINDOW_DAYS 日たった返事待ちは数えない（時間で戻るので、断られたかは分からない）。
+ *    返信（「今回は難しいです」のワンタップ返信を含む）があれば、その時点で枠が戻る。
  */
-export const MESSAGE_REQUEST_OPEN_LIMIT = 20;
+export const MESSAGE_REQUEST_OPEN_LIMIT = 5;
+
+/** ow_settings のキー */
+export const MESSAGE_REQUEST_OPEN_LIMIT_SETTING_KEY = "message_request_open_limit";
+
+/** 返事待ちを枠に数える日数。これより古い返事待ちは数えない */
+export const MESSAGE_REQUEST_OPEN_WINDOW_DAYS = 14;
+
+/** 設定の値を上限にする。1〜100 の整数でなければ既定の値（⚠️ 0 や空で送れなくなる形にしない） */
+export function openRequestLimit(settingValue: string | null | undefined): number {
+  if (typeof settingValue !== "string" || !/^\d+$/.test(settingValue.trim())) return MESSAGE_REQUEST_OPEN_LIMIT;
+  const n = Number(settingValue.trim());
+  return n >= 1 && n <= 100 ? n : MESSAGE_REQUEST_OPEN_LIMIT;
+}
+
+/** これより後に送った返事待ちだけを数える（境目ちょうどは数えない） */
+export function openRequestWindowStart(now: Date): Date {
+  return new Date(now.getTime() - MESSAGE_REQUEST_OPEN_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+}
+
+/** その返事待ちを枠に数えるか（DB の絞り込み gt openRequestWindowStart と同じ境目） */
+export function isCountedPending(requestedAt: string, now: Date): boolean {
+  const t = new Date(requestedAt).getTime();
+  return !Number.isNaN(t) && t > openRequestWindowStart(now).getTime();
+}
 
 /* ── ★返信が無くても、続けて送れる（2026-10-22 に A案「3日後にもう1通」で入れ、2026-10-23 に回数と日数の制限を外した / 柴さんの指示）──
       個人どうしの返事待ちのメッセージに、送り手は返信を待たずに何通でも足せる。

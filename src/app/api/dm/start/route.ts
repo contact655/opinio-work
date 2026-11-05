@@ -13,10 +13,9 @@ import {
   sendMessageRequest,
   stateBlockMessage,
 } from "@/lib/conversations/messageRequest";
-import { dmTopicSections } from "@/lib/conversations/dmTopics";
 import { GENERAL_FIRST_MESSAGE_MAX } from "@/lib/constants/messages";
-import { talkProfileOf } from "@/lib/talk/server";
-import { TALK_UNAVAILABLE_TEXT } from "@/lib/constants/talk";
+import { consultAboutOptions } from "@/lib/conversations/consult";
+import { optionKeyForExperience } from "@/lib/constants/careerConsult";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -61,6 +60,22 @@ async function blockedMessageFor(meId: string, targetUserId: string): Promise<st
   return CONTACT_BLOCKED_MESSAGE;
 }
 
+/**
+ * ★送る人に職歴があるか（2026-11-05 / 柴さんの指示）。無ければ、新しい相手へ送る前に職歴の登録を案内する。
+ *   相談を受ける人が「誰から来たか」で受けるかを決められるようにするため。⚠️ 既にある会話を開く・続きを送るのは止めない。
+ *   取得に失敗したら null（呼び出し側は止める）
+ */
+const NEED_EXPERIENCE_MESSAGE = "メッセージを送る前に、職歴を1件登録してください。相手は、誰から届いたかを見て返信するかを決めます";
+async function senderHasExperience(meId: string): Promise<boolean | null> {
+  const { count, error } = await createAdminClient()
+    .from("ow_experiences").select("id", { count: "exact", head: true }).eq("user_id", meId);
+  if (error) {
+    console.error("[dm/start] experiences:", error.message);
+    return null;
+  }
+  return (count ?? 0) > 0;
+}
+
 async function targetExists(targetUserId: string): Promise<boolean> {
   const admin = createAdminClient();
   const { data } = await admin.from("ow_users").select("id, visibility").eq("id", targetUserId).maybeSingle();
@@ -99,27 +114,30 @@ export async function GET(request: NextRequest) {
   if (await isMessagingBlocked(meId, targetUserId)) {
     return NextResponse.json({ action: "blocked", message: await blockedMessageFor(meId, targetUserId) });
   }
-  /* ★つながっている（相互フォロー）なら、返事待ちを挟まずにすぐ始められる（2026-10-20）。
-       テーマは聞かず、ふつうのメッセージ欄を出す（`connected`）。返事待ちの枠も見ない */
-  /* ★相手の立場（2026-11-03）。書く画面に「採用担当（◯◯）」などを出す */
-  const talk = await talkProfileOf(targetUserId);
-  if (!talk) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
+  /* ★職歴が無ければ、書く前に登録を案内する（2026-11-05） */
+  const hasExp = await senderHasExperience(meId);
+  if (hasExp === null) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
+  if (!hasExp) return NextResponse.json({ action: "need_experience", message: NEED_EXPERIENCE_MESSAGE });
+
+  /* ★相談メニューの「聞きたい話」（2026-11-05）。送るときの確かめと同じ関数（consultAboutOptions）。
+       「この経験について聞く」から来たときは、その職歴の選択肢を選んだ状態で開く */
+  const consultOptions = await consultAboutOptions(targetUserId);
+  if (!consultOptions) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
+  const expRaw = request.nextUrl.searchParams.get("aboutExperienceId");
+  const selectedAbout = optionKeyForExperience(consultOptions, expRaw && UUID_RE.test(expRaw) ? expRaw : null);
+
+  /* ★つながっている（相互フォロー）なら、返事待ちを挟まずにすぐ始められる（2026-10-20）。返事待ちの枠も見ない */
   if ((await isMutualFollow(meId, targetUserId)) === true) {
-    return NextResponse.json({ action: "compose", connected: true, maxLength: CONNECTION_FIRST_MESSAGE_MAX, stanceLabel: talk.stanceLabel });
+    return NextResponse.json({ action: "compose", connected: true, maxLength: CONNECTION_FIRST_MESSAGE_MAX, consultOptions, selectedAbout });
   }
-  /* ★つながっていない人への最初の1通＝「話を聞く」依頼。相手が受け付けていなければ書かせない（送信の検証と同じ関数） */
-  if (!talk.accepts) return NextResponse.json({ action: "blocked", message: TALK_UNAVAILABLE_TEXT });
+  /* ⚠️ 2026-11-03〜11-05 は、相手の「話を聞ける」設定で書く前に止めていた。外した（柴さんの指示）。
+        量の歯止めは返事待ちの上限（既定 5 人）と1日の上限 */
   const quota = await getRequestQuota(meId);
   if (!quota) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
   const quotaMsg = quotaBlockMessage(quota);
   if (quotaMsg) return NextResponse.json({ action: "blocked", message: quotaMsg });
 
-  /* ★書く画面に出すテーマ（送信の検証と同じ関数。2026-10-17） */
-  /* ★企業ページの社員の行から押したときは、その会社（2026-10-18）。確かめられなければ使わない */
-  const aboutRaw = request.nextUrl.searchParams.get("aboutCompanyId");
-  const topicSections = await dmTopicSections(targetUserId, aboutRaw && UUID_RE.test(aboutRaw) ? aboutRaw : null);
-  if (!topicSections) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
-  return NextResponse.json({ action: "compose", quota, topicSections, messageMaxLength: GENERAL_FIRST_MESSAGE_MAX, stanceLabel: talk.stanceLabel });
+  return NextResponse.json({ action: "compose", quota, consultOptions, selectedAbout, maxLength: GENERAL_FIRST_MESSAGE_MAX });
 }
 
 export async function POST(request: NextRequest) {
@@ -129,7 +147,7 @@ export async function POST(request: NextRequest) {
   const meId = await resolveMe();
   if (!meId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let body: { targetUserId?: unknown; topic?: unknown; format?: unknown; aboutCompanyId?: unknown; askCompanyId?: unknown; message?: unknown; connected?: unknown; kind?: unknown };
+  let body: { targetUserId?: unknown; topic?: unknown; format?: unknown; aboutCompanyId?: unknown; askCompanyId?: unknown; message?: unknown; connected?: unknown; kind?: unknown; consult?: unknown };
   try { body = await request.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
@@ -140,6 +158,13 @@ export async function POST(request: NextRequest) {
   if (!(await targetExists(targetUserId))) {
     return NextResponse.json({ error: CONTACT_BLOCKED_MESSAGE }, { status: 404 });
   }
+  /* ★職歴が無い人は、新しい相手へ送れない（2026-11-05。画面の案内と同じ判定をサーバーでも） */
+  const hasExp = await senderHasExperience(meId);
+  if (hasExp === null) return NextResponse.json({ error: "送信に失敗しました。もう一度お試しください" }, { status: 500 });
+  if (!hasExp) return NextResponse.json({ error: NEED_EXPERIENCE_MESSAGE }, { status: 403 });
+  /* ★キャリア相談（2026-11-05）。あれば相談として送る（中身の確かめは resolveConsult） */
+  const consult = body.consult != null && typeof body.consult === "object" ? body.consult : null;
+  if (body.consult != null && !consult) return NextResponse.json({ error: "相談の内容を選び直してください" }, { status: 400 });
 
   /* ★つながっている相手へ（GET が connected を返したときだけ画面が付けてくる）。
        ⚠️ 画面の申告は信じない。sendDirectToConnection が相互フォローを確かめ直す */
@@ -148,6 +173,7 @@ export async function POST(request: NextRequest) {
       senderId: meId,
       recipientId: targetUserId,
       body: typeof body.message === "string" ? body.message : "",
+      consult,
     });
     if (!direct.ok) {
       const error = direct.error === CONTACT_BLOCKED_MESSAGE ? await blockedMessageFor(meId, targetUserId) : direct.error;
@@ -160,7 +186,8 @@ export async function POST(request: NextRequest) {
     senderId: meId,
     recipientId: targetUserId,
     /* ★「キャリアの相談をする」か「メッセージを送る」か（2026-10-20）。知らない値は相談として扱う（テーマが無ければ 400） */
-    kind: body.kind === "message" ? "message" : "consult",
+    kind: consult ? "career_consult" : body.kind === "message" ? "message" : "consult",
+    consult,
     topic: typeof body.topic === "string" ? body.topic : "",
     aboutCompanyId: typeof body.aboutCompanyId === "string" && UUID_RE.test(body.aboutCompanyId) ? body.aboutCompanyId : null,
     askCompanyId: typeof body.askCompanyId === "string" && UUID_RE.test(body.askCompanyId) ? body.askCompanyId : null,

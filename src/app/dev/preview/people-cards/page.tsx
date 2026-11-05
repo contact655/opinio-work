@@ -114,13 +114,13 @@ export default function PeopleCardsPreview() {
         <div className="ppl-grid" style={{ maxWidth: 988 }}>
           {PEOPLE.map((c, i) => (
             <GridCard key={c.userId} card={c} myUserId={i === PEOPLE.length - 1 ? c.userId : "preview-viewer"}
-              followedUserIds={i === 1 ? [c.userId] : []} talkOpen={i === 0 || i === 2} />
+              followedUserIds={i === 1 ? [c.userId] : []} />
           ))}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
           {PEOPLE.map((c, i) => (
             <ListRow key={c.userId} card={c} myUserId={i === PEOPLE.length - 1 ? c.userId : "preview-viewer"}
-              followedUserIds={i === 1 ? [c.userId] : []} talkOpen={i === 0 || i === 2} />
+              followedUserIds={i === 1 ? [c.userId] : []} />
           ))}
         </div>
       </Variant>

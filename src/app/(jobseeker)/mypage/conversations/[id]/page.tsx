@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/paging";
 import { candidateApproachFirst } from "@/lib/approaches/server";
-import { autoDeclinedForRequester } from "@/lib/talk/server";
+import { commonPointsFor } from "@/lib/consult/commonPointsServer";
 import ConversationDetailClient, {
   type ConversationDetail,
   type MessageRow,
@@ -46,8 +46,10 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 
 export default async function ConversationDetailPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams?: { consult?: string };
 }) {
   const { id: conversationId } = params;
 
@@ -106,8 +108,6 @@ export default async function ConversationDetailPage({
 
   // Conversation not found or user is not a participant
   if (!conversation || !myParticipant) notFound();
-  /* ★自分が送った「話を聞く」依頼が14日で自動の辞退になったか（2026-11-03。送った本人の分だけ） */
-  conversation.talk_auto_declined = (await autoDeclinedForRequester(owUser.id as string, [conversationId])).has(conversationId);
 
   // Fetch initial messages + mark as read in parallel
   const [msgsResult] = await Promise.all([
@@ -143,6 +143,14 @@ export default async function ConversationDetailPage({
         照合は `candidateApproachFirst`（一覧の右側の API と同じ関数） */
   const approachFirst = conversation.kind === "company" ? await candidateApproachFirst(conversationId, owUser.id, messages) : null;
 
+  /* ★相手から届いたキャリア相談があれば、相手との共通点（受け取った側だけ。2026-11-05） */
+  const otherId = conversation.kind === "direct_message"
+    ? ((rawConv?.candidate_user_id === owUser.id ? rawConv?.partner_user_id : rawConv?.candidate_user_id) as string | null)
+    : null;
+  const receivedConsult = !!otherId && messages.some((m) => m.kind === "consult" && m.sender_participant_id !== myParticipant.id);
+  const commonPoints = receivedConsult && otherId ? ((await commonPointsFor(owUser.id as string, [otherId])).get(otherId) ?? []).map((p) => p.label) : [];
+  const consultExperienceId = searchParams?.consult && /^[0-9a-f-]{36}$/i.test(searchParams.consult) ? searchParams.consult : null;
+
   return (
     <ConversationDetailClient
       conversationId={conversationId}
@@ -151,6 +159,8 @@ export default async function ConversationDetailPage({
       initialMyParticipantId={myParticipant.id}
       myUserName={myUserName}
       approachFirst={approachFirst}
+      initialCommonPoints={commonPoints}
+      consultExperienceId={consultExperienceId}
     />
   );
 }

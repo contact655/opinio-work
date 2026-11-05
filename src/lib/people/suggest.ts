@@ -18,7 +18,7 @@ export const USER_SUGGEST_LIMIT = 3;
 /** ×で外した人を出さない日数 */
 export const USER_SUGGEST_DISMISS_DAYS = 30;
 
-export type SuggestReasonKind = "same_role" | "same_path" | "followed_company" | "saved_job_company" | "talk_open";
+export type SuggestReasonKind = "same_role" | "same_path" | "followed_company" | "saved_job_company";
 
 export type SuggestPerson = {
   id: string;
@@ -31,7 +31,6 @@ export type SuggestPerson = {
   pastSteps: { roleId: string | null; industryTopId: string | null }[];
   /** 株式会社エージェントなど、個人カードに出さない会社に在籍中 */
   atExcludedCompany: boolean;
-  talkOpen: boolean;
   updatedAt: string | null;
 };
 
@@ -56,7 +55,7 @@ export type SuggestInput = {
 export type UserSuggestion = { userId: string; kind: SuggestReasonKind; reason: string };
 
 const TIER: Record<SuggestReasonKind, number> = {
-  same_role: 1, same_path: 1, followed_company: 2, saved_job_company: 2, talk_open: 3,
+  same_role: 1, same_path: 1, followed_company: 2, saved_job_company: 2,
 };
 
 export function roleTop(roleId: string, parent: Record<string, string | null>): string {
@@ -88,7 +87,6 @@ function reasonOf(p: SuggestPerson, input: SuggestInput, followedCompanies: Set<
   if (followed) return { userId: p.id, kind: "followed_company", reason: `フォロー中の会社・${followed.nameIfShown}` };
   const saved = p.currentCompanies.find((c) => c.nameIfShown && savedCompanies.has(c.companyId));
   if (saved) return { userId: p.id, kind: "saved_job_company", reason: `保存した募集の会社・${saved.nameIfShown}` };
-  if (p.talkOpen) return { userId: p.id, kind: "talk_open", reason: "「話を聞く」を受付中" };
   return null;
 }
 

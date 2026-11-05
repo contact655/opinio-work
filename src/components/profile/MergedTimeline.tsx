@@ -12,6 +12,7 @@ import { formatDuration, formatTenure } from "@/lib/profile/tenure";
 import { rankLabel } from "@/lib/constants/careerOptions";
 import { REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { buildOverlapMap } from "@/lib/profile/parallel";
+import { DMButton } from "./DMButton";
 
 // ─── 会社名を短縮: "株式会社LayerX" → "LayerX" ────────────────────────────────
 /* ★export は 2026-10-16（/mypage の「質問が新しくなりました（◯◯）」の社名を行と揃えるため）。
@@ -228,14 +229,21 @@ export interface MergedTimelineProps {
   /**
    * ★職歴1件ごとに、行の**右端**へ差し込むもの（2026-09-12 / 理由モーダルの入口アイコン）。
    *
-   * ⚠️★**渡されなければ何も描かない。** `renderCareerExtra` と同じ理由で、
+   * ⚠️★**渡されなければ何も描かない。** 本人向けの操作（理由モーダルの入口）は
    *    公開プロフィール（`/u/[id]`）・企業ページ・`/people` には**渡さない**。
-   *    「見ている人が本人か」で出し分けない ——本人が自分の公開ページを見ても true になる。
+   * ★2026-11-05 から `/u/[id]` は、本人以外のログイン中の人に「この経験について聞く」を渡す（呼び出し側で出し分ける）。
    *
    * ⚠️ `careerActions`（行の鉛筆）とは**独立**。鉛筆を渡さない画面でも出せるよう、
    *    相乗りさせない（`/mypage/details/experience` は 2026-09-12 に畳み、いまは行の鉛筆で編集する）。
    */
   renderCareerAside?: (careerId: string) => React.ReactNode;
+  /**
+   * ★「この経験について聞く」の相手（2026-11-05）。渡すと職歴の行の右端にリンクを出す。
+   * ⚠️★サーバーで組み立てる画面（`/u/[id]`）から関数（`renderCareerAside`）は渡せない
+   *    （Next.js が「Functions cannot be passed directly to Client Components」で落とす）。
+   *    だから相手だけを値で受け取り、ここで描く。出し分け（ログイン中・本人以外・embed でない）は呼び出し側。
+   */
+  askAbout?: { userId: string; name: string };
 }
 
 // ─── Internal discriminated union ─────────────────────────────────────────────
@@ -1100,6 +1108,7 @@ export default function MergedTimeline({
   careers,
   educations,
   renderCareerAside,
+  askAbout,
   educationActions,
   careerActions,
   isAuthenticated = true,
@@ -1260,9 +1269,12 @@ export default function MergedTimeline({
                           {/* 主見出し: 部署名。無ければ役職名 → 職種の順に繰り上げる
                               ⚠️ 3経路のうちの3つ目。**会社名の見出しではなくポジション行に置く**
                                  （会社の見出しは id を持たない） */}
-                          {(careerActions || renderCareerAside) && (
+                          {(careerActions || renderCareerAside || askAbout) && (
                             <span style={{ float: "right", marginLeft: 8, display: "inline-flex", alignItems: "center", gap: 2 }}>
                               {renderCareerAside?.(c.id)}
+                              {askAbout && (
+                                <DMButton targetUserId={askAbout.userId} targetName={askAbout.name} variant="link" aboutExperienceId={c.id} />
+                              )}
                               {careerActions && (
                                 <RowActionButtons id={c.id} label={`${head.company_name}（${lines.heading}）`} actions={careerActions} />
                               )}

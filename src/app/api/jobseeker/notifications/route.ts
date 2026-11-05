@@ -101,6 +101,8 @@ export async function GET() {
       /* ★メッセージのお願い（2026-10-09 / 段階3）。投稿にぶら下がらないので自分の case が要る */
       case "message_request": return !!r.conversation_id;
       case "message_request_accepted": return !!r.conversation_id;
+      /* ★キャリア相談（2026-11-05）。投稿にぶら下がらないので自分の case が要る */
+      case "career_consult": return !!r.conversation_id;
       /* ★②の提案。投稿にぶら下がらないので自分の case が要る（2026-09-21） */
       case "proposal": return !!r.proposal_id;
       /* ★③の紹介。押すと会話へ飛ぶので conversation_id が要る */

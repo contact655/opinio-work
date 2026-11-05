@@ -19,7 +19,6 @@ const base: HomeProfileCardData = {
   counts: { following: 3, followers: 0, companies: 12, savedJobs: 1 },
   experienceCount: 2,
   nextStepKey: "photo",
-  talkCapacity: "monthly_one",
 };
 
 const NEXT_KEYS: ProfileNextStepKey[] = ["photo", "education", "school", "headline", "about"];
@@ -36,15 +35,15 @@ export default function HomeLeftCardPreview() {
       <PreviewHeader title="ホームの左の列のカード（/home・/search）">
         PC（1024px 以上）の左の列（幅 225px）。1023px 以下では出さない。
       </PreviewHeader>
-      <Variant label="ふつう（月1件まで）"><Col><HomeProfileCard {...base} /></Col></Variant>
-      <Variant label="職歴0件（「職歴を入れる」）・話を聞けるはオフ">
-        <Col><HomeProfileCard {...base} me={{ ...base.me, roleName: null, companyLabel: null }} experienceCount={0} talkCapacity="none" /></Col>
+      <Variant label="ふつう"><Col><HomeProfileCard {...base} /></Col></Variant>
+      <Variant label="職歴0件（「職歴を入れる」）">
+        <Col><HomeProfileCard {...base} me={{ ...base.me, roleName: null, companyLabel: null }} experienceCount={0} /></Col>
       </Variant>
-      <Variant label="長い名前・長い職種と社名（1行で切れる）・積極的に">
-        <Col><HomeProfileCard {...base} me={{ ...base.me, name: "とても長い名前のユーザー 太郎", roleName: "カスタマーサクセスマネージャー", companyLabel: "とても長い会社名の株式会社エンタープライズソリューションズジャパン" }} talkCapacity="active" /></Col>
+      <Variant label="長い名前・長い職種と社名（1行で切れる）">
+        <Col><HomeProfileCard {...base} me={{ ...base.me, name: "とても長い名前のユーザー 太郎", roleName: "カスタマーサクセスマネージャー", companyLabel: "とても長い会社名の株式会社エンタープライズソリューションズジャパン" }} /></Col>
       </Variant>
-      <Variant label="職歴はあるが現職が無い（肩書きの行を出さない）・話せる量が取れない（行ごと出さない）">
-        <Col><HomeProfileCard {...base} me={{ ...base.me, roleName: null, companyLabel: null }} talkCapacity={null} /></Col>
+      <Variant label="職歴はあるが現職が無い（肩書きの行を出さない）">
+        <Col><HomeProfileCard {...base} me={{ ...base.me, roleName: null, companyLabel: null }} /></Col>
       </Variant>
       <Variant label="次の1件: 写真 → 学歴 → 学歴の学校を一覧から選ぶ → 肩書き → 自己紹介（5枚）">
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>

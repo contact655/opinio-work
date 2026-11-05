@@ -16,9 +16,10 @@ import { MAX_BULK_RECIPIENTS, MAX_DM_LENGTH } from "@/lib/constants/messages";
 /* ⚠️ 型だけ。`messageRequest.ts` はサーバー専用なので、値を import しないこと */
 import type { IncomingRequest } from "@/lib/conversations/messageRequest";
 import { askCompanyName, formatLabel, isMessageFormat, isMessageTopic, requestHeadline } from "@/lib/constants/messageTopics";
-import { AskPicker, AskTag, type AskValue } from "@/components/messages/FirstMessage";
+import { AskTag } from "@/components/messages/FirstMessage";
 import { PendingFollowUp } from "@/components/messages/PendingFollowUp";
-import { TALK_AUTO_DECLINED_TEXT } from "@/lib/constants/talk";
+import { CommonPointsLine, ConsultCard, ConsultLabel, ConsultLauncher } from "@/components/messages/Consult";
+import { CONSULT_DECLINE_REPLY, readConsultPayload } from "@/lib/constants/careerConsult";
 
 /** ★送り手が承認前の DM を開いたときに出す文言（段階3）。⚠️ 断られていても同じ文言 */
 const NOT_ACCEPTED_TEXT = "まだ返信がありません。返信があると続きを送れます";
@@ -35,8 +36,8 @@ export type Conversation = {
   /** ★DM の「メッセージのお願い」の段（段階3）。この一覧に出るのは自分が参加者の会話だけなので、
    *  pending ＝ 自分が送って承認待ち（断られていても pending のまま見える） */
   request_status?: string | null;
-  /** ★自分が送った「話を聞く」依頼が、返事の無いまま14日で自動の辞退になった（2026-11-03。送った本人にだけ true） */
-  talk_auto_declined?: boolean;
+  /** ★キャリア相談が1通でもある会話（2026-11-05。一覧に「キャリア相談」のラベル） */
+  hasConsult?: boolean;
   /** ★最初の1通で選んだテーマ（DM。2026-10-17） */
   request_topic?: string | null;
   request_format?: string | null;
@@ -60,6 +61,9 @@ export type Conversation = {
 type MessageRow = {
   id: string;
   body: string;
+  /** ★種類（text / consult など）。consult なら payload から相談のカードを描く（2026-11-05） */
+  kind?: string;
+  payload?: unknown;
   /* ★この1通の「聞きたいこと」（2026-10-22）。無ければふつうのメッセージ */
   ask_topic?: string | null;
   ask_format?: string | null;
@@ -122,7 +126,8 @@ function UnrepliedRow({ item, selected, onOpen }: { item: UnrepliedItem; selecte
   const name = item.kind === "company" ? item.approach.companyName : item.request.requester.name;
   const preview = item.kind === "company" ? item.approach.reason : (item.request.body ?? "");
   /* ★個人からの1通目の見出し（2026-10-17 / 2026-10-20 に「相談：」「メッセージ」を足した） */
-  const topic = item.kind === "person"
+  const isConsult = item.kind === "person" && !!item.request.consult;
+  const topic = item.kind === "person" && !isConsult
     ? `${requestHeadline(item.request.topic, item.request.aboutCompanyName)}${item.request.format ? `・${formatLabel(item.request.format)}` : ""}` : null;
   return (
     <button type="button" onClick={onOpen} data-unreplied={item.kind} data-unreplied-id={item.key} aria-expanded={selected}
@@ -155,8 +160,9 @@ function UnrepliedRow({ item, selected, onOpen }: { item: UnrepliedItem; selecte
         {/* ★状態は灰色の小さな文字（2026-10-11 / 柴さんの指示）。⚠️ バッジ・「企業から」の印を付けない */}
         <div data-state="item-status" style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>まだ返信していません</div>
         <div style={{ marginTop: 2, fontSize: 13, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+          {isConsult && <><ConsultLabel />{" "}</>}
           {topic && <span data-state="request-topic-inline" style={{ color: "var(--royal)", fontWeight: 700 }}>{topic}　</span>}
-          {preview}
+          {isConsult && item.kind === "person" && item.request.consult ? (item.request.consult.note ?? "") : preview}
         </div>
       </div>
       <div aria-hidden style={{ width: 8, height: 8, marginTop: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />
@@ -220,6 +226,14 @@ function UnrepliedDetail({ item, reported, onReply, onAction }: {
               )}
             </div>
           </div>
+          {item.request.consult ? (
+            <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+              <ConsultCard payload={item.request.consult} commonPoints={item.request.commonPoints}
+                onDecline={() => onReply(item, CONSULT_DECLINE_REPLY)} />
+            </div>
+          ) : (
+          <>
+          <CommonPointsLine points={item.request.commonPoints} />
           <div style={{ marginTop: 12 }}>
             <span data-state="request-topic" style={{ display: "inline-block", padding: "3px 10px", borderRadius: 999, background: "var(--royal-50)", color: "var(--royal)", fontSize: 12.5, fontWeight: 700 }}>
               {requestHeadline(item.request.topic, item.request.aboutCompanyName)}
@@ -233,14 +247,20 @@ function UnrepliedDetail({ item, reported, onReply, onAction }: {
           <p data-state="request-body" style={{ margin: "12px 0 0", fontSize: 14, lineHeight: 1.8, color: item.request.body ? "var(--ink)" : "var(--ink-mute)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
             {item.request.body ?? "（本文を読み込めませんでした）"}
           </p>
+          </>
+          )}
           {/* ★返信が無いあいだに届いた、もう1通（2026-10-22 / A案） */}
           {item.request.followUps.map((f) => (
             <div key={f.sentAt} data-state="request-follow-up" style={{ marginTop: 12, paddingTop: 10, borderTop: "1px dashed var(--line)" }}>
               <div style={{ fontSize: 12, color: "var(--ink-mute)", marginBottom: 4 }}>{fmt(f.sentAt)}に届いたメッセージ</div>
-              {isMessageTopic(f.askTopic) && (
-                <AskTag topic={f.askTopic} format={isMessageFormat(f.askFormat) ? f.askFormat : null} companyName={f.askCompanyName} />
+              {f.consult ? <ConsultCard payload={f.consult} /> : (
+                <>
+                  {isMessageTopic(f.askTopic) && (
+                    <AskTag topic={f.askTopic} format={isMessageFormat(f.askFormat) ? f.askFormat : null} companyName={f.askCompanyName} />
+                  )}
+                  <p style={{ margin: 0, fontSize: 14, lineHeight: 1.8, color: "var(--ink)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{f.body}</p>
+                </>
               )}
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.8, color: "var(--ink)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{f.body}</p>
             </div>
           ))}
         </>
@@ -265,12 +285,15 @@ function UnrepliedDetail({ item, reported, onReply, onAction }: {
 export default function ConversationsClient({
   initialConversations,
   initialOpenConvId,
+  initialConsultExperienceId = null,
   initialRequests,
   initialApproaches = [],
   initialTab = "all",
 }: {
   initialConversations: Conversation[];
   initialOpenConvId?: string | null;
+  /** ★「この経験について聞く」から既にある会話へ来たとき、その職歴（相談の画面をその会社で1回だけ開く。2026-11-05） */
+  initialConsultExperienceId?: string | null;
   initialRequests: IncomingRequest[];
   /** ★企業から届いた、まだ返信していない最初のメッセージ（2026-10-11）。null = 取れなかった */
   initialApproaches?: IncomingApproachView[] | null;
@@ -282,8 +305,10 @@ export default function ConversationsClient({
   const approachesFailed = initialApproaches === null;
   const [reported, setReported] = useState<Set<string>>(new Set());
   /* ★「すべて」「未返信」（2026-10-11 / 柴さんの指示）。未返信 ＝ まだ返信していない最初のメッセージ（企業から・個人から） */
-  const [tab, setTab] = useState<"all" | "unreplied">(initialTab);
-  const [openUnreplied, setOpenUnreplied] = useState<string | null>(null);
+  /* ★?open= が届いている相談（未返信）の会話なら、「未返信」のその1件を開く（ベルの「キャリア相談が届きました」から。2026-11-05） */
+  const openIsIncoming = !!initialOpenConvId && initialRequests.some((r) => r.conversationId === initialOpenConvId);
+  const [tab, setTab] = useState<"all" | "unreplied">(openIsIncoming ? "unreplied" : initialTab);
+  const [openUnreplied, setOpenUnreplied] = useState<string | null>(openIsIncoming ? `r:${initialOpenConvId}` : null);
   const unreplied: UnrepliedItem[] = [
     ...approaches.map((a): UnrepliedItem => ({ kind: "company", key: `a:${a.id}`, at: a.createdAt, approach: a })),
     ...requests.map((r): UnrepliedItem => ({ kind: "person", key: `r:${r.conversationId}`, at: r.requestedAt ?? "", request: r })),
@@ -361,12 +386,10 @@ export default function ConversationsClient({
     }
   };
   const [conversations] = useState<Conversation[]>(initialConversations);
-  const [selectedConvId, setSelectedConvId] = useState<string | null>(initialOpenConvId ?? null);
+  const [selectedConvId, setSelectedConvId] = useState<string | null>(openIsIncoming ? null : (initialOpenConvId ?? null));
   const [messages, setMessages] = useState<MessageRow[]>([]);
-  /* ★この1通に添える「聞きたいこと」（2026-10-22）。askKey は送ったあと・会話を切り替えたときに選択欄を閉じ直すため */
-  const [ask, setAsk] = useState<AskValue>(null);
-  const [askKey, setAskKey] = useState(0);
-  useEffect(() => { setAsk(null); }, [selectedConvId]);
+  /* ★相手から届いた相談があれば、相手との共通点（受け取った側だけ。API が返す。2026-11-05） */
+  const [commonPoints, setCommonPoints] = useState<string[]>([]);
   /** ★企業から届いたメッセージの1通目（見出しなしで出す本文）。API が送ったメッセージの行と照合して返す */
   const [approachFirst, setApproachFirst] = useState<{ messageId: string; text: string } | null>(null);
   const [myParticipantId, setMyParticipantId] = useState<string | null>(null);
@@ -392,8 +415,8 @@ export default function ConversationsClient({
   /* ⚠️ `?open=` で来たとき（DM の入口・通知から）も、狭い画面なら詳細ページへ移す。
         そのままだと一覧だけが出て、開いたはずの会話が見えない。 */
   useEffect(() => {
-    if (initialOpenConvId && isNarrowNow()) {
-      router.replace(`/mypage/conversations/${initialOpenConvId}`);
+    if (initialOpenConvId && !openIsIncoming && isNarrowNow()) {
+      router.replace(`/mypage/conversations/${initialOpenConvId}${initialConsultExperienceId ? `?consult=${encodeURIComponent(initialConsultExperienceId)}` : ""}`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -403,6 +426,7 @@ export default function ConversationsClient({
     if (!r.ok) return;
     const data = await r.json();
     setMessages(data.messages ?? []);
+    setCommonPoints(Array.isArray(data.commonPoints) ? data.commonPoints : []);
     setApproachFirst(data.approachFirst ?? null);
     setMyParticipantId(data.myParticipantId ?? null);
     setMyName(data.myName ?? null);
@@ -412,6 +436,7 @@ export default function ConversationsClient({
     if (!selectedConvId) return;
     setPanelLoading(true);
     setMessages([]);
+    setCommonPoints([]);
     setApproachFirst(null);
     setInputText("");
     setSendError(null);
@@ -508,25 +533,32 @@ export default function ConversationsClient({
     }
   };
 
+  /** 1通送る（エラーの文言を返す。成功なら null）。入力欄の送信と「今回は難しいです」のワンタップ返信が同じ経路を通る */
+  const sendText = async (text: string): Promise<string | null> => {
+    if (!text.trim() || !selectedConvId) return null;
+    try {
+      const res = await fetch("/api/dm/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId: selectedConvId, message: text.trim() }),
+      });
+      if (res.status === 401) { router.push("/auth?next=/mypage/conversations"); return null; }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return data.error ?? "送信に失敗しました";
+      await fetchMessages(selectedConvId);
+      return null;
+    } catch {
+      return "送信に失敗しました";
+    }
+  };
   const handleSend = async () => {
     if (!inputText.trim() || !selectedConvId || sending) return;
     setSending(true);
     setSendError(null);
     try {
-      const res = await fetch("/api/dm/message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId: selectedConvId, message: inputText.trim(), topic: ask?.topic ?? null, format: ask?.format ?? null, askCompanyId: ask?.companyId ?? null }),
-      });
-      if (res.status === 401) { router.push("/auth?next=/mypage/conversations"); return; }
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "送信に失敗しました");
-      setInputText("");
-      setAsk(null);
-      setAskKey((k) => k + 1);
-      await fetchMessages(selectedConvId);
-    } catch (e: unknown) {
-      setSendError(e instanceof Error ? e.message : "送信に失敗しました");
+      const err = await sendText(inputText);
+      if (err) setSendError(err);
+      else setInputText("");
     } finally {
       setSending(false);
     }
@@ -710,12 +742,10 @@ export default function ConversationsClient({
                       </span>
                     </div>
                     {/* ★自分が送った最初のメッセージに返信がまだ無い（段階3）。⚠️ 見送られていても同じ表示 */}
-                    {isPendingRequest(conv) && (conv.talk_auto_declined ? (
-                      /* ★14日たって自動で辞退になった（2026-11-03）。⚠️ 理由は出さない */
-                      <div data-state="talk-auto-declined" style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>{TALK_AUTO_DECLINED_TEXT}</div>
-                    ) : (
+                    {isPendingRequest(conv) && (
                       <div data-state="request-pending" style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 2 }}>返信を待っています</div>
-                    ))}
+                    )}
+                    {conv.hasConsult && <div style={{ marginTop: 3 }}><ConsultLabel /></div>}
                     <div style={{ fontSize: 12.5, fontWeight: hasUnread ? 600 : 400, color: hasUnread ? "var(--ink)" : "var(--ink-soft)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
                       {conv.lastMessage ?? "これから対話"}
                     </div>
@@ -843,9 +873,23 @@ export default function ConversationsClient({
                         求職者側は左右を反転: 自分＝右・薄い青 ／ 企業・相手＝左・白。各吹き出しの上に「名前・日時」を灰色で。
                         ⚠️ /mypage/conversations/[id] と同じ並べ方。片方だけ書き換えない */
                   <div data-state="jobseeker-thread" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {messages.map((msg) => {
+                    {messages.map((msg, i) => {
                       const isMe = msg.sender_participant_id === myParticipantId;
                       const sender = isMe ? (myName ?? "自分") : (msg.ow_conversation_participants?.ow_users?.name ?? "相手");
+                      /* ★キャリア相談はカードで出す（ふつうのメッセージと見分けがつくように。2026-11-05）。
+                            受け取った側には共通点と「今回は難しいです」のワンタップ返信 */
+                      const consult = msg.kind === "consult" ? readConsultPayload(msg.payload) : null;
+                      if (consult) {
+                        const canDecline = !isMe && !isPendingRequest(selectedConv)
+                          /* ⚠️ 相談のあとに自分が何か送っていたら出さない（返したあとも残っていた。2026-11-05） */
+                          && !messages.slice(i + 1).some((m) => m.sender_participant_id === myParticipantId);
+                        return (
+                          <ChatBubble key={msg.id} mine={isMe} sender={sender} at={msg.sent_at} plain>
+                            <ConsultCard payload={consult} commonPoints={isMe ? [] : commonPoints}
+                              onDecline={canDecline ? () => sendText(CONSULT_DECLINE_REPLY) : undefined} />
+                          </ChatBubble>
+                        );
+                      }
                       return (
                         <ChatBubble key={msg.id} mine={isMe} sender={sender} at={msg.sent_at}>
                           {approachFirst?.messageId === msg.id
@@ -874,21 +918,14 @@ export default function ConversationsClient({
               {isPendingRequest(selectedConv) ? (
                 /* ★返信が無くても、1通目から3日たてばもう1通だけ送れる（2026-10-22 / A案）。判定は API の1か所 */
                 <div style={{ borderTop: "1px solid var(--line)", padding: "12px 16px", flexShrink: 0, background: "var(--line-soft)" }}>
-                  {selectedConv?.talk_auto_declined ? (
-                    /* ★14日たって自動で辞退になった（2026-11-03）。⚠️ 理由は出さない。続きも送らせない */
-                    <p data-state="talk-auto-declined" style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)" }}>{TALK_AUTO_DECLINED_TEXT}</p>
-                  ) : (
-                    <PendingFollowUp key={selectedConvId ?? ""} conversationId={selectedConvId ?? ""} fallbackText={NOT_ACCEPTED_TEXT}
-                      onSent={() => (selectedConvId ? fetchMessages(selectedConvId) : undefined)} />
-                  )}
+                  <PendingFollowUp key={selectedConvId ?? ""} conversationId={selectedConvId ?? ""} fallbackText={NOT_ACCEPTED_TEXT}
+                    recipientName={displayName}
+                    onSent={() => (selectedConvId ? fetchMessages(selectedConvId) : undefined)} />
                 </div>
               ) : (
               /* 入力エリア */
               <div style={{ borderTop: "1px solid var(--line)", padding: "10px 16px 12px", display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
-              {selectedConv?.kind === "direct_message" && selectedConvId && (
-                <AskPicker key={`${selectedConvId}-${askKey}`} conversationId={selectedConvId} value={ask} onChange={setAsk} disabled={sending} />
-              )}
-              <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "flex-end", minWidth: 0 }}>
                 <textarea
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
@@ -901,9 +938,15 @@ export default function ConversationsClient({
                     padding: "9px 12px", borderRadius: 8,
                     border: "1.5px solid var(--line)", outline: "none",
                     fontSize: 13, lineHeight: 1.5, resize: "none",
-                    fontFamily: "inherit", color: "var(--ink)",
+                    fontFamily: "inherit", color: "var(--ink)", minWidth: 0,
                   }}
                 />
+                {/* ★「相談する」は入力欄の横に常に出す（2026-11-05 / 個人どうしの会話だけ） */}
+                {selectedConv?.kind === "direct_message" && selectedConvId && (
+                  <ConsultLauncher key={selectedConvId} conversationId={selectedConvId} recipientName={displayName} disabled={sending}
+                    autoOpenExperienceId={selectedConvId === initialOpenConvId ? initialConsultExperienceId : null}
+                    onSent={() => fetchMessages(selectedConvId)} />
+                )}
                 <button
                   type="button"
                   onClick={handleSend}

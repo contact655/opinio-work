@@ -9,6 +9,7 @@ import { CONTACT_BLOCKED_MESSAGE, isMessagingBlocked } from "@/lib/conversations
 import { companyConversationSendAllowed } from "@/lib/conversations/openReason";
 import { NOT_ACCEPTED_MESSAGE, isDmSendable, sendPendingFollowUp } from "@/lib/conversations/messageRequest";
 import { NO_ASK, resolveAsk, type AskColumns } from "@/lib/conversations/askTopic";
+import { resolveConsult, type ConsultColumns } from "@/lib/conversations/consult";
 
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -18,13 +19,17 @@ export async function POST(request: NextRequest) {
   if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   /* ★topic / format（2026-10-22）… この1通に付ける「聞きたいこと」。省けばふつうのメッセージ。確かめるのは resolveAsk の1か所 */
-  let body: { conversationId: string; message: string; topic?: string | null; format?: string | null; askCompanyId?: string | null };
+  /* ★consult（2026-11-05）… キャリア相談。あれば message は使わず、相談として送る（確かめは resolveConsult の1か所） */
+  let body: { conversationId: string; message?: string; topic?: string | null; format?: string | null; askCompanyId?: string | null; consult?: unknown };
   try { body = await request.json(); }
   catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
-  const { conversationId, message } = body;
+  const { conversationId } = body;
+  const message = typeof body.message === "string" ? body.message : "";
+  const consultRaw = body.consult != null && typeof body.consult === "object" ? body.consult : null;
+  if (body.consult != null && !consultRaw) return NextResponse.json({ error: "相談の内容を選び直してください" }, { status: 400 });
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!conversationId || !UUID_RE.test(conversationId) || !message?.trim()) {
+  if (!conversationId || !UUID_RE.test(conversationId) || (!consultRaw && !message.trim())) {
     return NextResponse.json({ error: "conversationId and message are required" }, { status: 400 });
   }
   if (message.trim().length > 5000) {
@@ -58,12 +63,12 @@ export async function POST(request: NextRequest) {
           ⚠️ 受け手を参加者に足さない・断られた/ブロックされたことは伝えない（同じ答えを返す） */
     if (conv.candidate_user_id === owMe.id && conv.partner_user_id) {
       let ask: AskColumns = NO_ASK;
-      if (body.topic) {
+      if (body.topic && !consultRaw) {
         const r = await resolveAsk({ recipientId: conv.partner_user_id as string, topic: body.topic, format: body.format ?? null, askCompanyId: body.askCompanyId ?? null });
         if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
         ask = r.cols;
       }
-      const r = await sendPendingFollowUp({ conversationId, senderId: owMe.id as string, body: message, ask });
+      const r = await sendPendingFollowUp({ conversationId, senderId: owMe.id as string, body: message, ask, consult: consultRaw });
       if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
       return NextResponse.json({ ok: true });
     }
@@ -128,7 +133,18 @@ export async function POST(request: NextRequest) {
 
   /* ★聞きたいこと（2026-10-22）。個人どうしの会話だけ。企業との会話に付けて送られてきたら 400（黙って捨てない） */
   let ask: AskColumns = NO_ASK;
-  if (body.topic) {
+  let consult: ConsultColumns | null = null;
+  let text = message.trim();
+  if (consultRaw) {
+    /* ★キャリア相談は個人どうしの会話だけ。企業との会話に付けて送られてきたら 400（黙って捨てない） */
+    if (conv.kind !== "direct_message" || !recipientId) {
+      return NextResponse.json({ error: "この会話には相談を送れません" }, { status: 400 });
+    }
+    const r = await resolveConsult(recipientId as string, consultRaw);
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+    consult = r.cols;
+    text = r.body;
+  } else if (body.topic) {
     if (conv.kind !== "direct_message" || !recipientId) {
       return NextResponse.json({ error: "この会話には聞きたいことを付けられません" }, { status: 400 });
     }
@@ -140,7 +156,7 @@ export async function POST(request: NextRequest) {
   // メッセージ挿入（admin client で RLS バイパス）
   const { error: insertErr } = await admin
     .from("ow_conversation_messages")
-    .insert({ conversation_id: conversationId, sender_participant_id: senderParticipantId, body: message.trim(), ...ask });
+    .insert({ conversation_id: conversationId, sender_participant_id: senderParticipantId, body: text, ...(consult ?? ask) });
 
   if (insertErr) {
     console.error("[dm/message] insert error:", insertErr.message);
@@ -152,7 +168,7 @@ export async function POST(request: NextRequest) {
 
   /* ★受信者の通知に積む（2026-09-16）。⚠️ best-effort ——失敗しても送信は成功のまま。
         ⚠️★**条件をここに書かないこと。** 宛先の決め方は `notifyNewMessage` の1箇所。 */
-  await notifyNewMessage({ conversationId, senderOwUserId: owMe.id, source: "dm/message" });
+  await notifyNewMessage({ conversationId, senderOwUserId: owMe.id, source: "dm/message", consult: !!consult });
   /* ★企業との会話なら求職者にメールでも知らせる（2026-10-11）。条件は companyMessageEmail.ts の1か所 */
   await emailCandidateIfCompanySent({ conversation: { id: conversationId, kind: conv.kind as string, company_id: conv.company_id as string | null, candidate_user_id: conv.candidate_user_id as string | null }, senderOwUserId: owMe.id as string, source: "dm/message" });
 

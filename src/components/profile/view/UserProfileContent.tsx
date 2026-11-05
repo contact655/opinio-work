@@ -28,12 +28,7 @@ import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "@/app/(jobseeker)/u/[id]/FollowUserButton";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { DMButton } from "@/components/profile/DMButton";
-import { approachResendNotice } from "@/lib/constants/companyApproaches";
-import { ProfileMoreMenu } from "@/components/profile/ProfileMoreMenu";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { canUse } from "@/lib/constants/plans";
-import { hasScoutAccess } from "@/lib/business/scoutGate";
-import { getRecentlyApproached, isApproachTarget, listApproachableJobs, type RecentApproach } from "@/lib/approaches/server";
 import { buildAutoSkills } from "@/lib/profile/autoSkillsServer";
 /* ⚠️ 各セクションの見た目は `components/profile/view/` に移した（2026-08-16）。
       `/mypage` のプロフィールが同じものを使う。**ここに書き戻さないこと。** */
@@ -53,8 +48,7 @@ import {
 import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
 import { ProfileSchoolmatesSection } from "@/components/profile/view/ProfileSchoolmatesSection";
 import { getSchoolmates } from "@/lib/schools/schoolmates";
-import { talkProfileOf } from "@/lib/talk/server";
-import { talkButtonVisible } from "@/lib/constants/talk";
+import { messageButtonVisible } from "@/lib/constants/messageButton";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -175,15 +169,15 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
         違うだけで、取っている行は同一）。 */
   /* ⚠️ `canUserPost` はここでは引かない（2026-08-17）。投稿フォームを
         `/mypage` だけにしたので、このページに投稿できるかの判定は要らなくなった。 */
-  const [followCounts, viewerRowRes, talk] = await Promise.all([
+  const [followCounts, viewerRowRes, ownerTestRes] = await Promise.all([
     // フォロー数。0 のときは FollowCounts 側で行ごと落とすのでここでは素通し。
     getFollowCounts(owUser.id),
     // 閲覧者自身の ow_users.id（本人の行なので admin で引いても見える範囲は広がらない）
     authUser
       ? adminSupabase.from("ow_users").select("id").eq("auth_id", authUser.id).maybeSingle()
       : Promise.resolve({ data: null as { id: string } | null }),
-    /* ★話す立場と、いま話を受け付けているか（2026-11-03。lib/talk/server.ts）。取れなければ null（立場を出さない・未ログインの案内も出さない） */
-    talkProfileOf(owUser.id),
+    /* ★持ち主が検証用か（未ログインに「メッセージ（無料登録）」を出すかの判定。2026-11-05） */
+    adminSupabase.from("ow_users").select("is_test").eq("id", owUser.id).maybeSingle(),
     /* ★`birth_date` の取得は 2026-08-29 に外した（年齢を画面から消したため）。
           ⚠️ 年齢を戻すなら、ここも戻すこと。`birth_date` は authenticated から
              SELECT 権限を剥がしてあるので、**admin クライアントで取り直す必要がある。** */
@@ -195,11 +189,6 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
   const schoolmatesPromise = authUser && !embed ? getSchoolmates(owUser.id, viewerOwUserId) : Promise.resolve([]);
   schoolmatesPromise.catch(() => {});
 
-  /* ★企業からの「声かけ」（2026-10-09）。閲覧者が企業の有効な担当者のときだけ判定する。
-        ⚠️★送れない相手にはボタンを出さない（理由も出さない）。判定は送信の API と同じ
-           `isApproachTarget`（候補者検索に出る人と同じ範囲なので、出ること自体で新しく漏れる情報は無い）。
-        ⚠️ この企業が180日以内に声をかけていれば「声かけ済み」（企業自身の事実）。 */
-  let approach: { eligible: boolean; sent: RecentApproach | null; jobs: { id: string; title: string }[]; companyName: string } | null = null;
   /* ★社内メモ（2026-10-10 / 段5）。企業の担当者が見たとき・フラグがオンのときだけ。担当の候補は自社の有効な担当者 */
   let notesAdmins: { id: string; name: string }[] | null = null;
   if (viewerOwUserId && !viewerIsOwner) {
@@ -209,14 +198,6 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
         .select("user_id, ow_users!user_id(name)").eq("company_id", tenant.tenantId).eq("is_active", true).not("user_id", "is", null);
       if (aErr) console.error("[u/[id]] notes admins:", aErr.message);
       else notesAdmins = (adminRows ?? []).map((r) => ({ id: r.user_id as string, name: (((r.ow_users as unknown as { name: string | null } | null)?.name) ?? "").trim() || "担当者" }));
-    }
-    if (tenant && hasScoutAccess(tenant) && canUse(tenant.planType, "companyApproach")) {
-      const [recent, eligible, approachJobs] = await Promise.all([
-        getRecentlyApproached(tenant.tenantId, [owUser.id]),
-        isApproachTarget({ companyId: tenant.tenantId, candidateOwUserId: owUser.id, senderOwUserId: tenant.currentOwnId }),
-        listApproachableJobs(tenant.tenantId),
-      ]);
-      if (recent) approach = { eligible, sent: recent.get(owUser.id) ?? null, jobs: approachJobs, companyName: tenant.tenantName };
     }
   }
 
@@ -654,24 +635,16 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                      ・DM の文言を「〇〇 にDMを送る」→「メッセージ」に短縮
                 ⚠️ minWidth: 0 は残す。可変長のボタンが並ぶ行なので、狭い画面で親を押し広げる。 */
           metaActions={embed ? undefined : <>
-              {/* ★話すときの立場（2026-11-03）。話せる設定（月1件・積極的に）の人だけ。⚠️ 今は話せない人には出さない */}
-              {!viewerIsOwner && talk?.open && talk.stanceLabel && (
-                <p data-state="talk-stance" style={{ margin: "12px 0 0", fontSize: "var(--text-sm)", color: "var(--ink-soft)" }}>
-                  話を聞ける立場：<span style={{ fontWeight: 700, color: "var(--ink)" }}>{talk.stanceLabel}</span>
-                </p>
-              )}
+              {/* ⚠️ 2026-11-03〜11-05 はここに「話を聞ける立場」が出ていた。「話を聞ける」設定ごと外した（柴さんの指示）。戻さないこと */}
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", margin: "14px 0 4px", minWidth: 0 }}>
-                {/* ★2026-10-22 に LinkedIn の並びにした（柴さんの指示）。プロフィールの「メッセージ」は
-                       **誰が見ても個人として送るもの**。企業の担当者が会社として送るのは「…」の中か、
-                       企業の管理画面の「候補者を探す」から（LinkedIn の Recruiter と同じ置き方）。
-                       ⚠️ 2026-10-11〜10-22 は会社として送るボタンが一番目立つ位置にあり、個人は「…」の中だった。
-                       ⚠️ 会社として送れない相手には「…」の中に何も出さない（理由を区別しない。送れない一文も出さない） */}
+                {/* ★プロフィールの「メッセージ」は**誰が見ても個人として送るもの**（2026-10-22 / 2026-11-05 に塗りの主ボタン）。
+                       企業の担当者が会社として送るのは、企業の管理画面の「候補者を探す」からだけ（LinkedIn の Recruiter と同じ置き方）。 */}
                 {!viewerIsOwner && authUser ? (
                   <DMButton targetUserId={owUser.id} targetName={owUser.name} label="メッセージ" />
-                ) : !viewerIsOwner && !authUser && talk && talkButtonVisible({
-                  isSelf: false, targetVisible: true, viewerIsTest: null, targetIsTest: talk.isTest, connected: false, accepts: talk.accepts,
+                ) : !viewerIsOwner && !authUser && !ownerTestRes.error && messageButtonVisible({
+                  isSelf: false, targetVisible: true, viewerIsTest: null, targetIsTest: ownerTestRes.data?.is_test === true, blockedByViewer: false,
                 }) ? (
-                  /* ★未ログインの案内も、相手がいま話を受け付けているときだけ（2026-11-03）。ログイン後に押せないボタンへ誘わない */
+                  /* ★未ログインの案内（検証用の人には出さない。ログイン後に押せないボタンへ誘わない） */
                   <Link href={`/auth?next=/u/${owUser.id}`} style={{
                     display: "inline-flex", alignItems: "center", gap: 7,
                     padding: "9px 18px", borderRadius: 8,
@@ -704,21 +677,9 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                   />
                 )}
 
-                {/* ★会社として送る入口（企業の担当者だけ・「…」の中）。送れる → 「◯◯としてメッセージを送る」、
-                       送り済み → 「送った内容を見る」「メッセージを開く」（approachResendNotice）。送れない → 出さない */}
-                {approach && !viewerIsOwner && (approach.sent || approach.eligible) && (
-                  <ProfileMoreMenu>
-                    <Link role="menuitem" data-state="company-message-menu"
-                      href={approach.sent
-                        ? (approachResendNotice(approach.sent).action?.href ?? "/biz/messages")
-                        : `/biz/messages/new?candidate=${encodeURIComponent(owUser.id)}`}
-                      style={{ display: "block", padding: "10px 14px", fontSize: 13.5, fontWeight: 600, color: "var(--ink)", textDecoration: "none", whiteSpace: "nowrap" }}>
-                      {approach.sent
-                        ? `${approach.companyName}から送った${approach.sent.state === "accepted" ? "メッセージを開く" : "内容を見る"}`
-                        : `${approach.companyName}としてメッセージを送る`}
-                    </Link>
-                  </ProfileMoreMenu>
-                )}
+                {/* ⚠️★2026-11-05 にここの「…」（「◯◯としてメッセージを送る」）を外した（柴さんの指示）。
+                       プロフィールの操作は「メッセージ」「フォロー」だけ（LinkedIn と同じ）。会社として送るのは
+                       企業の管理画面の「候補者を探す」から。プロフィールに戻さないこと */}
 
                 {/* ⚠️ ここにあった「〇〇 の企業ページ」と「IT 求人を見る」は 2026-08-23 に外した。
                        前者は右の会社ブロック（ロゴ＋社名がリンク）と同じ行き先で二重。
@@ -789,6 +750,9 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                   careers={timelineCareers}
                   educations={[]}
                   collapseAfter={4}
+                  /* ★「この経験について聞く」（2026-11-05 / 柴さんの指示）。押すと、その職歴を選んだ状態で相談の画面が開く。
+                        ⚠️ ログイン中で、本人以外が見ているときだけ。企業向けの右欄（embed）には出さない */
+                  askAbout={authUser && !viewerIsOwner && !embed ? { userId: owUser.id, name: owUser.name } : undefined}
                 />
               </ProfileTimelineSection>
             )}

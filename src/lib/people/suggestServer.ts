@@ -2,7 +2,6 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { PATHS_EXCLUDED_COMPANY_IDS } from "@/lib/constants/demoCompanies";
-import { talkProfiles } from "@/lib/talk/server";
 import { isSuggestDismissActive, pickUserSuggestions, type SuggestPerson } from "@/lib/people/suggest";
 
 /**
@@ -91,10 +90,7 @@ export async function getUserSuggestions(viewer: { owUserId: string; isTest: boo
     .filter((u) => !!u.name?.trim());
   const ids = users.map((u) => u.id);
   if (ids.length === 0) return [];
-  const [expRes, talk] = await Promise.all([
-    db.from("ow_experiences").select(EXP_COLS).in("user_id", ids),
-    talkProfiles(ids, now),
-  ]);
+  const expRes = await db.from("ow_experiences").select(EXP_COLS).in("user_id", ids);
   if (expRes.error) {
     console.error("[user suggestions] experiences:", expRes.error.message);
     return [];
@@ -122,7 +118,6 @@ export async function getUserSuggestions(viewer: { owUserId: string; isTest: boo
         .filter((e) => e.ended_at && e.is_current !== true && shown(e) && !(e.company_id && PATHS_EXCLUDED_COMPANY_IDS.has(e.company_id)))
         .map((e) => ({ roleId: e.role_category_id, industryTopId: industryTop(e.ow_companies?.industry_id) })),
       atExcludedCompany: rows.some((e) => e.is_current === true && !!e.company_id && PATHS_EXCLUDED_COMPANY_IDS.has(e.company_id)),
-      talkOpen: talk?.get(u.id)?.open === true,
       updatedAt: u.updated_at,
     };
   });

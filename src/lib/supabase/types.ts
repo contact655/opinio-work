@@ -8058,6 +8058,39 @@ export type Database = {
           },
         ]
       }
+      ow_user_suggestion_dismissals: {
+        Row: {
+          dismissed_at: string
+          target_user_id: string
+          viewer_user_id: string
+        }
+        Insert: {
+          dismissed_at?: string
+          target_user_id: string
+          viewer_user_id: string
+        }
+        Update: {
+          dismissed_at?: string
+          target_user_id?: string
+          viewer_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_user_suggestion_dismissals_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_user_suggestion_dismissals_viewer_user_id_fkey"
+            columns: ["viewer_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_users: {
         Row: {
           about_me: string | null

@@ -8,7 +8,7 @@ import { pickUserSuggestions, sameRole, roleTop, isSuggestDismissActive, USER_SU
 /* 職種: sales(大分類) ─ is(インサイドセールス)・fs(フィールドセールス) ／ eng(大分類) */
 const roleParent = { sales: null, is: "sales", fs: "sales", eng: null };
 const person = (id, over = {}) => ({
-  id, isTest: false, roleId: null, currentCompanies: [], pastSteps: [], atExcludedCompany: false, talkOpen: false, updatedAt: "2026-11-01", ...over,
+  id, isTest: false, roleId: null, currentCompanies: [], pastSteps: [], atExcludedCompany: false, updatedAt: "2026-11-01", ...over,
 });
 const base = (people, over = {}) => ({
   viewerId: "me", viewerIsTest: false,
@@ -27,28 +27,26 @@ test("同じ職種は、同じもの・親と子は同じ、兄弟は別", () =>
   assert.equal(roleTop("is", roleParent), "sales");
 });
 
-test("基準の優先: 同じ職種・同じ経歴 → フォロー中・保存した募集の会社 → 話を聞ける", () => {
+test("基準の優先: 同じ職種・同じ経歴 → フォロー中・保存した募集の会社", () => {
   const r = pickUserSuggestions(base([
-    person("talk", { talkOpen: true, updatedAt: "2026-11-03" }),
     person("co", { currentCompanies: [{ companyId: "c1", nameIfShown: "サンプル社" }], updatedAt: "2026-11-03" }),
     person("role", { roleId: "sales" }),
     person("path", { pastSteps: [{ roleId: "fs", industryTopId: "it" }] }),
   ], { followedCompanyIds: ["c1"], limit: 4 }));
-  assert.equal(r.length, 4);
-  assert.deepEqual(r.slice(2).map((x) => x.userId), ["co", "talk"]);
+  assert.equal(r.length, 3);
+  assert.deepEqual(r.slice(2).map((x) => x.userId), ["co"]);
   assert.deepEqual(new Set(r.slice(0, 2).map((x) => x.userId)), new Set(["role", "path"]));
   assert.equal(r.find((x) => x.userId === "role").reason, "同じ職種・インサイドセールス");
   assert.equal(r.find((x) => x.userId === "path").reason, "同じ経歴から転職・営業×IT・ソフトウェア");
   assert.equal(r.find((x) => x.userId === "co").reason, "フォロー中の会社・サンプル社");
-  assert.equal(r.find((x) => x.userId === "talk").reason, "「話を聞く」を受付中");
 });
 
 test("3人まで。同じ基準の中は更新が新しい順", () => {
   const r = pickUserSuggestions(base([
-    person("a", { talkOpen: true, updatedAt: "2026-10-01" }),
-    person("b", { talkOpen: true, updatedAt: "2026-11-02" }),
-    person("c", { talkOpen: true, updatedAt: "2026-10-15" }),
-    person("d", { talkOpen: true, updatedAt: "2026-09-01" }),
+    person("a", { roleId: "sales", updatedAt: "2026-10-01" }),
+    person("b", { roleId: "sales", updatedAt: "2026-11-02" }),
+    person("c", { roleId: "sales", updatedAt: "2026-10-15" }),
+    person("d", { roleId: "sales", updatedAt: "2026-09-01" }),
   ]));
   assert.equal(USER_SUGGEST_LIMIT, 3);
   assert.deepEqual(r.map((x) => x.userId), ["b", "c", "a"]);
@@ -56,19 +54,19 @@ test("3人まで。同じ基準の中は更新が新しい順", () => {
 
 test("除くもの: 自分・フォロー中・×で外した人・テストかどうかが違う人・除外する会社に在籍中・理由の無い人", () => {
   const r = pickUserSuggestions(base([
-    person("me", { talkOpen: true }),
-    person("followed", { talkOpen: true }),
-    person("dismissed", { talkOpen: true }),
-    person("test", { talkOpen: true, isTest: true }),
-    person("agent", { talkOpen: true, atExcludedCompany: true }),
+    person("me", { roleId: "sales" }),
+    person("followed", { roleId: "sales" }),
+    person("dismissed", { roleId: "sales" }),
+    person("test", { roleId: "sales", isTest: true }),
+    person("agent", { roleId: "sales", atExcludedCompany: true }),
     person("noreason"),
-    person("ok", { talkOpen: true }),
+    person("ok", { roleId: "sales" }),
   ], { followedUserIds: ["followed"], dismissedUserIds: ["dismissed"] }));
   assert.deepEqual(r.map((x) => x.userId), ["ok"]);
 });
 
 test("自分がテストユーザーなら、テストユーザーだけを出す", () => {
-  const r = pickUserSuggestions(base([person("real", { talkOpen: true }), person("t", { talkOpen: true, isTest: true })], { viewerIsTest: true }));
+  const r = pickUserSuggestions(base([person("real", { roleId: "sales" }), person("t", { roleId: "sales", isTest: true })], { viewerIsTest: true }));
   assert.deepEqual(r.map((x) => x.userId), ["t"]);
 });
 
