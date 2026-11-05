@@ -752,9 +752,7 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                   collapseAfter={4}
                   /* ★「この経験について聞く」（2026-11-05 / 柴さんの指示）。押すと、その職歴を選んだ状態で相談の画面が開く。
                         ⚠️ ログイン中で、本人以外が見ているときだけ。企業向けの右欄（embed）には出さない */
-                  renderCareerAside={authUser && !viewerIsOwner && !embed
-                    ? (careerId) => <DMButton targetUserId={owUser.id} targetName={owUser.name} variant="link" aboutExperienceId={careerId} />
-                    : undefined}
+                  askAbout={authUser && !viewerIsOwner && !embed ? { userId: owUser.id, name: owUser.name } : undefined}
                 />
               </ProfileTimelineSection>
             )}
