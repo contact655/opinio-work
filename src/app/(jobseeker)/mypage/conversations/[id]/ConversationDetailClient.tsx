@@ -237,7 +237,7 @@ export default function ConversationDetailClient({
                   求職者側は左右を反転: 自分＝右・薄い青 ／ 企業・相手＝左・白。各吹き出しの上に「名前・日時」を灰色で。
                   ⚠️ 状態の言葉・アバター・日付の区切りは出さない（会社側と揃える）。 */
             <div data-state="jobseeker-thread" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {messages.map((msg) => {
+              {messages.map((msg, i) => {
                 if (msg.kind === "proposal_intro") {
                   /* ★提案の案内の行（2026-10-11）。本人の発言ではないので吹き出しにせず、中央に1行で出す */
                   return (
@@ -253,7 +253,9 @@ export default function ConversationDetailClient({
                 /* ★キャリア相談はカードで出す（2026-11-05）。受け取った側には共通点と「今回は難しいです」 */
                 const consult = msg.kind === "consult" ? readConsultPayload(msg.payload) : null;
                 if (consult) {
-                  const canDecline = !isMe && conversation.request_status === "accepted";
+                  const canDecline = !isMe && conversation.request_status === "accepted"
+                          /* ⚠️ 相談のあとに自分が何か送っていたら出さない（返したあとも残っていた。2026-11-05） */
+                          && !messages.slice(i + 1).some((m) => m.sender_participant_id === myParticipantId);
                   return (
                     <ChatBubble key={msg.id} mine={isMe} sender={sender} at={msg.sent_at} plain>
                       <ConsultCard payload={consult} commonPoints={isMe ? [] : commonPoints}

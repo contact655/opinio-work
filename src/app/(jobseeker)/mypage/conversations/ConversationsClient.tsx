@@ -873,14 +873,16 @@ export default function ConversationsClient({
                         求職者側は左右を反転: 自分＝右・薄い青 ／ 企業・相手＝左・白。各吹き出しの上に「名前・日時」を灰色で。
                         ⚠️ /mypage/conversations/[id] と同じ並べ方。片方だけ書き換えない */
                   <div data-state="jobseeker-thread" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {messages.map((msg) => {
+                    {messages.map((msg, i) => {
                       const isMe = msg.sender_participant_id === myParticipantId;
                       const sender = isMe ? (myName ?? "自分") : (msg.ow_conversation_participants?.ow_users?.name ?? "相手");
                       /* ★キャリア相談はカードで出す（ふつうのメッセージと見分けがつくように。2026-11-05）。
                             受け取った側には共通点と「今回は難しいです」のワンタップ返信 */
                       const consult = msg.kind === "consult" ? readConsultPayload(msg.payload) : null;
                       if (consult) {
-                        const canDecline = !isMe && !isPendingRequest(selectedConv);
+                        const canDecline = !isMe && !isPendingRequest(selectedConv)
+                          /* ⚠️ 相談のあとに自分が何か送っていたら出さない（返したあとも残っていた。2026-11-05） */
+                          && !messages.slice(i + 1).some((m) => m.sender_participant_id === myParticipantId);
                         return (
                           <ChatBubble key={msg.id} mine={isMe} sender={sender} at={msg.sent_at} plain>
                             <ConsultCard payload={consult} commonPoints={isMe ? [] : commonPoints}
