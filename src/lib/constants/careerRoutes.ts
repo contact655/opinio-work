@@ -204,7 +204,7 @@ export function parseHostInput(raw: unknown, ctx: { isListed?: boolean; now?: Da
  */
 
 /** サイドバーの見出しと説明（1か所） */
-export const CONSULTANTS_TITLE = "相談できる人";
+export const CONSULTANTS_TITLE = "相談可能なユーザー";
 export const CONSULTANTS_NOTE = "OPINIO が選び、本人の同意を得て載せています。";
 
 export type ConsultantListableInput = {

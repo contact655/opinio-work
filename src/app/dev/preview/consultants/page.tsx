@@ -5,7 +5,7 @@ import { devOnly } from "../guard";
 import { Variant, PreviewHeader } from "../Variant";
 
 /**
- * 相談できる人（/people の左サイドバー）のプレビュー（2026-11-12）。
+ * 相談可能なユーザー（/people の左サイドバー）のプレビュー（2026-11-12）。
  * ⚠️ 実データは表を作った直後は0人。**出る側はこの画面でしか踏めない。**
  * ⚠️ DB を読まない。固定データだけ。相談のボタンは押せない見本にしてある。
  * ⚠️ サイドバーの幅（240px）の箱に入れて並べる。狭い画面ではサイドバーごと畳まれる（PeopleSidebar）。
@@ -22,8 +22,8 @@ export default function ConsultantsPreview() {
   devOnly();
   return (
     <div>
-      <PreviewHeader title="相談できる人">
-        /people の左サイドバーの「相談できる人」（<code>FeaturedConsultantsCard</code>）です。0人なら何も出ません。
+      <PreviewHeader title="相談可能なユーザー">
+        /people の左サイドバーの「相談可能なユーザー」（<code>FeaturedConsultantsCard</code>）です。0人なら何も出ません。
       </PreviewHeader>
       <Variant label="1人">
         <W><FeaturedConsultantsCard items={[c(1)]} sample /></W>

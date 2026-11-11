@@ -25,7 +25,7 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
-  { href: "/dev/preview/consultants", label: "相談できる人（/people の左サイドバー）",
+  { href: "/dev/preview/consultants", label: "相談可能なユーザー（/people の左サイドバー・ホーム）",
     desc: "★1人・4人（職歴なし・タグなし・ひとことなし・以前の職歴）・長文・0人" },
   { href: "/dev/preview/routes", label: "転職ルート（/routes/[slug]・プロフィール）",
     desc: "★経験者のカード（1人・3人・長文）・準備中・プロフィールの「転職ルート」" },
