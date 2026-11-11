@@ -65,8 +65,8 @@ export default function ForYouSection({
     /**
      * ★並べ方（2026-11-04 / 柴さんの指示。ホームの並びを変えた）。
      *   list … 1社1行（従来）／ rail … PC の右の列（1024px 以上は 300px・768〜1023px は 340px。縦に並べる）／ scroll … スマホのタイムラインに挟む横スクロールのカード
-     *   rail と scroll は1社ごとに ロゴ・会社名・理由1行・主の操作1つ と「…」。「保存」「あとで」「興味なし」は「…」の中
-     *   ⚠️ 記録は従来と同じ（post / react / deliver / toggleLater / BookmarkButton）。新しい経路を作らない
+     *   rail と scroll は1社ごとに ロゴ・会社名・理由1行・主の操作1つ と「…」。「保存」「興味なし」は「…」の中
+     *   ⚠️ 記録は従来と同じ（post / react / deliver / restore / BookmarkButton）。新しい経路を作らない
      */
     layout?: "list" | "rail" | "scroll";
   };
@@ -157,21 +157,20 @@ export default function ForYouSection({
     setItems((prev) => prev.map((c) => c.id !== id ? c : { ...c, reaction: null, interested: false, interestStatus: null }));
   }
 
-  /* ★「あとで」をもう一度押すと外す（2026-10-23） */
-  async function toggleLater(c: ForYouView) {
-    if (c.reaction !== "later") return react(c.id, "later");
-    const r = await post(c.id, { clear: true });
+  /* ★「興味なし」を一覧に戻す（2026-11-12）。何も押していない状態に戻す。
+        ⚠️ それまでは「あとで」にして戻していた。「あとで」は 2026-11-12 に外した（柴さんの指示。「保存」と役割がかぶるため） */
+  async function restore(id: string) {
+    const r = await post(id, { clear: true });
     if (!r.ok) return;
-    setItems((prev) => prev.map((x) => x.id !== c.id ? x : { ...x, reaction: null }));
+    setItems((prev) => prev.map((x) => x.id !== id ? x : { ...x, reaction: null }));
   }
 
   const visible = items.filter((c) => c.reaction !== "not_interested");
   const hidden = items.filter((c) => c.reaction === "not_interested");
-  /* ★「あとで」を押した会社は上にまとめる（2026-10-23 / 柴さんの指示）。⚠️ 気になる・話を聞いてみたい済みは入れない */
-  const later = visible.filter((c) => c.reaction === "later" && !c.interested);
-  const rest = visible.filter((c) => !(c.reaction === "later" && !c.interested));
+  /* ⚠️ 「あとで見る」のまとまりは 2026-11-12 に外した。以前に押された「あとで」（2件）は、記録は残し一覧の中に並べる */
+  const rest = visible;
 
-  /* 会社ごとの操作（話を聞いてみたい・あとで・興味なし）。リスト・タイル・カードで同じものを使う */
+  /* 会社ごとの操作（話を聞いてみたい・興味なし）。リスト・タイル・カードで同じものを使う */
   const actionsFor = (c: ForYouView) => (
     <Actions
       c={c}
@@ -181,7 +180,6 @@ export default function ForYouSection({
       declineReasons={declineReasons}
       onInterested={() => { setConfirmErr(null); setConfirming(c); }}
       onUndo={() => undo(c.id)}
-      onLater={() => toggleLater(c)}
       onStartDecline={() => { setDeclining(c.id); setDeclineReason(""); }}
       onCancelDecline={() => setDeclining(null)}
       onChangeReason={setDeclineReason}
@@ -253,7 +251,7 @@ export default function ForYouSection({
   };
 
   /* ★タイル（2026-10-23）。ロゴ・社名・理由（無ければ一言）と、主の操作1つを並べる。
-        ロゴや社名を押すとその場でカードに開き、「あとで」「興味なし」も選べる。
+        ロゴや社名を押すとその場でカードに開き、「興味なし」も選べる。
         ⚠️ 主の操作をタイルから外さないこと（並べるだけでは押す先が無く、アクションにつながらなかった。柴さんの指摘） */
   const tile = (c: ForYouView, g: { label: string | null }) => {
     if (expanded === c.id) return fullCard(c, g, () => setExpanded(null));
@@ -330,7 +328,6 @@ export default function ForYouSection({
             <RailCompanyRow key={c.id} c={c} busy={busy === c.id} menuOpen={menuFor === c.id} declining={declining === c.id}
               onToggleMenu={() => { setMenuFor(menuFor === c.id ? null : c.id); setDeclining(null); }}
               onInterested={() => { setConfirmErr(null); setConfirming(c); }}
-              onLater={() => { setMenuFor(null); void toggleLater(c); }}
               onStartDecline={() => { setDeclining(c.id); setDeclineReason(""); }}
               declineUi={actionsFor(c)}
               error={errFor(c)} />
@@ -354,7 +351,6 @@ export default function ForYouSection({
             <CompactItem key={c.id} c={c} busy={busy === c.id} menuOpen={menuFor === c.id} declining={declining === c.id}
               onToggleMenu={() => { setMenuFor(menuFor === c.id ? null : c.id); setDeclining(null); }}
               onInterested={() => { setConfirmErr(null); setConfirming(c); }}
-              onLater={() => { setMenuFor(null); void toggleLater(c); }}
               onStartDecline={() => { setDeclining(c.id); setDeclineReason(""); }}
               declineUi={actionsFor(c)}
               error={errFor(c)} />
@@ -434,13 +430,6 @@ export default function ForYouSection({
             <p style={{ fontSize: 14, color: "var(--ink-soft)" }}>いま表示できる会社はありません。</p>
           )}
 
-          {later.length > 0 && (
-            <section data-state="for-you-later" style={{ marginBottom: 28 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>あとで見る<span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{later.length}社</span></h3>
-              <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 12px", lineHeight: 1.7 }}>「あとで」を押した会社です。もう一度「あとで」を押すと、ここから外れます。</p>
-              {renderGroups(later)}
-            </section>
-          )}
           {/* ★2026-10-27（柴さんの決定）: 担当者の有無で見出しを分けない（「担当者がいる会社」「気になる会社」をやめた）。
                  分けると、下の会社が OPINIO にいないことが分かり、外のサイトで直接応募するきっかけになる。合う順に1つにまとめる。
                  担当者がいる会社は「話を聞いてみたい」、いない会社は「保存」（Actions が c.hasResponder で出し分ける） */}
@@ -461,7 +450,7 @@ export default function ForYouSection({
                   {hidden.map((c) => (
                     <li key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 13, borderBottom: "1px solid var(--line-soft)", padding: "6px 0" }}>
                       <span>{c.name}</span>
-                      <button type="button" disabled={busy === c.id} onClick={() => react(c.id, "later")}
+                      <button type="button" disabled={busy === c.id} onClick={() => restore(c.id)}
                         style={{ fontSize: 12, padding: "4px 10px", borderRadius: 6, border: "1px solid var(--line)", background: "#fff", cursor: "pointer" }}>
                         一覧に戻す
                       </button>
@@ -494,7 +483,7 @@ const FY_ROW_CSS = `
 /**
  * ★スマホの横スクロールの1社（2026-11-04。PC の右の列は RailCompanyRow）。ロゴ・会社名・理由1行・主の操作1つ・「…」。
  *   主の操作: 担当者あり＝「話を聞いてみたい」（確認の画面へ）／担当者未登録＝「保存」（従来どおり。いないことが分かる文言は出さない）
- *   「…」: 保存（担当者ありのときだけ。未登録の会社は主の操作が保存）・あとで（もう一度で外す）・興味なし（理由を選ぶ）
+ *   「…」: 保存（担当者ありのときだけ。未登録の会社は主の操作が保存）・興味なし（理由を選ぶ）。「あとで」は 2026-11-12 に外した
  * ⚠️ メニューは絶対配置にしない（横スクロールの中で切れるため）。カードの中に開く
  */
 function CompactItem(props: {
@@ -504,7 +493,6 @@ function CompactItem(props: {
   declining: boolean;
   onToggleMenu: () => void;
   onInterested: () => void;
-  onLater: () => void;
   onStartDecline: () => void;
   /** 「興味なし」の理由を選ぶ画面（Actions の declining 表示をそのまま使う） */
   declineUi: React.ReactNode;
@@ -558,11 +546,6 @@ function CompactItem(props: {
               <BookmarkButton targetType="company" targetId={c.id} label="保存" variant="inline" />
             </span>
           )}
-          {!c.interested && (
-            <button type="button" disabled={props.busy} onClick={props.onLater} aria-pressed={c.reaction === "later"} data-action="for-you-later" style={menuBtn}>
-              {c.reaction === "later" ? "あとでから外す" : "あとで"}
-            </button>
-          )}
           <button type="button" disabled={props.busy} onClick={props.onStartDecline} data-action="for-you-decline" style={menuBtn}>興味なし</button>
         </div>
       )}
@@ -578,7 +561,7 @@ function CompactItem(props: {
  *   （柴さんの指示）。⚠️ 他の箱の行（RailRow）は変えていない。
  *   ロゴと文字（ボタンと「…」を除く）を押すと会社ページへ。開けない会社（検証用など href が null）は押しても移らない。
  *   提案の理由が無い会社は2行目を出さない（会社の説明文で埋めない）。
- * ⚠️ 「…」の中身と記録（話を聞いてみたい・あとで・興味なし・保存）は変えていない。新しい経路を作らない
+ * ⚠️ 「…」の中身と記録（話を聞いてみたい・興味なし・保存）は変えていない。「あとで」は 2026-11-12 に外した。新しい経路を作らない
  */
 function RailCompanyRow(props: {
   c: ForYouView;
@@ -587,7 +570,6 @@ function RailCompanyRow(props: {
   declining: boolean;
   onToggleMenu: () => void;
   onInterested: () => void;
-  onLater: () => void;
   onStartDecline: () => void;
   declineUi: React.ReactNode;
   error: React.ReactNode;
@@ -638,11 +620,6 @@ function RailCompanyRow(props: {
             <span data-state="for-you-menu-save" style={{ display: "block", padding: "4px 10px" }}>
               <BookmarkButton targetType="company" targetId={c.id} label="保存" variant="inline" />
             </span>
-          )}
-          {!c.interested && (
-            <button type="button" disabled={props.busy} onClick={props.onLater} aria-pressed={c.reaction === "later"} data-action="for-you-later" style={menuBtn}>
-              {c.reaction === "later" ? "あとでから外す" : "あとで"}
-            </button>
           )}
           <button type="button" disabled={props.busy} onClick={props.onStartDecline} data-action="for-you-decline" style={menuBtn}>興味なし</button>
         </div>
@@ -703,7 +680,6 @@ function Actions(props: {
   declineReasons: { value: string; label: string }[];
   onInterested: () => void;
   onUndo: () => void;
-  onLater: () => void;
   onStartDecline: () => void;
   onCancelDecline: () => void;
   onChangeReason: (v: string) => void;
@@ -761,7 +737,7 @@ function Actions(props: {
   return (
     /* ★2026-10-16: 同じ濃紺のボタンが21個並んで重かったので、下段は枠線にした（柴さんの指示）。
           上段（OPINIO からの提案）は塗りのまま —— 強さの差で「提案」と「一覧」を見分けられるようにする。
-          「あとで」「興味なし」は文字だけにして、主の操作を1つに見せる */
+          「興味なし」は文字だけにして、主の操作を1つに見せる */
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
       {c.hasResponder ? (
         <button type="button" disabled={props.busy} onClick={props.onInterested}
@@ -775,11 +751,6 @@ function Actions(props: {
           <BookmarkButton targetType="company" targetId={c.id} label="保存" variant="inline" />
         </span>
       )}
-      <button type="button" disabled={props.busy} onClick={props.onLater} aria-pressed={c.reaction === "later"}
-        style={{ ...btn, border: "none", background: c.reaction === "later" ? "var(--bg-tint)" : "none", color: "var(--ink-soft)", padding: "8px 10px" }}>
-        {/* ★「あとで見る」に入っている会社では外すボタンにする（2026-10-23） */}
-        {c.reaction === "later" ? "あとでから外す" : "あとで"}
-      </button>
       <button type="button" disabled={props.busy} onClick={props.onStartDecline}
         style={{ ...btn, border: "none", background: "none", color: "var(--ink-soft)", padding: "8px 10px" }}>
         興味なし
