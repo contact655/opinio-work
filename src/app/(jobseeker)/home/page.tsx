@@ -9,7 +9,7 @@ import ForYouSection from "../mypage/proposals/ForYouSection";
 import { toForYouViews } from "../mypage/proposals/forYouViews";
 import HomeDecisionCard from "./HomeDecisionCard";
 import { currentJoinDecisionPrompt } from "@/lib/joinDecision/server";
-import { HOME_FOR_YOU_LIMIT, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER, HOME_MOBILE_SUGGEST_AFTER } from "@/lib/home/homeState";
+import { HOME_FOR_YOU_LIMIT, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER, HOME_MOBILE_SUGGEST_AFTER, careerCompanyCount, type CareerNudge } from "@/lib/home/homeState";
 import { getUserSuggestions } from "@/lib/people/suggestServer";
 import { SuggestedUsers } from "@/components/feed/SuggestedUsers";
 import { getPathsView } from "@/lib/paths/server";
@@ -26,6 +26,8 @@ import { loadFeedProps } from "../feed/(list)/loadFeedProps";
  *     ① 入社の決め手（聞いてよいときだけ。lib/joinDecision）
  *     ② 投稿欄 → ③ タイムライン（旧 /feed）
  *   右の列（PC）の上から: 職歴の案内（職歴が0件の人だけ。×で7日間出さない。2026-11-04 に中央の帯から移した）
+ *     ★2026-11-12: 職歴はあるが、会社が1社だけ（「これ以上の経歴はない」と答えていない）か学歴が0件の人には、
+ *       同じ場所に「前の会社・学校を足す」案内を出す（homeState の CareerNudge。×で7日間出さない）
  *     → あなたに合う会社（3社・「…」に 保存／あとで／興味なし）→ フォロー中のユーザー → 同じ経歴の人の行き先 → いつもの枠
  *   ★右の列の箱と行の見た目は components/feed/railKit.tsx の1か所
  *   スマホ: 職歴の案内はページの一番上に同じ箱で出す
@@ -55,7 +57,7 @@ export default async function HomePage() {
   const isTest = me.is_test === true;
 
   /* ★タイムライン（loadFeedProps）と上のブロックは互いに依存しないので並列に引く */
-  const [expRes, forYou, proposedRes, decisionPrompt, paths, feed, suggestions] = await Promise.all([
+  const [expRes, forYou, proposedRes, decisionPrompt, paths, feed, suggestions, eduRes, profRes] = await Promise.all([
     db.from("ow_experiences").select(`id, ${EXPERIENCE_COMPANY_COLS}`).eq("user_id", owId),
     buildForYou(owId),
     db.from("ow_proposals").select("company_id").eq("candidate_user_id", owId),
@@ -66,13 +68,24 @@ export default async function HomePage() {
     loadFeedProps(),
     /* ★おすすめのユーザー（2026-11-04）。0人なら箱ごと出さない */
     getUserSuggestions({ owUserId: owId, isTest }),
+    /* ★前の会社・学歴の案内（2026-11-12）。学歴の件数と「これ以上の経歴はない」 */
+    db.from("ow_user_educations").select("id", { count: "exact", head: true }).eq("user_id", owId),
+    /* ⚠️ ow_profiles.user_id は auth 空間 */
+    db.from("ow_profiles").select("career_history_complete_at").eq("user_id", user.id).maybeSingle(),
   ]);
+  if (eduRes.error) console.error("[home] educations:", eduRes.error.message);
+  if (profRes.error) console.error("[home] profile:", profRes.error.message);
   if (expRes.error) console.error("[home] experiences:", expRes.error.message);
   if (proposedRes.error) console.error("[home] proposals:", proposedRes.error.message);
   type Exp = { id: string; company_id: string | null; company_text: string | null; company_anonymized: string | null; ow_companies: { name: string | null; name_en: string | null } | null };
   const exps = (expRes.data ?? []) as unknown as Exp[];
   /* ⚠️ 取得に失敗したときは「職歴なし」と決めつけない（案内を誤って出さない） */
   const noExperience = !expRes.error && exps.length === 0;
+  /* ⚠️ 取得に失敗した項目は「無い」と決めつけない（案内を誤って出さない） */
+  const careerNudge: CareerNudge | null = noExperience || expRes.error ? null : {
+    pastJob: !profRes.error && !profRes.data?.career_history_complete_at && careerCompanyCount(exps) === 1,
+    education: !eduRes.error && (eduRes.count ?? 0) === 0,
+  };
 
   const proposed = new Set(((proposedRes.data ?? []) as { company_id: string }[]).map((p) => p.company_id));
   const forYouViews = toForYouViews(forYou, isTest, proposed);
@@ -116,5 +129,5 @@ export default async function HomePage() {
     ...(paths && pathsHasRows ? [{ key: "home-paths", after: HOME_MOBILE_PATHS_AFTER, node: <div style={{ marginBottom: 16 }}><PrevCareerSummary view={paths} variant="home" /></div> }] : []),
   ];
 
-  return <FeedClient {...feed} top={top} railTop={railTop} railAfterUsers={railAfterUsers} railSuggestions={railSuggestions} mobileInserts={mobileInserts} careerPrompt={noExperience} />;
+  return <FeedClient {...feed} top={top} railTop={railTop} railAfterUsers={railAfterUsers} railSuggestions={railSuggestions} mobileInserts={mobileInserts} careerPrompt={noExperience} careerNudge={careerNudge} />;
 }

@@ -33,3 +33,23 @@ test("職歴を入れる画面の行き先は1つ（ホームの左のカード�
   assert.equal(CAREER_NEXT_STEP_HREF, "/mypage");
   assert.equal(CAREER_NEXT_STEP_LABEL, "職歴を追加する");
 });
+
+import { careerNudgeTitle, careerCompanyCount, CAREER_NUDGE_PAST_HREF, CAREER_NUDGE_EDU_HREF } from "./homeState.ts";
+
+test("前の会社・学校の案内: 見出しは足りないものに合わせ、どちらも無ければ出さない", () => {
+  assert.equal(careerNudgeTitle({ pastJob: true, education: true }), "前の会社と学校を足しませんか");
+  assert.equal(careerNudgeTitle({ pastJob: true, education: false }), "前の会社を足しませんか");
+  assert.equal(careerNudgeTitle({ pastJob: false, education: true }), "学校を足しませんか");
+  assert.equal(careerNudgeTitle({ pastJob: false, education: false }), null);
+  assert.equal(careerNudgeTitle(null), null);
+  assert.equal(CAREER_NUDGE_PAST_HREF, "/mypage?add=past");
+  assert.equal(CAREER_NUDGE_EDU_HREF, "/mypage?add=education");
+});
+
+test("会社の数: 同じ会社の役割（異動・昇進）は1社と数え、社名だけの職歴も数える", () => {
+  assert.equal(careerCompanyCount([]), 0);
+  assert.equal(careerCompanyCount([{ company_id: "a", company_text: null }, { company_id: "a", company_text: null }]), 1);
+  assert.equal(careerCompanyCount([{ company_id: "a", company_text: null }, { company_id: null, company_text: " 株式会社B " }]), 2);
+  assert.equal(careerCompanyCount([{ company_id: null, company_text: "B" }, { company_id: null, company_text: "B" }]), 1);
+  assert.equal(careerCompanyCount([{ company_id: null, company_text: null, company_anonymized: "SaaS企業" }]), 1);
+});
