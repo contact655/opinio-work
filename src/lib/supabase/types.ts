@@ -4322,6 +4322,9 @@ export type Database = {
           id: string
           is_listed: boolean
           message: string | null
+          stop_reason: string | null
+          stopped_at: string | null
+          stopped_by: string | null
           talk_tags: string[]
           updated_at: string
           user_id: string
@@ -4336,6 +4339,9 @@ export type Database = {
           id?: string
           is_listed?: boolean
           message?: string | null
+          stop_reason?: string | null
+          stopped_at?: string | null
+          stopped_by?: string | null
           talk_tags?: string[]
           updated_at?: string
           user_id: string
@@ -4350,6 +4356,9 @@ export type Database = {
           id?: string
           is_listed?: boolean
           message?: string | null
+          stop_reason?: string | null
+          stopped_at?: string | null
+          stopped_by?: string | null
           talk_tags?: string[]
           updated_at?: string
           user_id?: string
@@ -4358,6 +4367,13 @@ export type Database = {
           {
             foreignKeyName: "ow_featured_consultants_approved_by_fkey"
             columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_featured_consultants_stopped_by_fkey"
+            columns: ["stopped_by"]
             isOneToOne: false
             referencedRelation: "ow_users"
             referencedColumns: ["id"]

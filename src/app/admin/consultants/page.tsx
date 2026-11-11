@@ -5,7 +5,7 @@ import { ConsultantsAdminClient } from "./ConsultantsAdminClient";
 export const dynamic = "force-dynamic";
 
 /**
- * ★相談できる人の運営画面（2026-11-12）。登録・同意の記録・承認。/people の左サイドバーに出る。
+ * ★相談可能なユーザーの運営画面（2026-11-12）。本人がマイページでオンにする。運営は見て・止めて・消すだけ。
  * ⚠️★ページの先頭で運営かを確かめる（レイアウトのガードだけだと、ページの props が HTML に載る）。
  * ⚠️ 判定（なぜ出ていないか）は lib/constants/careerRoutes.ts の consultantBlockers。ここに条件を書かない。
  */

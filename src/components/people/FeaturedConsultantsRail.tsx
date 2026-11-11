@@ -4,7 +4,7 @@ import { PersonAvatar } from "@/components/common/PersonAvatar";
 import { RailBox, RailStackRow, RAIL_ACTION_STYLE, RAIL_LIST_STYLE, RAIL_TEXT_STYLE, RAIL_THUMB } from "@/components/feed/railKit";
 import { DMButton } from "@/components/profile/DMButton";
 import { CAREER_GENERAL_KEY } from "@/lib/constants/careerConsult";
-import { CONSULTANTS_NOTE, CONSULTANTS_TITLE, routeTalkTagLabel } from "@/lib/constants/careerRoutes";
+import { CONSULTANTS_NOTE, CONSULTANTS_SETTINGS_HREF, CONSULTANTS_TITLE, routeTalkTagLabel } from "@/lib/constants/careerRoutes";
 import type { ConsultantCard } from "@/lib/featuredConsultants/server";
 
 /**
@@ -18,7 +18,7 @@ import type { ConsultantCard } from "@/lib/featuredConsultants/server";
 export function FeaturedConsultantsRail({ items, sample = false }: { items: ConsultantCard[]; sample?: boolean }) {
   if (items.length === 0) return null;
   return (
-    <RailBox title={CONSULTANTS_TITLE} state="home-consultants">
+    <RailBox title={CONSULTANTS_TITLE} state="home-consultants" moreHref={CONSULTANTS_SETTINGS_HREF} moreLabel="あなたも載る →">
       <div style={RAIL_LIST_STYLE}>
         {items.map((c) => {
           const nowLine = [c.currentCompany, c.currentRole].filter(Boolean).join(" ");
