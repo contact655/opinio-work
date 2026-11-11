@@ -78,10 +78,12 @@ export const RAIL_ACTION_STYLE: React.CSSProperties = {
 /** 行どうしの間隔（すべての箱で同じ） */
 export const RAIL_LIST_STYLE: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 12, minWidth: 0 };
 
-export function RailBox({ title, moreHref, state, children }: {
+export function RailBox({ title, moreHref, moreLabel = RAIL_MORE_LABEL, state, children }: {
   title: React.ReactNode;
   /** 下の「すべて見る →」の行き先。無ければリンクを出さない */
   moreHref?: string | null;
+  /** 下のリンクの文言（既定は「すべて見る →」。2026-11-12 に「あなたも載る →」のために足した） */
+  moreLabel?: string;
   state?: string;
   children: React.ReactNode;
 }) {
@@ -89,7 +91,7 @@ export function RailBox({ title, moreHref, state, children }: {
     <section style={RAIL_BOX_STYLE} data-state={state} data-rail-box="">
       <h2 style={RAIL_TITLE_STYLE}>{title}</h2>
       {children}
-      {moreHref && <Link href={moreHref} style={RAIL_MORE_STYLE} data-rail-more="">{RAIL_MORE_LABEL}</Link>}
+      {moreHref && <Link href={moreHref} style={RAIL_MORE_STYLE} data-rail-more="">{moreLabel}</Link>}
     </section>
   );
 }

@@ -4,6 +4,7 @@ import MypageLayout from "../_components/MypageLayout";
 import AccountSettings from "./AccountSettings";
 import PrivacySettings from "./PrivacySettings";
 import ConnectionSettingSection from "./ConnectionSettingSection";
+import ConsultantSettingSection from "./ConsultantSettingSection";
 import LogoutSection from "./LogoutSection";
 import { isCandidateAgeDisplayEnabled } from "@/lib/business/candidates/ageFilter";
 import { isCandidateActivityEnabled } from "@/lib/business/candidates/activity";
@@ -93,9 +94,13 @@ export default async function MypageSettingsPage() {
         showActivity={isCandidateActivityEnabled()}
       />
       {/* ⚠️ 2026-11-03〜11-05 はここに「話を聞かれることについて」（立場と話せる量）があった。2026-11-05 に外した（柴さんの指示）。
-            話を受けるかどうかは、誰から何の相談が来たかを見て、受け取った人が決める。戻さないこと */}
+            話を受けるかどうかは、誰から何の相談が来たかを見て、受け取った人が決める。
+            ★2026-11-12 に「相談可能なユーザーとして載せる」（ConsultantSettingSection）を足した（柴さんの決定「誰でも」）。
+            これは載るかどうかだけの設定で、届いた相談を受けるかどうかは今までどおり受け取った人が決める */}
       {/* ★つながりとしての表示（2026-10-16 / フェーズ3）。初期値はオフ */}
       <ConnectionSettingSection />
+      {/* ★相談可能なユーザーとして載せる（2026-11-12 / 柴さんの決定「誰でも」）。初期値はオフ */}
+      <ConsultantSettingSection />
       {/* ★企業からのメッセージ（2026-10-11 に説明だけにした）。⚠️ スイッチを戻さないこと */}
       <ApproachSettingsSection />
       {approachRangeState && <ApproachRangeSection initial={approachRangeState} />}

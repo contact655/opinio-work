@@ -4,7 +4,7 @@ import Link from "next/link";
 import { PersonAvatar } from "@/components/common/PersonAvatar";
 import { DMButton } from "@/components/profile/DMButton";
 import { CAREER_GENERAL_KEY } from "@/lib/constants/careerConsult";
-import { CONSULTANTS_NOTE, CONSULTANTS_TITLE, routeTalkTagLabel } from "@/lib/constants/careerRoutes";
+import { CONSULTANTS_NOTE, CONSULTANTS_SETTINGS_HREF, CONSULTANTS_TITLE, routeTalkTagLabel } from "@/lib/constants/careerRoutes";
 import type { ConsultantCard } from "@/lib/featuredConsultants/server";
 
 /**
@@ -23,6 +23,7 @@ export function FeaturedConsultantsCard({ items, sample = false }: { items: Cons
         /* ⚠️ サイドバーの .pps-card と同じ見た目。見本（/dev/preview）でも崩れないよう自前で持つ */
         .fcs { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
         .fcs-title { font-size: 11px; font-weight: 700; color: var(--ink-mute); letter-spacing: 0.04em; margin-bottom: 8px; }
+        .fcs-more { display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--royal); text-decoration: none; }
         .fcs-note { margin: 12px 0 0; font-size: 11px; color: var(--ink-mute); line-height: 1.75; }
         .fcs-list { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
         .fcs-item { display: grid; gap: 8px; min-width: 0; }
@@ -66,6 +67,7 @@ export function FeaturedConsultantsCard({ items, sample = false }: { items: Cons
         })}
       </ul>
       <p className="fcs-note">{CONSULTANTS_NOTE}</p>
+      <Link href={CONSULTANTS_SETTINGS_HREF} className="fcs-more" data-action="consultants-settings">あなたも載る →</Link>
     </section>
   );
 }

@@ -75,7 +75,7 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
           { owUserId: myUserId, isTest: me?.is_test === true },
           { autoStart: false },
         ),
-        getFeaturedConsultants(),
+        getFeaturedConsultants({ excludeOwUserId: myUserId }),
       ]);
       consultants = consultantList;
       if (pathsView) {

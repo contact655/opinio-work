@@ -75,7 +75,7 @@ export default async function HomePage() {
     /* ⚠️ ow_profiles.user_id は auth 空間 */
     db.from("ow_profiles").select("career_history_complete_at").eq("user_id", user.id).maybeSingle(),
     /* ★相談できる人（2026-11-12）。失敗しても空配列（ホームを落とさない） */
-    getFeaturedConsultants(),
+    getFeaturedConsultants({ excludeOwUserId: owId }),
   ]);
   if (eduRes.error) console.error("[home] educations:", eduRes.error.message);
   if (profRes.error) console.error("[home] profile:", profRes.error.message);
