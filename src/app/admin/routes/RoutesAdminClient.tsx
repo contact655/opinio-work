@@ -36,7 +36,7 @@ function useAction() {
 export function RoutesAdminClient({ routes }: { routes: AdminRoute[] | null }) {
   const [adding, setAdding] = useState(false);
   return (
-    <div style={{ display: "grid", gap: 20, maxWidth: 1000 }}>
+    <div style={{ display: "grid", gap: 20, maxWidth: 1000, padding: 24 }}>
       <div>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>転職ルート</h1>
         <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
