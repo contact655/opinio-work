@@ -1,7 +1,7 @@
 "use client";
 
 import { PersonAvatar } from "@/components/common/PersonAvatar";
-import { RailBox, RailStackRow, RAIL_LIST_STYLE, RAIL_THUMB } from "@/components/feed/railKit";
+import { RailBox, RailStackRow, RAIL_ACTION_STYLE, RAIL_LIST_STYLE, RAIL_TEXT_STYLE, RAIL_THUMB } from "@/components/feed/railKit";
 import { DMButton } from "@/components/profile/DMButton";
 import { CAREER_GENERAL_KEY } from "@/lib/constants/careerConsult";
 import { CONSULTANTS_NOTE, CONSULTANTS_TITLE, routeTalkTagLabel } from "@/lib/constants/careerRoutes";
@@ -33,14 +33,14 @@ export function FeaturedConsultantsRail({ items, sample = false }: { items: Cons
               title={c.message ?? undefined}
               href={`/u/${encodeURIComponent(c.profileKey)}`}
               action={sample
-                ? <span aria-hidden style={{ display: "inline-flex", alignItems: "center", minHeight: 36, padding: "0 16px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700 }}>相談する</span>
-                : <DMButton targetUserId={c.userId} targetName={c.name} label="相談する" variant="button"
+                ? <span aria-hidden style={RAIL_ACTION_STYLE}>相談する</span>
+                : <DMButton targetUserId={c.userId} targetName={c.name} label="相談する" variant="rail"
                     consultPreset={{ about: CAREER_GENERAL_KEY, points: [], note: "" }} />}
             />
           );
         })}
       </div>
-      <p style={{ margin: "12px 0 0", fontSize: 11, color: "var(--ink-mute)", lineHeight: 1.75 }}>{CONSULTANTS_NOTE}</p>
+      <p style={{ ...RAIL_TEXT_STYLE, marginTop: 12 }}>{CONSULTANTS_NOTE}</p>
     </RailBox>
   );
 }

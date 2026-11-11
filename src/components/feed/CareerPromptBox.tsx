@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { RailBox } from "@/components/feed/railKit";
+import { RailBox, RAIL_ACTION_STYLE, RAIL_TEXT_STYLE } from "@/components/feed/railKit";
 import {
   CAREER_BOX_TITLE, CAREER_BOX_BODY, careerBannerHiddenUntil, isCareerBannerHidden,
   CAREER_NUDGE_EDU_BODY, CAREER_NUDGE_EDU_HREF, CAREER_NUDGE_EDU_LABEL, CAREER_NUDGE_PAST_BODY, CAREER_NUDGE_PAST_HREF, CAREER_NUDGE_PAST_LABEL,
@@ -44,20 +44,21 @@ export function useCareerNudge(nudge: CareerNudge | null | undefined): [boolean,
 export function CareerNudgeBox({ nudge, onClose }: { nudge: CareerNudge; onClose: () => void }) {
   const title = careerNudgeTitle(nudge);
   if (!title) return null;
-  const linkStyle: React.CSSProperties = { display: "inline-flex", alignItems: "center", minHeight: 44, marginTop: 8, padding: "7px 16px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none" };
+  /* ★文字とボタンは右の列のほかの箱と同じ（railKit の RAIL_TEXT_STYLE / RAIL_ACTION_STYLE。2026-11-12） */
+  const linkStyle: React.CSSProperties = { ...RAIL_ACTION_STYLE, marginTop: 8 };
   return (
     <div style={{ position: "relative" }} data-state="home-career-nudge-box">
       <RailBox title={title} state="home-career-nudge">
         <div style={{ display: "grid", gap: 12 }}>
           {nudge.pastJob && (
             <div data-state="home-career-nudge-past">
-              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: "var(--ink)" }}>{CAREER_NUDGE_PAST_BODY}</p>
+              <p style={RAIL_TEXT_STYLE}>{CAREER_NUDGE_PAST_BODY}</p>
               <Link href={CAREER_NUDGE_PAST_HREF} data-action="home-add-past-experience" style={linkStyle}>{CAREER_NUDGE_PAST_LABEL}</Link>
             </div>
           )}
           {nudge.education && (
             <div data-state="home-career-nudge-edu">
-              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: "var(--ink)" }}>{CAREER_NUDGE_EDU_BODY}</p>
+              <p style={RAIL_TEXT_STYLE}>{CAREER_NUDGE_EDU_BODY}</p>
               <Link href={CAREER_NUDGE_EDU_HREF} data-action="home-add-education" style={linkStyle}>{CAREER_NUDGE_EDU_LABEL}</Link>
             </div>
           )}
@@ -79,9 +80,8 @@ export function CareerPromptBox({ onClose }: { onClose: () => void }) {
   return (
     <div style={{ position: "relative" }} data-state="home-career-box">
       <RailBox title={CAREER_BOX_TITLE} state="home-career-prompt">
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: "var(--ink)" }}>{CAREER_BOX_BODY}</p>
-        <Link href="/mypage?add=career" data-action="home-add-experience"
-          style={{ display: "inline-block", marginTop: 12, padding: "7px 16px", borderRadius: 8, background: "var(--royal)", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+        <p style={RAIL_TEXT_STYLE}>{CAREER_BOX_BODY}</p>
+        <Link href="/mypage?add=career" data-action="home-add-experience" style={{ ...RAIL_ACTION_STYLE, marginTop: 8 }}>
           職歴を入れる
         </Link>
       </RailBox>
