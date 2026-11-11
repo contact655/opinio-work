@@ -14,7 +14,7 @@ import {
   isConsultDraftReady,
   type ConsultDraft,
 } from "@/components/messages/Consult";
-import type { ConsultAboutOption } from "@/lib/constants/careerConsult";
+import type { ConsultAboutOption, ConsultPoint } from "@/lib/constants/careerConsult";
 
 type Props = {
   targetUserId: string;
@@ -32,13 +32,19 @@ type Props = {
    * link     … ★文字だけ（職歴の「この経験について聞く」。2026-11-05）
    * menuItem … 「…」メニューの中（2026-11-05 時点で使っている画面なし）
    * card / icon / action … 白い枠のボタン・白い丸・フィードの操作行
+   * block    … ★横幅いっぱいの塗りの主ボタン・高さ44px（転職ルートの経験者のカード。2026-11-11）
    */
-  variant?: "button" | "primary" | "iconPrimary" | "link" | "menuItem" | "card" | "icon" | "action";
+  variant?: "button" | "primary" | "iconPrimary" | "link" | "menuItem" | "card" | "icon" | "action" | "block";
   /** ★企業ページの社員の行から送るとき、その会社の id（2026-10-18）。相談の「聞きたい話」でその会社を選んだ状態にする */
   aboutCompanyId?: string | null;
   /** ★「この経験について聞く」から開くとき、その職歴の id（2026-11-05）。相談の「聞きたい話」でその会社を選んだ状態にする */
   aboutExperienceId?: string | null;
+  /** ★転職ルート（/routes/[slug]・プロフィールの「転職ルート」）から開くとき（2026-11-11）。
+        相談の「聞きたい話」「特に聞きたいこと」「ひとこと」を下書きとして入れる。本人はすべて書き換えられる */
+  consultPreset?: ConsultPreset | null;
 };
+
+export type ConsultPreset = { about: string; points: ConsultPoint[]; note: string };
 
 const ICON = (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -51,6 +57,8 @@ type Compose = {
   options: ConsultAboutOption[];
   selectedAbout: string | null;
   maxLength: number;
+  /** 下書き（転職ルートから開いたとき）。無ければ空の相談 */
+  preset?: ConsultPreset | null;
 };
 
 /**
@@ -65,7 +73,7 @@ type Compose = {
  * ⚠️★止まったときに会話一覧へ移らないこと。空の会話を作らないこと（本文か相談が無ければ送らない）。
  * ⚠️ 2026-11-03〜11-05 は、相手の「話を聞ける」設定でボタンを出し分け、文言も「話を聞く」にしていた。外した（柴さんの指示）。
  */
-export function DMButton({ targetUserId, targetName, label: labelProp, variant = "button", aboutCompanyId = null, aboutExperienceId = null }: Props) {
+export function DMButton({ targetUserId, targetName, label: labelProp, variant = "button", aboutCompanyId = null, aboutExperienceId = null, consultPreset = null }: Props) {
   const [avail, setAvail] = useState<MessageAvailability | null>(null);
   useEffect(() => {
     let alive = true;
@@ -110,11 +118,14 @@ export function DMButton({ targetUserId, targetName, label: labelProp, variant =
         /* ⚠️ 選択肢が取れなければ書かせない（相談を選べないまま送る画面になる）。「キャリア全般」は必ずある */
         if (options.length === 0) { setNotice({ text: "現在メッセージを送れません" }); return; }
         const fromCompany = aboutCompanyId ? options.find((o) => o.companyId === aboutCompanyId)?.key ?? null : null;
+        /* ⚠️ 下書きの「聞きたい話」が選択肢に無ければ使わない（選べない値を選んだ状態にしない） */
+        const preset = consultPreset && options.some((o) => o.key === consultPreset.about) ? consultPreset : null;
         setCompose({
           connected: data.connected === true,
           options,
-          selectedAbout: (data.selectedAbout as string | null) ?? fromCompany,
+          selectedAbout: preset?.about ?? (data.selectedAbout as string | null) ?? fromCompany,
           maxLength: typeof data.maxLength === "number" ? data.maxLength : 500,
+          preset,
         });
         return;
       }
@@ -144,7 +155,7 @@ export function DMButton({ targetUserId, targetName, label: labelProp, variant =
     }
   }
 
-  const floatingNotice = variant === "card" || variant === "icon" || variant === "action" || variant === "primary" || variant === "iconPrimary";
+  const floatingNotice = variant === "block" || variant === "card" || variant === "icon" || variant === "action" || variant === "primary" || variant === "iconPrimary";
   useEffect(() => {
     if (!notice || !floatingNotice) return;
     const t = setTimeout(() => setNotice(null), 4000);
@@ -171,6 +182,13 @@ export function DMButton({ targetUserId, targetName, label: labelProp, variant =
           style={{ flex: 1, minWidth: 0, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "8px 10px", minHeight: 34,
             background: loading ? "var(--line)" : "var(--royal)", color: loading ? "var(--ink-mute)" : "#fff", borderRadius: 9, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit",
             border: "1.5px solid var(--royal)", whiteSpace: "nowrap", cursor: loading ? "default" : "pointer", boxSizing: "border-box" }}>
+          {ICON}{text}
+        </button>
+      ) : variant === "block" ? (
+        <button type="button" onClick={handleClick} disabled={loading} data-action="dm-block" className="btn-fixed-size"
+          style={{ width: "100%", minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 14px",
+            background: loading ? "var(--line)" : "var(--royal)", color: loading ? "var(--ink-mute)" : "#fff", borderRadius: 10, fontSize: 14, fontWeight: 700, fontFamily: "inherit",
+            border: "none", cursor: loading ? "default" : "pointer", boxSizing: "border-box" }}>
           {ICON}{text}
         </button>
       ) : variant === "iconPrimary" ? (
@@ -299,7 +317,10 @@ export function NewMessageComposer({ recipientName, compose, onSendMessage, onSe
   sample?: boolean;
 }) {
   const [text, setText] = useState("");
-  const [draft, setDraft] = useState<ConsultDraft>(emptyConsultDraft(compose.selectedAbout));
+  const [draft, setDraft] = useState<ConsultDraft>(() => {
+    const d = emptyConsultDraft(compose.selectedAbout);
+    return compose.preset ? { ...d, points: [...compose.preset.points], note: compose.preset.note } : d;
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const consulting = !!draft.about;

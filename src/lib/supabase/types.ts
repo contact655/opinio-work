@@ -910,6 +910,39 @@ export type Database = {
           },
         ]
       }
+      ow_career_routes: {
+        Row: {
+          created_at: string
+          display_order: number
+          from_label: string
+          id: string
+          is_published: boolean
+          slug: string
+          to_label: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          from_label: string
+          id?: string
+          is_published?: boolean
+          slug: string
+          to_label: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          from_label?: string
+          id?: string
+          is_published?: boolean
+          slug?: string
+          to_label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ow_career_turn_axes: {
         Row: {
           axis_key: string
@@ -6712,6 +6745,73 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "ow_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_route_hosts: {
+        Row: {
+          accepting_consult: boolean
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          is_listed: boolean
+          message: string | null
+          moved_year: number | null
+          route_id: string
+          talk_tags: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accepting_consult?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          is_listed?: boolean
+          message?: string | null
+          moved_year?: number | null
+          route_id: string
+          talk_tags?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accepting_consult?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          is_listed?: boolean
+          message?: string | null
+          moved_year?: number | null
+          route_id?: string
+          talk_tags?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_route_hosts_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_route_hosts_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "ow_career_routes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_route_hosts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
             referencedColumns: ["id"]
           },
         ]
