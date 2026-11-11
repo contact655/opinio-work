@@ -12,13 +12,15 @@ import { useEffect, useRef, useState } from "react";
  * ⚠️ 前の経歴（prev_*）は選び方が違う（業界・職種・会社の3つの選択）ので、上部の「前の経歴」で選ぶ。
  *    「リセット」は前の経歴も含めて外す（呼び出し側の onReset）。
  */
-export type PeopleFilterValues = { rel: string; roles: string[]; ages: string[]; foreign: boolean };
+export type PeopleFilterValues = { rel: string; roles: string[]; ages: string[]; foreign: boolean; consult: boolean };
 
 type Opt = { value: string; label: string };
 
 export function PeopleFilterDrawer({
-  open, onClose, values, relOptions, roleOptions, ageOptions, onApply, onReset,
+  open, onClose, values, relOptions, roleOptions, ageOptions, onApply, onReset, showConsult = false,
 }: {
+  /** ★相談可能なユーザーの欄を出すか（2026-11-12。一覧を読めなかったときは出さない） */
+  showConsult?: boolean;
   open: boolean;
   onClose: () => void;
   values: PeopleFilterValues;
@@ -128,6 +130,15 @@ export function PeopleFilterDrawer({
               <span>外資</span>
             </label>
           </section>
+          {showConsult && (
+            <section className="pfd-sec" data-state="pfd-consult">
+              <h3 className="pfd-sec-title">相談</h3>
+              <label className="pfd-opt">
+                <input type="checkbox" checked={draft.consult} onChange={() => setDraft((d) => ({ ...d, consult: !d.consult }))} />
+                <span>相談可能なユーザー</span>
+              </label>
+            </section>
+          )}
           <section className="pfd-sec">
             <p className="pfd-note">前の経歴は、上の「前の経歴」から選べます。</p>
           </section>

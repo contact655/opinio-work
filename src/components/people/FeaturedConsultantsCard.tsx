@@ -4,7 +4,7 @@ import Link from "next/link";
 import { PersonAvatar } from "@/components/common/PersonAvatar";
 import { DMButton } from "@/components/profile/DMButton";
 import { CAREER_GENERAL_KEY } from "@/lib/constants/careerConsult";
-import { CONSULTANTS_NOTE, CONSULTANTS_SETTINGS_HREF, CONSULTANTS_TITLE, routeTalkTagLabel } from "@/lib/constants/careerRoutes";
+import { CONSULTANTS_LIST_HREF, CONSULTANTS_NOTE, CONSULTANTS_SETTINGS_HREF, CONSULTANTS_TITLE, routeTalkTagLabel } from "@/lib/constants/careerRoutes";
 import type { ConsultantCard } from "@/lib/featuredConsultants/server";
 
 /**
@@ -67,7 +67,10 @@ export function FeaturedConsultantsCard({ items, sample = false }: { items: Cons
         })}
       </ul>
       <p className="fcs-note">{CONSULTANTS_NOTE}</p>
-      <Link href={CONSULTANTS_SETTINGS_HREF} className="fcs-more" data-action="consultants-settings">あなたも載る →</Link>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+        <Link href={CONSULTANTS_LIST_HREF} className="fcs-more" data-action="consultants-all">すべて見る →</Link>
+        <Link href={CONSULTANTS_SETTINGS_HREF} className="fcs-more" data-action="consultants-settings">あなたも載る →</Link>
+      </div>
     </section>
   );
 }
