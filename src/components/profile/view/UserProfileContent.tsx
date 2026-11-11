@@ -784,23 +784,27 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                     educations={timelineEdus}
                   />
                 )}
+                {/* ★2026-11-12: 年表の行（MergedTimeline の学歴）と同じ形にした（柴さんの指示「ロゴの大きさを大学に合わせる」）。
+                       PC はアイコン列に 64px、スマホ（アイコン列が消える幅）は名前の横に 28px（.tl-row / .tl-icon-cell / .tl-inline-logo は globals.css） */}
                 {unplacedEdus.map((e) => (
-                  <div key={e.id} style={{
-                    display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-                    paddingTop: 8, paddingBottom: 18,
-                  }}>
-                    <SchoolLogoImg schoolMaster={e.school_master ?? null} size={28} />
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", lineHeight: 1.3 }}>
-                        {e.school}
+                  <div key={e.id} className="tl-row" data-state="profile-edu-undated">
+                    <div className="tl-icon-cell" style={{ paddingTop: 8, position: "relative", zIndex: 1 }}>
+                      <SchoolLogoImg schoolMaster={e.school_master ?? null} size={64} />
+                    </div>
+                    <div className="tl-content tl-content-edu" style={{ paddingTop: 8, paddingBottom: 18 }}>
+                      <div style={{ marginBottom: 3, lineHeight: 1.3, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span className="tl-inline-logo">
+                          <SchoolLogoImg schoolMaster={e.school_master ?? null} size={28} />
+                        </span>
+                        <span className="tl-company-name" style={{ fontWeight: 700, color: "var(--ink)" }}>{e.school}</span>
                       </div>
                       {(e.faculty || e.degree) && (
-                        <div style={{ fontSize: 14, color: "var(--ink-soft)", marginTop: 2 }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, color: "var(--ink-soft)", marginBottom: 4, lineHeight: 1.4 }}>
                           {[e.faculty, e.degree].filter(Boolean).join(" · ")}
                         </div>
                       )}
                       {/* ⚠️ 期間は出さない。始まりが分からないので月数を出しようがない */}
-                      <div style={{ fontSize: 13, color: "var(--ink-mute)", marginTop: 2 }}>
+                      <div style={{ fontSize: 13, color: "var(--ink-mute)" }}>
                         入学年月 未入力
                       </div>
                     </div>
