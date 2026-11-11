@@ -13,7 +13,7 @@ import type { ConsultantCard } from "@/lib/featuredConsultants/server";
  *   ② 次に埋めるとよい項目を**1つだけ**
  *   ③ フォロー中 / フォロワー / フォロー中の企業
  *   ④ （面談OKだけ見る。2026-10-16 に撤去）
- *   ⑤ 近い人（同じ職種 / 同じ会社にいた人）
+ *   ⑤ 近い人（同じ職種）。★「同じ会社にいた人」は 2026-11-12 に上部のつながりのチップへ移した（入口を2つにしない）
  *   ⑥ 相談できる人（2026-11-12。運営が選び、本人の同意を記録した人。0人なら出さない）
  *
  * ⚠️★**%（完成度）を出さないこと**（2026-09-18 / 柴さんの判断）。
@@ -51,8 +51,6 @@ export type PeopleSidebarProps = {
   myRole: { slug: string; label: string } | null;
   roleFilter: string[];
   onRole: (slugs: string[]) => void;
-  /** 職歴にマスタ紐付きの会社があるか。**無ければ「同じ会社にいた人」を出さない** */
-  hasCompanyHistory: boolean;
   /** ★相談できる人（2026-11-12）。0人なら欄ごと出さない */
   consultants?: ConsultantCard[];
 };
@@ -151,7 +149,7 @@ export function PeopleSidebar(p: PeopleSidebarProps) {
       )}
 
       {/* ── ⑤ 近い人。⚠️ 自分の職種・職歴が無ければ、その行ごと出さない ── */}
-      {(p.myRole || p.hasCompanyHistory) && (
+      {p.myRole && (
         <div className={`pps-card pps-collapsible${open ? " is-open" : ""}`}>
           <div className="pps-title">近い人</div>
           {p.myRole && (
@@ -161,9 +159,6 @@ export function PeopleSidebar(p: PeopleSidebarProps) {
               onClick={() => p.onRole(p.roleFilter.length === 1 && p.roleFilter[0] === p.myRole!.slug ? [] : [p.myRole!.slug])}
               right={p.myRole.label}
             />
-          )}
-          {p.hasCompanyHistory && (
-            <Row label="同じ会社にいた人" active={p.rel === "coworkers"} onClick={() => p.onRel(p.rel === "coworkers" ? "" : "coworkers")} />
           )}
         </div>
       )}

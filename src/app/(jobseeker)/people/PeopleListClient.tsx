@@ -18,6 +18,7 @@ import type { PeopleSidebarData } from "@/lib/people/sidebarData";
 import type { ConsultantCard } from "@/lib/featuredConsultants/server";
 import { useHideOnScroll } from "@/lib/hooks/useHideOnScroll";
 import { PrevCareerChip } from "@/components/people/PrevCareerChip";
+import { PeopleFilterDrawer, type PeopleFilterValues } from "@/components/people/PeopleFilterDrawer";
 import { showFollowOnCard } from "@/lib/people/followButton";
 import { prevParams, type PrevSelection } from "@/lib/people/prevCareer";
 import type { PathsOption, PathsStartView } from "@/lib/paths/server";
@@ -349,6 +350,13 @@ export function PeopleCardStyles() {
                   ⚠️ ここは style タグのテンプレートリテラルの中。**バッククォートを書かないこと**
                      （文字列がその場で閉じる。2026-09-17 にこの行で実際に踏んだ）。 */
             .ppl-filter-chips { display: contents; }
+            /* ★つながりと他の条件の区切り（2026-11-12）。⚠️ ここも style タグの中。バッククォートを書かないこと */
+            .ppl-chip-sep { width: 1px; height: 22px; background: var(--line); flex-shrink: 0; margin: 0 2px; }
+            .ppl-all-filters { border-color: var(--royal); color: var(--royal); font-weight: 600; }
+            .ppl-all-count {
+              display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px;
+              margin-left: 6px; border-radius: 999px; background: var(--royal); color: #fff; font-size: 11px; font-weight: 700;
+            }
           `}</style>
   );
 }
@@ -782,6 +790,19 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     [searchParams],
   );
   const foreignOnly = searchParams.get("foreign") === "1";
+  /* ★つながりの選択肢（2026-11-12。上部のチップと「すべてのフィルター」が同じものを使う）。
+     ⚠️ ログインしていない・自分の行が無いときは空。同じ会社にいた人は、マスタに紐づく職歴があるときだけ */
+  const relOptions = useMemo(() => (sidebar
+    ? [
+        { value: "following", label: "フォロー中" },
+        { value: "followers", label: "フォロワー" },
+        ...(sidebar.myCompanyIds.length > 0 ? [{ value: "coworkers", label: "同じ会社にいた人" }] : []),
+      ]
+    : []), [sidebar]);
+  const drawerValues = useMemo(() => ({ rel, roles, ages, foreign: foreignOnly }), [rel, roles, ages, foreignOnly]);
+  /* 選んでいる条件の数（「すべてのフィルター」に添える。⚠️ 人数ではない） */
+  const prevActive = !!(prevCareer?.selected.role || prevCareer?.selected.industry || prevCareer?.selected.company);
+  const activeFilterCount = (rel ? 1 : 0) + roles.length + ages.length + (foreignOnly ? 1 : 0) + (prevActive ? 1 : 0);
 
   /** URL のパラメータを1つ書き換える。⚠️ 空文字は**キーごと消す**（`?role=` を残さない） */
   const setParam = (patch: Record<string, string>) => {
@@ -841,6 +862,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
   const [kwDraft, setKwDraft] = useState(keyword);
   useEffect(() => { setKwDraft(keyword); }, [keyword]);
   const [openChip, setOpenChip] = useState<string | null>(null);
+  /* ★「すべてのフィルター」（2026-11-12 / LinkedIn を参考に）。開閉だけをここで持ち、条件は URL のまま */
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   /* ★スマホで下へスクロールしたら上部を隠す（2026-10-21） */
   useHideOnScroll(wrapRef);
@@ -1024,6 +1047,19 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           {/* ★折り返しは CSS（`.list-toolbar`）。スマホでは1行で横にスクロール（2026-10-17） */}
           {/* ⚠️ 下の余白は CSS（.lt-chip-row）。インラインに戻すと1行にまとめたときに消せない */}
           <div className="list-toolbar list-toolbar--wrap lt-chip-row" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* ★つながり（2026-11-12 / LinkedIn の「1次／2次」を参考に先頭へ）。⚠️ URL の rel は1つだけ。押すと切り替わり、もう一度押すと外れる。
+                ⚠️ ログインしていない・自分の行が無いときは出さない（sidebar が null）。同じ会社にいた人は職歴に会社があるときだけ */}
+            {relOptions.length > 0 && (
+              <>
+                {relOptions.map((o) => (
+                  <button key={o.value} type="button" className={`ppl-chip${rel === o.value ? " active" : ""}`} data-state={`people-rel-${o.value}`}
+                    onClick={() => setParam({ rel: rel === o.value ? "" : o.value })} aria-pressed={rel === o.value}>
+                    {o.label}{rel === o.value && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
+                  </button>
+                ))}
+                <span aria-hidden className="ppl-chip-sep" />
+              </>
+            )}
             {/* ⚠️★**同じ項目の中は OR、項目どうしは AND**（`/companies` と同じ約束）。
                 ⚠️★**値を持たない人は、その項目で絞ったときだけ落ちる**（現職なし → 職種／生年月日なし → 年代／
                    マスタ紐付きの職歴なし → 外資）。他の条件では落とさない。 */}
@@ -1061,6 +1097,11 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
                 }}
               />
             )}
+            {/* ★すべてのフィルター（2026-11-12）。選んでいる条件の数を添える（人数ではない） */}
+            <button type="button" className={`ppl-chip ppl-all-filters${activeFilterCount > 0 ? " has-count" : ""}`} data-action="people-all-filters"
+              onClick={() => { setOpenChip(null); setDrawerOpen(true); }} aria-haspopup="dialog">
+              すべてのフィルター{activeFilterCount > 0 && <span className="ppl-all-count">{activeFilterCount}</span>}
+            </button>
           </div>
 
           {/* ★3行目: 「前の経歴で絞り込み中」（左）と、表示切替・並び替え（文字だけ）（右）
@@ -1119,6 +1160,17 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
         </div>
       </div>
 
+      <PeopleFilterDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        values={drawerValues}
+        relOptions={relOptions}
+        roleOptions={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+        ageOptions={AGE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+        onApply={(next: PeopleFilterValues) => setParam({ rel: next.rel, role: next.roles.join(","), age: next.ages.join(","), foreign: next.foreign ? "1" : "" })}
+        onReset={() => setParam({ rel: "", role: "", age: "", foreign: "", ...prevParams({ role: null, industry: null, company: null }) })}
+      />
+
       {/* ── コンテンツ ── */}
       <div className="ppl-wrap" style={{ margin: "0 auto", padding: "16px 24px 80px" }}>
        <div className="ppl-layout">
@@ -1134,7 +1186,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
             myRole={sidebar.myRole}
             roleFilter={roles}
             onRole={setRoles}
-            hasCompanyHistory={sidebar.myCompanyIds.length > 0}
             consultants={consultants}
           />
         )}
