@@ -6754,6 +6754,8 @@ export type Database = {
           accepting_consult: boolean
           approved_at: string | null
           approved_by: string | null
+          consent_confirmed_at: string | null
+          consent_method: string | null
           created_at: string
           id: string
           is_listed: boolean
@@ -6768,6 +6770,8 @@ export type Database = {
           accepting_consult?: boolean
           approved_at?: string | null
           approved_by?: string | null
+          consent_confirmed_at?: string | null
+          consent_method?: string | null
           created_at?: string
           id?: string
           is_listed?: boolean
@@ -6782,6 +6786,8 @@ export type Database = {
           accepting_consult?: boolean
           approved_at?: string | null
           approved_by?: string | null
+          consent_confirmed_at?: string | null
+          consent_method?: string | null
           created_at?: string
           id?: string
           is_listed?: boolean

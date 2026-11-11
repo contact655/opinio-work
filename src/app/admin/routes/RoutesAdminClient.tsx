@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { AdminHost, AdminRoute } from "@/lib/careerRoutes/server";
-import { ROUTE_HOST_MESSAGE_MAX, ROUTE_TALK_TAGS, routeTitle, type RouteTalkTag } from "@/lib/constants/careerRoutes";
+import { ROUTE_CONSENT_METHODS, ROUTE_HOST_MESSAGE_MAX, ROUTE_TALK_TAGS, isoToJstLocal, routeTitle, type RouteTalkTag } from "@/lib/constants/careerRoutes";
 import { addHost, deleteHost, saveRoute, setHostListed, updateHost, type RouteActionResult } from "./actions";
 
 /**
@@ -133,6 +133,8 @@ function HostRow({ host }: { host: AdminHost }) {
   const [tags, setTags] = useState<RouteTalkTag[]>(host.talkTags);
   const [message, setMessage] = useState(host.message ?? "");
   const [accepting, setAccepting] = useState(host.acceptingConsult);
+  const [consentAt, setConsentAt] = useState(isoToJstLocal(host.consentConfirmedAt));
+  const [consentMethod, setConsentMethod] = useState(host.consentMethod ?? "");
   const { pending, error, run } = useAction();
   const listed = host.blockers.length === 0;
   const toggle = (t: RouteTalkTag) => setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
@@ -182,15 +184,30 @@ function HostRow({ host }: { host: AdminHost }) {
         <label style={{ display: "grid", gap: 4, fontSize: 13 }}>本人のひとこと（{message.length} / {ROUTE_HOST_MESSAGE_MAX}）
           <textarea style={{ ...input, resize: "vertical" }} rows={2} value={message} onChange={(e) => setMessage(e.target.value)} />
         </label>
-        <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
-          <input type="checkbox" checked={accepting} onChange={(e) => setAccepting(e.target.checked)} />
-          相談を受け付ける（本人の同意を確かめてから入れる）
-        </label>
+        <fieldset data-state="host-consent" style={{ border: "1px solid var(--line)", borderRadius: 8, padding: "10px 12px", margin: 0, display: "grid", gap: 8, minWidth: 0 }}>
+          <legend style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", padding: "0 4px" }}>本人の同意（相談の受付と承認に必要）</legend>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>確認した日時
+              <input type="datetime-local" style={input} value={consentAt} onChange={(e) => setConsentAt(e.target.value)} />
+            </label>
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>確認した方法
+              <select style={input} value={consentMethod} onChange={(e) => setConsentMethod(e.target.value)}>
+                <option value="">選んでください</option>
+                {ROUTE_CONSENT_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+              </select>
+            </label>
+          </div>
+          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
+            <input type="checkbox" checked={accepting} onChange={(e) => setAccepting(e.target.checked)} />
+            相談を受け付ける
+          </label>
+          <div style={{ fontSize: 12, color: "var(--ink-mute)" }}>日時は日本時間。入れたら「内容を保存」を押してから承認してください（承認は保存済みの記録で判断します）</div>
+        </fieldset>
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <button type="button" style={btn()} disabled={pending}
-          onClick={() => run(() => updateHost(host.hostId, { movedYear: year, talkTags: tags, message, acceptingConsult: accepting }))}>
+          onClick={() => run(() => updateHost(host.hostId, { movedYear: year, talkTags: tags, message, acceptingConsult: accepting, consentConfirmedAt: consentAt, consentMethod }))}>
           内容を保存
         </button>
         {host.isListed ? (

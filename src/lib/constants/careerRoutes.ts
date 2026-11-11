@@ -5,6 +5,7 @@
  * ⚠️ 何も import しない（`npm test` が直接読む）。
  * ⚠️★話せること（ROUTE_TALK_TAGS）の値は DB の CHECK と同じ。片方だけ変えないこと。
  *    足すときは末尾に足し、同じ migration で CHECK を張り替える。値の削除・改名はしない（保存済みの行が読めなくなる）。
+ * ⚠️★同意を確認した方法（ROUTE_CONSENT_METHODS）も DB の CHECK と同じ（migration 20261111150000）。
  */
 
 /** 話せること（複数選択）。⚠️ メッセージのテーマ・キャリア相談の選択肢とはそろえない（柴さんの決定） */
@@ -34,6 +35,48 @@ export function routeTalkTagLabel(v: RouteTalkTag): string {
 export function sortRouteTalkTags(values: readonly unknown[]): RouteTalkTag[] {
   const picked = new Set(values.filter(isRouteTalkTag));
   return ROUTE_TALK_TAGS.map((t) => t.value).filter((v) => picked.has(v));
+}
+
+/**
+ * ★本人の同意を確認した方法（2026-11-11 / 柴さんの指示）。相談の受付と掲載の承認には、
+ *   確認した日時とこの方法の2つが要る（DB の CHECK ow_route_hosts_consent_required でも止まる）。
+ */
+export const ROUTE_CONSENT_METHODS = [
+  { value: "email", label: "メール" },
+  { value: "line", label: "LINE" },
+  { value: "meeting", label: "面談" },
+  { value: "other", label: "その他" },
+] as const;
+export type RouteConsentMethod = (typeof ROUTE_CONSENT_METHODS)[number]["value"];
+
+export function isRouteConsentMethod(v: unknown): v is RouteConsentMethod {
+  return typeof v === "string" && ROUTE_CONSENT_METHODS.some((m) => m.value === v);
+}
+
+export function routeConsentMethodLabel(v: string | null | undefined): string {
+  return ROUTE_CONSENT_METHODS.find((m) => m.value === v)?.label ?? "";
+}
+
+/** 同意の記録が無いまま相談の受付・承認をしようとしたときの文言（画面とサーバーで同じ） */
+export const ROUTE_CONSENT_REQUIRED_MESSAGE = "本人の同意を確認した日時と方法を入れてから、相談の受付・承認をしてください";
+
+const JST_LOCAL_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
+
+/** 入力欄（datetime-local・日本時間）の値を ISO に。空は null、形が違えば undefined */
+export function jstLocalToIso(v: string): string | null | undefined {
+  const t = v.trim();
+  if (!t) return null;
+  if (!JST_LOCAL_RE.test(t)) return undefined;
+  const d = new Date(`${t}:00+09:00`);
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
+/** ISO を入力欄（datetime-local・日本時間）の値に。空や読めない値は "" */
+export function isoToJstLocal(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Date(d.getTime() + 9 * 3600_000).toISOString().slice(0, 16);
 }
 
 /** 本人のひとことの上限（DB の CHECK と同じ） */
@@ -76,6 +119,8 @@ export type HostListableInput = {
   isListed: boolean | null | undefined;
   approvedAt: string | null | undefined;
   routePublished: boolean | null | undefined;
+  consentConfirmedAt: string | null | undefined;
+  consentMethod: string | null | undefined;
 };
 
 /** 出せない理由（運営画面で「なぜ出ていないか」を見せる）。空なら出せる */
@@ -84,6 +129,7 @@ export function hostBlockers(h: HostListableInput): string[] {
   if (h.routePublished !== true) out.push("ルートが非公開");
   if (h.isListed !== true || !h.approvedAt) out.push("運営が未承認");
   if (h.acceptingConsult !== true) out.push("相談を受け付けていない");
+  if (!h.consentConfirmedAt || !isRouteConsentMethod(h.consentMethod)) out.push("本人の同意の記録が無い");
   if (h.visibility !== "public") out.push("公開範囲が「公開」でない");
   if (!h.authId) out.push("本人が登録していない");
   if (h.isTest !== false) out.push(h.isTest === true ? "検証用アカウント" : "検証用かどうか不明");
@@ -115,9 +161,12 @@ export function parseRouteInput(raw: unknown):
   return { ok: true, value: { slug, fromLabel, toLabel, displayOrder: order, isPublished: r.isPublished } };
 }
 
-/** 運営画面の入力を確かめる（経験者）。⚠️ 承認（is_listed）はここでは扱わない（別の操作） */
-export function parseHostInput(raw: unknown):
-  | { ok: true; value: { movedYear: number | null; talkTags: RouteTalkTag[]; message: string | null; acceptingConsult: boolean } }
+/**
+ * 運営画面の入力を確かめる（経験者）。⚠️ 承認（is_listed）はここでは扱わない（別の操作）。
+ * ctx.isListed: いま掲載中か（掲載中の人の同意の記録は消させない）。ctx.now: テスト用
+ */
+export function parseHostInput(raw: unknown, ctx: { isListed?: boolean; now?: Date } = {}):
+  | { ok: true; value: { movedYear: number | null; talkTags: RouteTalkTag[]; message: string | null; acceptingConsult: boolean; consentConfirmedAt: string | null; consentMethod: RouteConsentMethod | null } }
   | { ok: false; message: string } {
   const r = (raw ?? {}) as Record<string, unknown>;
   let movedYear: number | null = null;
@@ -133,5 +182,17 @@ export function parseHostInput(raw: unknown):
   const message = msgRaw.trim();
   if (message.length > ROUTE_HOST_MESSAGE_MAX) return { ok: false, message: `ひとことは${ROUTE_HOST_MESSAGE_MAX}字以内で入力してください` };
   if (typeof r.acceptingConsult !== "boolean") return { ok: false, message: "相談を受け付けるかを選んでください" };
-  return { ok: true, value: { movedYear, talkTags: sortRouteTalkTags(tagsRaw), message: message || null, acceptingConsult: r.acceptingConsult } };
+  const atRaw = r.consentConfirmedAt == null ? "" : r.consentConfirmedAt;
+  if (typeof atRaw !== "string") return { ok: false, message: "同意を確認した日時を入力し直してください" };
+  const consentConfirmedAt = jstLocalToIso(atRaw);
+  if (consentConfirmedAt === undefined) return { ok: false, message: "同意を確認した日時を入力し直してください" };
+  if (consentConfirmedAt && new Date(consentConfirmedAt).getTime() > (ctx.now ?? new Date()).getTime() + 10 * 60_000) {
+    return { ok: false, message: "同意を確認した日時に、未来の日時は入れられません" };
+  }
+  const methodRaw = r.consentMethod == null ? "" : r.consentMethod;
+  if (methodRaw !== "" && !isRouteConsentMethod(methodRaw)) return { ok: false, message: "同意を確認した方法を選び直してください" };
+  const consentMethod = methodRaw === "" ? null : (methodRaw as RouteConsentMethod);
+  if ((consentConfirmedAt === null) !== (consentMethod === null)) return { ok: false, message: "同意を確認した日時と方法は、両方入れてください" };
+  if ((r.acceptingConsult || ctx.isListed === true) && consentConfirmedAt === null) return { ok: false, message: ROUTE_CONSENT_REQUIRED_MESSAGE };
+  return { ok: true, value: { movedYear, talkTags: sortRouteTalkTags(tagsRaw), message: message || null, acceptingConsult: r.acceptingConsult, consentConfirmedAt, consentMethod } };
 }

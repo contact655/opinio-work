@@ -34,7 +34,7 @@ export type RouteHostCard = {
 };
 
 const ROUTE_COLS = "id, slug, from_label, to_label, display_order, is_published" as const;
-const HOST_COLS = "id, route_id, user_id, moved_year, talk_tags, message, accepting_consult, is_listed, approved_at" as const;
+const HOST_COLS = "id, route_id, user_id, moved_year, talk_tags, message, accepting_consult, is_listed, approved_at, consent_confirmed_at, consent_method" as const;
 const USER_COLS = "id, name, username, avatar_url, visibility, auth_id, is_test, is_system" as const;
 
 function toRoute(r: Record<string, unknown>): RouteSummary {
@@ -51,6 +51,7 @@ function blockersOf(h: Record<string, unknown>, u: UserRow | undefined, routePub
     visibility: u?.visibility, authId: u?.auth_id, isTest: u?.is_test, isSystem: u?.is_system,
     acceptingConsult: h.accepting_consult as boolean | null, isListed: h.is_listed as boolean | null,
     approvedAt: h.approved_at as string | null, routePublished,
+    consentConfirmedAt: h.consent_confirmed_at as string | null, consentMethod: h.consent_method as string | null,
   });
 }
 
@@ -168,6 +169,8 @@ export type AdminHost = {
   visibility: string | null; isTest: boolean;
   movedYear: number | null; talkTags: RouteTalkTag[]; message: string | null;
   acceptingConsult: boolean; isListed: boolean; approvedAt: string | null;
+  /** 本人の同意を確認した日時（ISO）と方法 */
+  consentConfirmedAt: string | null; consentMethod: string | null;
   /** 出せない理由（空なら公開中） */
   blockers: string[];
   experiences: AdminHostExperience[];
@@ -228,6 +231,7 @@ export async function getAdminRoutes(): Promise<AdminRoute[] | null> {
         talkTags: sortRouteTalkTags(Array.isArray(h.talk_tags) ? (h.talk_tags as unknown[]) : []),
         message: (h.message as string | null) ?? null,
         acceptingConsult: h.accepting_consult === true, isListed: h.is_listed === true, approvedAt: (h.approved_at as string | null) ?? null,
+        consentConfirmedAt: (h.consent_confirmed_at as string | null) ?? null, consentMethod: (h.consent_method as string | null) ?? null,
         blockers: blockersOf(h, u, route.isPublished),
         experiences,
       };
