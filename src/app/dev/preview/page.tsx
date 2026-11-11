@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/people-filters", label: "ユーザーフィルター（/people の「すべてのフィルター」）",
+    desc: "★PC は右から・767px 以下は下から。リセット・結果を表示" },
   { href: "/dev/preview/consultants", label: "相談可能なユーザー（/people の左サイドバー・ホーム）",
     desc: "★1人・4人（職歴なし・タグなし・ひとことなし・以前の職歴）・長文・0人" },
   { href: "/dev/preview/routes", label: "転職ルート（/routes/[slug]・プロフィール）",
