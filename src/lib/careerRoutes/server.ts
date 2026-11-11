@@ -44,7 +44,7 @@ function toRoute(r: Record<string, unknown>): RouteSummary {
   };
 }
 
-type UserRow = { id: string; name: string; username: string | null; avatar_url: string | null; visibility: string | null; auth_id: string | null; is_test: boolean | null; is_system: boolean | null };
+export type UserRow = { id: string; name: string; username: string | null; avatar_url: string | null; visibility: string | null; auth_id: string | null; is_test: boolean | null; is_system: boolean | null };
 
 function blockersOf(h: Record<string, unknown>, u: UserRow | undefined, routePublished: boolean): string[] {
   return hostBlockers({
@@ -55,8 +55,9 @@ function blockersOf(h: Record<string, unknown>, u: UserRow | undefined, routePub
   });
 }
 
-/** 今の会社と職種（直近の職歴）。会社名は visibility_company = 'real' の職歴だけ出す */
-async function currentJobs(userIds: string[]): Promise<Map<string, { company: string | null; role: string | null; isCurrent: boolean }> | null> {
+/** 今の会社と職種（直近の職歴）。会社名は visibility_company = 'real' の職歴だけ出す。
+ *  ⚠️ 相談できる人（lib/featuredConsultants/server.ts）も使う。失敗したら null */
+export async function currentJobs(userIds: string[]): Promise<Map<string, { company: string | null; role: string | null; isCurrent: boolean }> | null> {
   const out = new Map<string, { company: string | null; role: string | null; isCurrent: boolean }>();
   if (userIds.length === 0) return out;
   const db = createAdminClient();
@@ -177,17 +178,15 @@ export type AdminHost = {
 };
 export type AdminRoute = RouteSummary & { hosts: AdminHost[]; listedCount: number };
 
-/** 運営画面の一覧。⚠️ 失敗したら null（0件と見せない） */
-export async function getAdminRoutes(): Promise<AdminRoute[] | null> {
+/**
+ * 運営画面で使う、利用者（メールつき）と職歴（古い順・会社は正式名）。⚠️ 失敗したら null。
+ * ⚠️ 相談できる人の運営画面（lib/featuredConsultants/server.ts）も使う。公開ページには渡さない
+ */
+export async function loadAdminPeople(userIds: string[]): Promise<{
+  userById: Map<string, UserRow & { email: string | null }>;
+  experiencesOf: (userId: string) => AdminHostExperience[];
+} | null> {
   const db = createAdminClient();
-  const [rRes, hRes] = await Promise.all([
-    db.from("ow_career_routes").select(ROUTE_COLS).order("display_order").order("created_at"),
-    db.from("ow_route_hosts").select(HOST_COLS).order("created_at"),
-  ]);
-  if (rRes.error) { console.error("[careerRoutes] admin routes:", rRes.error.message); return null; }
-  if (hRes.error) { console.error("[careerRoutes] admin hosts:", hRes.error.message); return null; }
-  const hosts = (hRes.data ?? []) as Record<string, unknown>[];
-  const userIds = Array.from(new Set(hosts.map((h) => h.user_id as string)));
   let users: (UserRow & { email: string | null })[] = [];
   let exps: Record<string, unknown>[] = [];
   if (userIds.length) {
@@ -211,18 +210,37 @@ export async function getAdminRoutes(): Promise<AdminRoute[] | null> {
   /* ⚠️ 運営の確認用なので、会社は伏せずに正式名で出す（公開ページには渡らない） */
   const companyName = new Map(((cRes.data ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]));
   const roleName = new Map(((roRes.data ?? []) as { id: string; name: string }[]).map((r) => [r.id, r.name]));
-  const userById = new Map(users.map((u) => [u.id, u]));
+  return {
+    userById: new Map(users.map((u) => [u.id, u])),
+    experiencesOf: (userId) => exps.filter((e) => e.user_id === userId).map((e) => ({
+      id: e.id as string,
+      company: (e.company_id ? companyName.get(e.company_id as string) : null) ?? (e.company_text as string | null) ?? (e.company_anonymized as string | null) ?? "（会社不明）",
+      role: e.role_category_id ? roleName.get(e.role_category_id as string) ?? null : null,
+      startedAt: (e.started_at as string | null) ?? null, endedAt: (e.ended_at as string | null) ?? null,
+      isCurrent: e.is_current === true, visibilityCompany: (e.visibility_company as string | null) ?? null,
+    })).sort((a, b) => (a.startedAt ?? "").localeCompare(b.startedAt ?? "")),
+  };
+}
+
+/** 運営画面の一覧。⚠️ 失敗したら null（0件と見せない） */
+export async function getAdminRoutes(): Promise<AdminRoute[] | null> {
+  const db = createAdminClient();
+  const [rRes, hRes] = await Promise.all([
+    db.from("ow_career_routes").select(ROUTE_COLS).order("display_order").order("created_at"),
+    db.from("ow_route_hosts").select(HOST_COLS).order("created_at"),
+  ]);
+  if (rRes.error) { console.error("[careerRoutes] admin routes:", rRes.error.message); return null; }
+  if (hRes.error) { console.error("[careerRoutes] admin hosts:", hRes.error.message); return null; }
+  const hosts = (hRes.data ?? []) as Record<string, unknown>[];
+  const userIds = Array.from(new Set(hosts.map((h) => h.user_id as string)));
+  const loaded = await loadAdminPeople(userIds);
+  if (!loaded) return null;
+  const { userById, experiencesOf } = loaded;
   const routes = ((rRes.data ?? []) as Record<string, unknown>[]).map(toRoute);
   return routes.map((route) => {
     const list: AdminHost[] = hosts.filter((h) => h.route_id === route.id).map((h) => {
       const u = userById.get(h.user_id as string);
-      const experiences = exps.filter((e) => e.user_id === h.user_id).map((e) => ({
-        id: e.id as string,
-        company: (e.company_id ? companyName.get(e.company_id as string) : null) ?? (e.company_text as string | null) ?? (e.company_anonymized as string | null) ?? "（会社不明）",
-        role: e.role_category_id ? roleName.get(e.role_category_id as string) ?? null : null,
-        startedAt: (e.started_at as string | null) ?? null, endedAt: (e.ended_at as string | null) ?? null,
-        isCurrent: e.is_current === true, visibilityCompany: (e.visibility_company as string | null) ?? null,
-      })).sort((a, b) => (a.startedAt ?? "").localeCompare(b.startedAt ?? ""));
+      const experiences = experiencesOf(h.user_id as string);
       return {
         hostId: h.id as string, routeId: route.id, userId: h.user_id as string,
         profileKey: u?.username || (h.user_id as string), name: u?.name ?? "（見つからない利用者）", email: u?.email ?? null,

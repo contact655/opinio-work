@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import { getDirectoryPeople } from "@/lib/people/directory";
 import { getRoleTree, getRoleAliases } from "@/lib/supabase/queries";
 import { getPeopleSidebarData } from "@/lib/people/sidebarData";
+import { getFeaturedConsultants, type ConsultantCard } from "@/lib/featuredConsultants/server";
 import { PeopleListClient, type PrevCareerProps } from "./PeopleListClient";
 import { getPathsView } from "@/lib/paths/server";
 import { PrevCareerSummary } from "@/components/people/PrevCareerSummary";
@@ -56,13 +57,15 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
   let followerUserIds: string[] = [];
   let sidebar: Awaited<ReturnType<typeof getPeopleSidebarData>> = null;
   let prevCareer: PrevCareerProps | null = null;
+  /* ★相談できる人（2026-11-12）。サイドバーはログイン中だけ出るので、読むのもログイン中だけ */
+  let consultants: ConsultantCard[] = [];
   if (user) {
     const admin = createAdminClient();
     const { data: me, error: meErr } = await admin.from("ow_users").select("id, is_test").eq("auth_id", user.id).maybeSingle();
     if (meErr) console.error("[people] me:", meErr.message);
     myUserId = me?.id ?? null;
     if (myUserId) {
-      const [outRes, inRes, sidebarData, pathsView] = await Promise.all([
+      const [outRes, inRes, sidebarData, pathsView, consultantList] = await Promise.all([
         admin.from("ow_user_follows").select("target_user_id").eq("follower_user_id", myUserId),
         admin.from("ow_user_follows").select("follower_user_id").eq("target_user_id", myUserId),
         getPeopleSidebarData(myUserId),
@@ -72,7 +75,9 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
           { owUserId: myUserId, isTest: me?.is_test === true },
           { autoStart: false },
         ),
+        getFeaturedConsultants(),
       ]);
+      consultants = consultantList;
       if (pathsView) {
         const start = pathsView.start;
         prevCareer = {
@@ -111,6 +116,7 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
         followerUserIds={followerUserIds}
         sidebar={sidebar}
         prevCareer={prevCareer}
+        consultants={consultants}
       />
     </div>
   );

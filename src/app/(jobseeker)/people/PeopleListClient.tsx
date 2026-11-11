@@ -15,6 +15,7 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { PeopleSidebar } from "@/components/people/PeopleSidebar";
 import { FilterChip } from "@/components/common/FilterChip";
 import type { PeopleSidebarData } from "@/lib/people/sidebarData";
+import type { ConsultantCard } from "@/lib/featuredConsultants/server";
 import { useHideOnScroll } from "@/lib/hooks/useHideOnScroll";
 import { PrevCareerChip } from "@/components/people/PrevCareerChip";
 import { showFollowOnCard } from "@/lib/people/followButton";
@@ -46,6 +47,8 @@ type Props = {
   followerUserIds: string[];
   /** ★左サイドバーの中身（2026-09-18）。未ログイン・自分の行が無いときは null */
   sidebar: PeopleSidebarData | null;
+  /** ★相談できる人（2026-11-12。左サイドバー）。0人なら出さない */
+  consultants?: ConsultantCard[];
   /** ★前の経歴（2026-11-03。旧 /paths）。読み込めなかったときは null（チップを出さない） */
   prevCareer?: PrevCareerProps | null;
 };
@@ -753,7 +756,7 @@ function matchRole(card: AmbassadorCard, slugs: string[], roleSlugToId: Record<s
 }
 
 // ── PeopleListClient ─────────────────────────────────────────────────
-export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUserId, followedUserIds, followerUserIds, sidebar, prevCareer = null }: Props) {
+export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUserId, followedUserIds, followerUserIds, sidebar, prevCareer = null, consultants = [] }: Props) {
   /* ★前の経歴で絞っているとき（2026-11-03）。⚠️ 人数を出さない（PrevCareerProps の注記） */
   const prevNotes = prevCareer?.notes ?? null;
   /* ★絞り込みは URL に持つ（2026-09-18）。共有リンク・リロード・戻るで同じ結果になる。
@@ -1132,6 +1135,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
             roleFilter={roles}
             onRole={setRoles}
             hasCompanyHistory={sidebar.myCompanyIds.length > 0}
+            consultants={consultants}
           />
         )}
         <div className="ppl-main">
