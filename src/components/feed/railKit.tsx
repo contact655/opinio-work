@@ -59,6 +59,22 @@ export const RAIL_SUB_STYLE: React.CSSProperties = {
   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.45,
 };
 
+/**
+ * ★箱の中の説明の文（2026-11-12 / 柴さんの指示「文字の大きさをそろえる」）。補足（RAIL_SUB_STYLE）と同じ 12px で、折り返す。
+ *   例: 「いまの勤務先にいた人が、次にどこへ進んだか」・案内の箱の本文
+ */
+export const RAIL_TEXT_STYLE: React.CSSProperties = { ...RAIL_SUB_STYLE, whiteSpace: "normal", overflow: "visible", textOverflow: "clip", margin: 0, lineHeight: 1.7 };
+
+/**
+ * ★箱の中の操作のボタン（2026-11-12）。「＋ フォローする」（FollowUserButton の rail）と同じ形:
+ *   高さ28px・12px 太字・白地に濃紺の枠の丸いボタン。⚠️ 右の列で濃紺の塗りの大きいボタンを使わないこと（箱ごとに大きさが割れる）
+ */
+export const RAIL_ACTION_STYLE: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, boxSizing: "border-box",
+  height: 28, minHeight: 0, padding: "0 12px", borderRadius: 100, border: "1.5px solid var(--royal)", background: "#fff",
+  color: "var(--royal)", fontSize: 12, fontWeight: 700, fontFamily: "inherit", whiteSpace: "nowrap", textDecoration: "none", cursor: "pointer",
+};
+
 /** 行どうしの間隔（すべての箱で同じ） */
 export const RAIL_LIST_STYLE: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 12, minWidth: 0 };
 

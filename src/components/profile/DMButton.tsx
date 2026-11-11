@@ -1,5 +1,6 @@
 "use client";
 
+import { RAIL_ACTION_STYLE } from "@/components/feed/railKit";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
@@ -34,7 +35,7 @@ type Props = {
    * card / icon / action … 白い枠のボタン・白い丸・フィードの操作行
    * block    … ★横幅いっぱいの塗りの主ボタン・高さ44px（転職ルートの経験者のカード。2026-11-11）
    */
-  variant?: "button" | "primary" | "iconPrimary" | "link" | "menuItem" | "card" | "icon" | "action" | "block";
+  variant?: "button" | "primary" | "iconPrimary" | "link" | "menuItem" | "card" | "icon" | "action" | "block" | "rail";
   /** ★企業ページの社員の行から送るとき、その会社の id（2026-10-18）。相談の「聞きたい話」でその会社を選んだ状態にする */
   aboutCompanyId?: string | null;
   /** ★「この経験について聞く」から開くとき、その職歴の id（2026-11-05）。相談の「聞きたい話」でその会社を選んだ状態にする */
@@ -155,7 +156,7 @@ export function DMButton({ targetUserId, targetName, label: labelProp, variant =
     }
   }
 
-  const floatingNotice = variant === "block" || variant === "card" || variant === "icon" || variant === "action" || variant === "primary" || variant === "iconPrimary";
+  const floatingNotice = variant === "block" || variant === "rail" || variant === "card" || variant === "icon" || variant === "action" || variant === "primary" || variant === "iconPrimary";
   useEffect(() => {
     if (!notice || !floatingNotice) return;
     const t = setTimeout(() => setNotice(null), 4000);
@@ -214,6 +215,11 @@ export function DMButton({ targetUserId, targetName, label: labelProp, variant =
           style={{ width: 34, height: 34, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: "#fff",
             color: loading ? "var(--ink-mute)" : "var(--royal)", border: "1.5px solid var(--royal-100)", cursor: loading ? "default" : "pointer", padding: 0 }}>
           {ICON}
+        </button>
+      ) : variant === "rail" ? (
+        /* ★右の列の行の操作（2026-11-12。ホームの「相談できる人」）。「＋ フォローする」と同じ形（railKit の RAIL_ACTION_STYLE） */
+        <button type="button" onClick={handleClick} disabled={loading} data-action="dm-rail" style={{ ...RAIL_ACTION_STYLE, opacity: loading ? 0.7 : 1 }}>
+          {loading ? "準備中..." : (label ?? "メッセージ")}
         </button>
       ) : variant === "menuItem" ? (
         <button type="button" role="menuitem" onClick={handleClick} disabled={loading} data-action="personal-dm"
