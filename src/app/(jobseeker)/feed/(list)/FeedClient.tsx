@@ -1242,7 +1242,8 @@ function RailJobs({ items }: { items: FeedJobItem[] }) {
 function RailMoves({ block }: { block: CareerMoveBlock }) {
   if (block.people.length === 0) return null;
   return (
-    <RailBox title={block.title} moreHref="/people" state={`rail-moves-${block.key}`}>
+    /* ★「すべて見る」はその会社（職種）から次に進んだ人だけの一覧（/people の「前の経歴」。2026-11-12） */
+    <RailBox title={block.title} moreHref={block.moreHref ?? "/people"} state={`rail-moves-${block.key}`}>
       {block.sub && <p style={{ ...RAIL_SUB_STYLE, whiteSpace: "normal", margin: "-4px 0 12px" }}>{block.sub}</p>}
       <div style={RAIL_LIST_STYLE}>
         {block.people.slice(0, RAIL_LIMIT).map((p) => {
@@ -2346,7 +2347,7 @@ export default function FeedClient({
   }
   if (!isDesktop && tab === "all") {
     careerMoveBlocks.forEach((b, bi) => inserts.push({ after: bi === 0 ? slot(2) : slot(4), node: (
-      <CareerMovesSection key={`moves-${b.key}`} title={b.title} sub={b.sub} people={b.people} hideFrom={b.hideFrom}
+      <CareerMovesSection key={`moves-${b.key}`} title={b.title} sub={b.sub} people={b.people} hideFrom={b.hideFrom} moreHref={b.moreHref ?? undefined}
         renderAction={(p) => <DMButton targetUserId={p.id} targetName={p.name} variant="card" label="メッセージ" aboutCompanyId={p.aboutCompanyId} />} />
     ) }));
   }

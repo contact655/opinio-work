@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows, inChunks } from "@/lib/supabase/paging";
 import { companyDisplayName } from "@/lib/companies/displayName";
 import { isRegisteredUser } from "@/lib/users/registered";
+import { PATHS_EXCLUDED_COMPANY_IDS } from "@/lib/constants/demoCompanies";
+import { PREV_PARAM } from "@/lib/people/prevCareer";
 import type { CareerMovePerson, MoveCompany } from "@/components/people/CareerMovesSection";
 
 /**
@@ -24,6 +26,12 @@ export type CareerMoveBlock = {
   title: string;
   sub: string;
   hideFrom: boolean;
+  /**
+   * ★「すべて見る」の行き先（2026-11-12 / 柴さんの指示）。/people の「前の経歴」で絞った一覧
+   *   （会社: ?prev_company=<slug> ／ 職種: ?prev_role=<大分類の slug>）。
+   *   ⚠️ 「前の経歴」で選べない会社（掲載していない・slug が無い・見本の会社）は null（呼び出し側が /people にする）
+   */
+  moreHref: string | null;
   /** メッセージの「会社のこと」のテーマに使う会社（移る前の会社） */
   people: (CareerMovePerson & { aboutCompanyId: string | null })[];
 };
@@ -124,12 +132,31 @@ export async function getCareerMoveBlocks(viewerOwId: string): Promise<CareerMov
     const companyIds = Array.from(new Set(all.flatMap((m) => [m.from.company_id, m.to.company_id, myCompanyId]).filter((x): x is string => !!x)));
     const roleIds = Array.from(new Set([...all.map((m) => m.latest.role_category_id), myRoleId].filter((x): x is string => !!x)));
     const [{ data: cos, error: cErr }, { data: roles, error: rErr }] = await Promise.all([
-      inChunks(companyIds, (part, from, to) => db.from("ow_companies").select("id, name, name_en, logo_url").in("id", part).order("id").range(from, to), "careerMoves companies"),
-      inChunks(roleIds, (part, from, to) => db.from("ow_roles").select("id, name").in("id", part).order("id").range(from, to), "careerMoves roles"),
+      inChunks(companyIds, (part, from, to) => db.from("ow_companies").select("id, name, name_en, logo_url, slug, is_published, listing_status, is_test, suspended_at").in("id", part).order("id").range(from, to), "careerMoves companies"),
+      inChunks(roleIds, (part, from, to) => db.from("ow_roles").select("id, name, slug, parent_id").in("id", part).order("id").range(from, to), "careerMoves roles"),
     ]);
     if (cErr || rErr) { console.error("[careerMoves] names:", cErr ?? rErr); return []; }
-    const coById = new Map(((cos ?? []) as { id: string; name: string; name_en: string | null; logo_url: string | null }[]).map((c) => [c.id, c]));
-    const roleById = new Map(((roles ?? []) as { id: string; name: string }[]).map((r) => [r.id, r.name]));
+    type Co = { id: string; name: string; name_en: string | null; logo_url: string | null; slug: string | null; is_published: boolean | null; listing_status: string | null; is_test: boolean | null; suspended_at: string | null };
+    const coById = new Map(((cos ?? []) as Co[]).map((c) => [c.id, c]));
+    const roleRows = (roles ?? []) as { id: string; name: string; slug: string | null; parent_id: string | null }[];
+    const roleById = new Map(roleRows.map((r) => [r.id, r.name]));
+    /* ★「すべて見る」の行き先（2026-11-12）。⚠️ 選べるかの判定は lib/paths/server.ts の startable と同じ（掲載中・slug あり・見本でない） */
+    const companyMoreHref = (id: string | null): string | null => {
+      const c = id ? coById.get(id) : undefined;
+      if (!c?.slug || c.is_published !== true || c.listing_status !== "listed" || c.is_test === true || c.suspended_at != null || PATHS_EXCLUDED_COMPANY_IDS.has(c.id)) return null;
+      return `/people?${PREV_PARAM.company}=${encodeURIComponent(c.slug)}`;
+    };
+    const roleMoreHref = async (id: string | null): Promise<string | null> => {
+      const r = id ? roleRows.find((x) => x.id === id) : undefined;
+      if (!r) return null;
+      let topSlug = r.parent_id ? null : r.slug;
+      if (r.parent_id) {
+        const { data: parent, error: pErr } = await db.from("ow_roles").select("slug").eq("id", r.parent_id).maybeSingle();
+        if (pErr) console.error("[careerMoves] parent role:", pErr.message);
+        topSlug = (parent?.slug as string | null | undefined) ?? null;
+      }
+      return topSlug ? `/people?${PREV_PARAM.role}=${encodeURIComponent(topSlug)}` : null;
+    };
     const co = (e: Exp): MoveCompany => {
       const c = e.company_id ? coById.get(e.company_id) : undefined;
       if (c) return { name: companyDisplayName(c.name, c.name_en).displayName, logoUrl: c.logo_url };
@@ -159,6 +186,7 @@ export async function getCareerMoveBlocks(viewerOwId: string): Promise<CareerMov
         title: `${name} から次に進んだ人`,
         sub: mine.is_current ? "いまの勤務先にいた人が、次にどこへ進んだか" : "前の勤務先にいた人が、次にどこへ進んだか",
         hideFrom: true,
+        moreHref: companyMoreHref(myCompanyId),
         people: blockA.map(toPerson),
       });
     }
@@ -168,6 +196,7 @@ export async function getCareerMoveBlocks(viewerOwId: string): Promise<CareerMov
         title: `${roleById.get(myRoleId) ?? "同じ職種"}から次に進んだ人`,
         sub: "あなたと同じ職種の人のその後",
         hideFrom: false,
+        moreHref: await roleMoreHref(myRoleId),
         people: blockB.map(toPerson),
       });
     }
