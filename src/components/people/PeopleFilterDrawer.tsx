@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { PathsOption, PathsStartView } from "@/lib/paths/server";
+import type { PrevSelection } from "@/lib/people/prevCareer";
+import { PrevCareerFields } from "@/components/people/PrevCareerFields";
 
 /**
  * ★/people の「すべてのフィルター」（2026-11-12 / 柴さんの指示。LinkedIn の「ユーザーフィルター」を参考にした）。
@@ -9,16 +12,18 @@ import { useEffect, useRef, useState } from "react";
  * ⚠️ 条件の意味は上部のチップと同じ（同じ項目の中は OR・項目どうしは AND。URL の rel / role / age / foreign）。
  *    ここで新しい条件を作らないこと。
  * ⚠️ 人数は出さない（「結果を表示」にも付けない。2026-11-04 の決めごと）。
- * ⚠️ 前の経歴（prev_*）は選び方が違う（業界・職種・会社の3つの選択）ので、上部の「前の経歴」で選ぶ。
- *    「リセット」は前の経歴も含めて外す（呼び出し側の onReset）。
+ * ★2026-11-12: 上部の条件のチップをなくし、条件はすべてこのパネルで選ぶ形にした（柴さんの指示）。
+ *   前の経歴（prev_*。職種・業界・会社の選択）もここ（PrevCareerFields）。「リセット」は全部外す。
  */
-export type PeopleFilterValues = { rel: string; roles: string[]; ages: string[]; foreign: boolean; consult: boolean };
+export type PeopleFilterValues = { rel: string; roles: string[]; ages: string[]; foreign: boolean; consult: boolean; prev: PrevSelection };
 
 type Opt = { value: string; label: string };
 
 export function PeopleFilterDrawer({
-  open, onClose, values, relOptions, roleOptions, ageOptions, onApply, onReset, showConsult = false,
+  open, onClose, values, relOptions, roleOptions, ageOptions, onApply, onReset, showConsult = false, prevCareer = null,
 }: {
+  /** ★前の経歴の選択肢（読めなかったときは null。欄ごと出さない） */
+  prevCareer?: { options: { roles: PathsOption[]; industries: PathsOption[]; companies: PathsOption[] }; selfStart: PathsStartView | null } | null;
   /** ★相談可能なユーザーの欄を出すか（2026-11-12。一覧を読めなかったときは出さない） */
   showConsult?: boolean;
   open: boolean;
@@ -139,9 +144,13 @@ export function PeopleFilterDrawer({
               </label>
             </section>
           )}
-          <section className="pfd-sec">
-            <p className="pfd-note">前の経歴は、上の「前の経歴」から選べます。</p>
-          </section>
+          {prevCareer && (
+            <section className="pfd-sec" data-state="pfd-prev">
+              <h3 className="pfd-sec-title">前の経歴</h3>
+              <PrevCareerFields options={prevCareer.options} selfStart={prevCareer.selfStart} selected={draft.prev}
+                onChange={(next) => setDraft((d) => ({ ...d, prev: next }))} />
+            </section>
+          )}
         </div>
         <div className="pfd-foot">
           <button type="button" className="pfd-btn pfd-reset" data-action="pfd-reset" onClick={() => { onReset(); onClose(); }}>リセット</button>

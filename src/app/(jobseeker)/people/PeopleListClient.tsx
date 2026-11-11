@@ -13,10 +13,8 @@ import { DMButton } from "@/components/profile/DMButton";
 import { SortSelect } from "@/components/common/SortSelect";
 import { useSearchParams, usePathname } from "next/navigation";
 import { PeopleSidebar } from "@/components/people/PeopleSidebar";
-import { FilterChip } from "@/components/common/FilterChip";
 import type { PeopleSidebarData } from "@/lib/people/sidebarData";
 import { useHideOnScroll } from "@/lib/hooks/useHideOnScroll";
-import { PrevCareerChip } from "@/components/people/PrevCareerChip";
 import { PeopleFilterDrawer, type PeopleFilterValues } from "@/components/people/PeopleFilterDrawer";
 import { CONSULTANTS_PARAM } from "@/lib/constants/careerRoutes";
 import { showFollowOnCard } from "@/lib/people/followButton";
@@ -800,13 +798,22 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     ? [
         { value: "following", label: "フォロー中" },
         { value: "followers", label: "フォロワー" },
-        ...(sidebar.myCompanyIds.length > 0 ? [{ value: "coworkers", label: "同じ会社にいた人" }] : []),
       ]
     : []), [sidebar]);
-  const drawerValues = useMemo(() => ({ rel, roles, ages, foreign: foreignOnly, consult: consultOnly }), [rel, roles, ages, foreignOnly, consultOnly]);
+  const prevSelected = useMemo(() => prevCareer?.selected ?? { role: null, industry: null, company: null }, [prevCareer]);
+  const drawerValues = useMemo(() => ({ rel, roles, ages, foreign: foreignOnly, consult: consultOnly, prev: prevSelected }), [rel, roles, ages, foreignOnly, consultOnly, prevSelected]);
   /* 選んでいる条件の数（「すべてのフィルター」に添える。⚠️ 人数ではない） */
   const prevActive = !!(prevCareer?.selected.role || prevCareer?.selected.industry || prevCareer?.selected.company);
   const activeFilterCount = (rel ? 1 : 0) + roles.length + ages.length + (foreignOnly ? 1 : 0) + (consultOnly ? 1 : 0) + (prevActive ? 1 : 0);
+  /* ★いま効いている条件（上部のチップ。2026-11-12）。✕ で1つずつ外す */
+  const activeChips: { key: string; label: string; onRemove: () => void }[] = [
+    ...(rel && relOptions.some((o) => o.value === rel) ? [{ key: `rel-${rel}`, label: relOptions.find((o) => o.value === rel)!.label, onRemove: () => setParam({ rel: "" }) }] : []),
+    ...roles.map((v) => ({ key: `role-${v}`, label: ROLE_OPTIONS.find((o) => o.value === v)?.label ?? v, onRemove: () => setRoles(roles.filter((x) => x !== v)) })),
+    ...ages.map((v) => ({ key: `age-${v}`, label: AGE_OPTIONS.find((o) => o.value === v)?.label ?? v, onRemove: () => setAges(ages.filter((x) => x !== v)) })),
+    ...(foreignOnly ? [{ key: "foreign", label: "外資", onRemove: () => setParam({ foreign: "" }) }] : []),
+    ...(consultOnly ? [{ key: "consult", label: "相談可能", onRemove: () => setParam({ [CONSULTANTS_PARAM]: "" }) }] : []),
+    ...(prevActive && prevCareer?.activeLabel ? [{ key: "prev", label: `前の経歴: ${prevCareer.activeLabel}`, onRemove: () => setParam(prevParams({ role: null, industry: null, company: null })) }] : []),
+  ];
 
   /** URL のパラメータを1つ書き換える。⚠️ 空文字は**キーごと消す**（`?role=` を残さない） */
   const setParam = (patch: Record<string, string>) => {
@@ -820,8 +827,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
   };
   const setRoles = (v: string[]) => setParam({ role: v.join(",") });
   const setAges = (v: string[]) => setParam({ age: v.join(",") });
-  /** 複数選択の1件を入れ替える。⚠️ 同じ項目の中は OR なので、単に足し引きするだけ */
-  const toggleIn = (arr: string[], v: string) => arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
   /* ⚠️ 詳細検索のパネルは 2026-10-20 に外した（職種・年代・外資を3つとも上部の行に出したため） */
 
@@ -865,26 +870,12 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
   const keyword = searchParams.get("q") ?? "";
   const [kwDraft, setKwDraft] = useState(keyword);
   useEffect(() => { setKwDraft(keyword); }, [keyword]);
-  const [openChip, setOpenChip] = useState<string | null>(null);
   /* ★「すべてのフィルター」（2026-11-12 / LinkedIn を参考に）。開閉だけをここで持ち、条件は URL のまま */
   const [drawerOpen, setDrawerOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   /* ★スマホで下へスクロールしたら上部を隠す（2026-10-21） */
   useHideOnScroll(wrapRef);
 
-  useEffect(() => {
-    function onOutside(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpenChip(null);
-      }
-    }
-    document.addEventListener("mousedown", onOutside);
-    return () => document.removeEventListener("mousedown", onOutside);
-  }, []);
-
-  function toggleChip(name: string) {
-    setOpenChip(openChip === name ? null : name);
-  }
 
   /*
     ★キーワードが指す職種の ID 集合（2026-08-26）。
@@ -905,12 +896,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     return new Set(hits.flatMap((a) => a.roleIds).filter(Boolean));
   }, [keyword, roleAliases]);
 
-  /* 「同じ会社にいた人」用。⚠️ id の集合で突き合わせる（社名の文字列で比べない）。
-        表記ゆれで別会社を同じと見なすし、本人が伏せた社名を復元することにもなる。 */
-  const myCompanyIdSet = useMemo(
-    () => new Set(sidebar?.myCompanyIds ?? []),
-    [sidebar],
-  );
 
   const filtered = useMemo(() => {
     const q = keyword.trim().toLowerCase();
@@ -931,11 +916,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
       /* ★関係の絞り込み（2026-09-18）。⚠️ 自分は常に対象外（自分をフォローはできない） */
       if (rel === "following" && !followedUserIds.includes(a.userId)) return false;
       if (rel === "followers" && !followerUserIds.includes(a.userId)) return false;
-      if (rel === "coworkers") {
-        if (a.userId === myUserId) return false;
-        /* ⚠️ マスタ紐付きの経歴だけが対象。自由入力の社名は突き合わせない（推測しない） */
-        if (!(a.companyIds ?? []).some((id) => myCompanyIdSet.has(id))) return false;
-      }
+      /* ⚠️ 「同じ会社にいた人」（rel=coworkers）は 2026-11-12 に無くした（柴さんの指示）。古い URL は絞らない */
       if (!q) return true;
       // 検索対象。学歴の人は学校名で引けるようにする
       const aff = a.affiliation;
@@ -957,7 +938,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
       return byText || byAlias;
     });
   }, [ambassadors, roles, keyword, roleSlugToId, keywordRoleIds,
-      rel, followedUserIds, followerUserIds, myUserId, myCompanyIdSet,
+      rel, followedUserIds, followerUserIds,
       foreignOnly, consultOnly, consultantSet, ages, prevNotes]);
 
   const sorted = useMemo(() => {
@@ -1052,68 +1033,22 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           {/* ★折り返しは CSS（`.list-toolbar`）。スマホでは1行で横にスクロール（2026-10-17） */}
           {/* ⚠️ 下の余白は CSS（.lt-chip-row）。インラインに戻すと1行にまとめたときに消せない */}
           <div className="list-toolbar list-toolbar--wrap lt-chip-row" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {/* ★つながり（2026-11-12 / LinkedIn の「1次／2次」を参考に先頭へ）。⚠️ URL の rel は1つだけ。押すと切り替わり、もう一度押すと外れる。
-                ⚠️ ログインしていない・自分の行が無いときは出さない（sidebar が null）。同じ会社にいた人は職歴に会社があるときだけ */}
-            {relOptions.length > 0 && (
-              <>
-                {relOptions.map((o) => (
-                  <button key={o.value} type="button" className={`ppl-chip${rel === o.value ? " active" : ""}`} data-state={`people-rel-${o.value}`}
-                    onClick={() => setParam({ rel: rel === o.value ? "" : o.value })} aria-pressed={rel === o.value}>
-                    {o.label}{rel === o.value && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
-                  </button>
-                ))}
-                <span aria-hidden className="ppl-chip-sep" />
-              </>
-            )}
-            {/* ⚠️★**同じ項目の中は OR、項目どうしは AND**（`/companies` と同じ約束）。
-                ⚠️★**値を持たない人は、その項目で絞ったときだけ落ちる**（現職なし → 職種／生年月日なし → 年代／
-                   マスタ紐付きの職歴なし → 外資）。他の条件では落とさない。 */}
-            <FilterChip
-              label="職種" labelPrefix value="" values={roles}
-              options={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-              onSelect={() => setRoles([])} onClear={() => setRoles([])}
-              onToggleValue={(v) => setRoles(toggleIn(roles, v))}
-              isOpen={openChip === "role"} onToggle={() => toggleChip("role")}
-            />
-            {/* ⚠️ 0人の年代も出す（AGE_OPTIONS の注記）。実データから作らないこと */}
-            <FilterChip
-              label="年代" labelPrefix value="" values={ages} options={AGE_OPTIONS}
-              onSelect={() => setAges([])} onClear={() => setAges([])}
-              onToggleValue={(v) => setAges(toggleIn(ages, v))}
-              isOpen={openChip === "age"} onToggle={() => toggleChip("age")}
-            />
-            {/* ON/OFF は選択肢が2つしか無いのでチップにしない（開く意味が無い） */}
-            <button type="button" className={`ppl-chip${foreignOnly ? " active" : ""}`}
-              onClick={() => setParam({ foreign: foreignOnly ? "" : "1" })} aria-pressed={foreignOnly}>
-              外資{foreignOnly && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
-            </button>
-            {/* ★相談可能（2026-11-12）。ON/OFF なので外資と同じ形。⚠️ 一覧を読めなかったときは出さない */}
-            {consultantUserIds && (
-              <button type="button" className={`ppl-chip${consultOnly ? " active" : ""}`} data-state="people-consult-chip"
-                onClick={() => setParam({ [CONSULTANTS_PARAM]: consultOnly ? "" : "1" })} aria-pressed={consultOnly}>
-                相談可能{consultOnly && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
-              </button>
-            )}
-            {/* ★前の経歴（2026-11-03。旧 /paths）。⚠️ 値は URL の prev_*（?role= はいまの職種なので使わない） */}
-            {prevCareer && (
-              <PrevCareerChip
-                options={prevCareer.options}
-                selected={prevCareer.selected}
-                activeLabel={prevCareer.activeLabel}
-                selfStart={prevCareer.selfStart}
-                isOpen={openChip === "prev"}
-                onToggle={() => toggleChip("prev")}
-                onChange={(next) => {
-                  setParam(prevParams(next));
-                  if (!next.role && !next.industry && !next.company) setOpenChip(null);
-                }}
-              />
-            )}
-            {/* ★すべてのフィルター（2026-11-12）。選んでいる条件の数を添える（人数ではない） */}
+            {/* ★2026-11-12: 上部は「すべてのフィルター」と、いま効いている条件のチップだけにした（柴さんの指示）。
+                   条件はすべてパネル（PeopleFilterDrawer）で選ぶ。フォロー中・フォロワーは左のプロフィール欄の数字からも絞れる。
+                ⚠️★効いている条件のチップを消さないこと。パネルに隠した条件が画面から消えると、
+                   絞り込んだ一覧を見ている理由が分からなくなる（ホームの「すべて見る」から来たとき特に）。
+                ⚠️★**同じ項目の中は OR、項目どうしは AND**（`/companies` と同じ約束）。 */}
             <button type="button" className={`ppl-chip ppl-all-filters${activeFilterCount > 0 ? " has-count" : ""}`} data-action="people-all-filters"
-              onClick={() => { setOpenChip(null); setDrawerOpen(true); }} aria-haspopup="dialog">
+              onClick={() => setDrawerOpen(true)} aria-haspopup="dialog">
               すべてのフィルター{activeFilterCount > 0 && <span className="ppl-all-count">{activeFilterCount}</span>}
             </button>
+            {activeChips.map((c) => (
+              <button key={c.key} type="button" className="ppl-chip active" data-state="people-active-chip"
+                onClick={c.onRemove} aria-label={`${c.label}の条件を外す`} title={c.label}
+                style={{ maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis" }}>
+                {c.label}<span aria-hidden style={{ fontSize: 12, opacity: 0.85, marginLeft: 4 }}>✕</span>
+              </button>
+            ))}
           </div>
 
           {/* ★3行目: 「前の経歴で絞り込み中」（左）と、表示切替・並び替え（文字だけ）（右）
@@ -1180,7 +1115,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
         roleOptions={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
         ageOptions={AGE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
         showConsult={!!consultantUserIds}
-        onApply={(next: PeopleFilterValues) => setParam({ rel: next.rel, role: next.roles.join(","), age: next.ages.join(","), foreign: next.foreign ? "1" : "", [CONSULTANTS_PARAM]: next.consult ? "1" : "" })}
+        prevCareer={prevCareer ? { options: prevCareer.options, selfStart: prevCareer.selfStart } : null}
+        onApply={(next: PeopleFilterValues) => setParam({ rel: next.rel, role: next.roles.join(","), age: next.ages.join(","), foreign: next.foreign ? "1" : "", [CONSULTANTS_PARAM]: next.consult ? "1" : "", ...prevParams(next.prev) })}
         onReset={() => setParam({ rel: "", role: "", age: "", foreign: "", [CONSULTANTS_PARAM]: "", ...prevParams({ role: null, industry: null, company: null }) })}
       />
 
