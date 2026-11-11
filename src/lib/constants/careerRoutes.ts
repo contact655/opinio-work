@@ -101,7 +101,8 @@ export function parseRouteInput(raw: unknown):
   | { ok: false; message: string } {
   const r = (raw ?? {}) as Record<string, unknown>;
   const slug = typeof r.slug === "string" ? r.slug.trim() : "";
-  if (!slug || slug.length > ROUTE_SLUG_MAX || !ROUTE_SLUG_RE.test(slug)) {
+  if (!slug) return { ok: false, message: "URL の名前を入力してください（例: hr-sales-to-foreign-saas）" };
+  if (slug.length > ROUTE_SLUG_MAX || !ROUTE_SLUG_RE.test(slug)) {
     return { ok: false, message: "URL の名前は半角の英小文字・数字・ハイフンで入力してください（例: hr-sales-to-foreign-saas）" };
   }
   const fromLabel = typeof r.fromLabel === "string" ? r.fromLabel.trim() : "";

@@ -69,14 +69,14 @@ function RouteForm({ route, onDone }: { route: AdminRoute | null; onDone: () => 
   return (
     <div data-state="route-form" style={{ ...box, display: "grid", gap: 10 }}>
       <label style={{ display: "grid", gap: 4, fontSize: 13 }}>URL の名前（/routes/ の後ろ）
-        <input style={input} value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="hr-sales-to-foreign-saas" />
+        <input style={input} value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="例: hr-sales-to-foreign-saas" />
       </label>
       <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
         <label style={{ display: "grid", gap: 4, fontSize: 13 }}>出発点
-          <input style={input} value={fromLabel} onChange={(e) => setFrom(e.target.value)} placeholder="人材の法人営業" />
+          <input style={input} value={fromLabel} onChange={(e) => setFrom(e.target.value)} placeholder="例: 人材の法人営業" />
         </label>
         <label style={{ display: "grid", gap: 4, fontSize: 13 }}>行き先
-          <input style={input} value={toLabel} onChange={(e) => setTo(e.target.value)} placeholder="外資SaaSの営業" />
+          <input style={input} value={toLabel} onChange={(e) => setTo(e.target.value)} placeholder="例: 外資SaaSの営業" />
         </label>
         <label style={{ display: "grid", gap: 4, fontSize: 13 }}>表示順（小さいほど上）
           <input style={input} value={order} onChange={(e) => setOrder(e.target.value)} inputMode="numeric" />
@@ -165,7 +165,7 @@ function HostRow({ host }: { host: AdminHost }) {
 
       <div style={{ display: "grid", gap: 8 }}>
         <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>転職した年
-          <input style={{ ...input, width: 100 }} value={year} onChange={(e) => setYear(e.target.value)} inputMode="numeric" placeholder="2023" />
+          <input style={{ ...input, width: 100 }} value={year} onChange={(e) => setYear(e.target.value)} inputMode="numeric" placeholder="例: 2023" />
         </label>
         <div style={{ fontSize: 13 }}>話せること
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
