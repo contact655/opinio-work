@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/routes", label: "転職ルート（/routes/[slug]・プロフィール）",
+    desc: "★経験者のカード（1人・3人・長文）・準備中・プロフィールの「転職ルート」" },
   { href: "/dev/preview/home-left-card", label: "ホームの左の列のカード（/home・/search）",
     desc: "★顔写真が帯にかかる・肩書き1行・職歴0件で「職歴を入れる」・話を聞けるの3つの値" },
   { href: "/dev/preview/home-rail", label: "ホームの右の列とスマホの差し込み（/home）",

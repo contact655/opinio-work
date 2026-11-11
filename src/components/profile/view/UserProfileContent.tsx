@@ -47,6 +47,8 @@ import {
 } from "@/components/profile/view/ProfileSections";
 import { ProfileHeader } from "@/components/profile/view/ProfileHeader";
 import { ProfileSchoolmatesSection } from "@/components/profile/view/ProfileSchoolmatesSection";
+import { ProfileRoutesSection } from "@/components/careerRoutes/ProfileRoutesSection";
+import { getProfileRoutes } from "@/lib/careerRoutes/server";
 import { getSchoolmates } from "@/lib/schools/schoolmates";
 import { messageButtonVisible } from "@/lib/constants/messageButton";
 
@@ -153,6 +155,9 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
   if (!isRegisteredUser(user as { auth_id?: string | null })) { if (embed) return <EmbedUnavailable />; notFound(); }
 
   const owUser = user as OwUser;
+  /* ★転職ルートの経験者として掲載されているか（2026-11-11）。掲載条件は lib/constants/careerRoutes.ts の1か所。
+        ⚠️ 企業向けの右欄（embed）には出さないので引かない */
+  const routesPromise = embed ? Promise.resolve([]) : getProfileRoutes(owUser.id);
 
   const avatarColor = owUser.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)";
   // cover_color が未設定の場合はアバターカラーをカバーに流用（色統一・個性化）
@@ -550,7 +555,7 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
     );
   }
 
-  const schoolmates = await schoolmatesPromise;
+  const [schoolmates, profileRoutes] = await Promise.all([schoolmatesPromise, routesPromise]);
 
   return (
     <div style={{ background: embed ? "transparent" : "var(--bg-tint)", minHeight: embed ? undefined : "100vh" }}>
@@ -738,6 +743,9 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                    点線の CTA が出ていたのをやめる。追加は `/mypage` の
                    「セクションを追加」に集約した（2026-08-16）。 */}
             <ProfileAboutSection aboutMe={owUser.about_me} viewerIsOwner={false} />
+
+            {/* ★転職ルート（2026-11-11）。経験者として掲載されている人だけ。相談の入口は本人以外に出す */}
+            <ProfileRoutesSection items={profileRoutes} user={{ id: owUser.id, name: owUser.name }} showConsult={!viewerIsOwner} />
 
             {/* ── 職歴セクション ──
                    ⚠️ 枠・見出しは `ProfileTimelineSection` に切り出した（2026-08-16 / 2-6）。
