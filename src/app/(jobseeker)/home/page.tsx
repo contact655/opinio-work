@@ -9,9 +9,11 @@ import ForYouSection from "../mypage/proposals/ForYouSection";
 import { toForYouViews } from "../mypage/proposals/forYouViews";
 import HomeDecisionCard from "./HomeDecisionCard";
 import { currentJoinDecisionPrompt } from "@/lib/joinDecision/server";
-import { HOME_FOR_YOU_LIMIT, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER, HOME_MOBILE_SUGGEST_AFTER, careerCompanyCount, type CareerNudge } from "@/lib/home/homeState";
+import { HOME_FOR_YOU_LIMIT, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER, HOME_MOBILE_SUGGEST_AFTER, HOME_MOBILE_CONSULTANTS_AFTER, careerCompanyCount, type CareerNudge } from "@/lib/home/homeState";
 import { getUserSuggestions } from "@/lib/people/suggestServer";
 import { SuggestedUsers } from "@/components/feed/SuggestedUsers";
+import { getFeaturedConsultants } from "@/lib/featuredConsultants/server";
+import { FeaturedConsultantsRail } from "@/components/people/FeaturedConsultantsRail";
 import { getPathsView } from "@/lib/paths/server";
 import { PrevCareerSummary } from "@/components/people/PrevCareerSummary";
 import FeedClient from "../feed/(list)/FeedClient";
@@ -28,7 +30,7 @@ import { loadFeedProps } from "../feed/(list)/loadFeedProps";
  *   右の列（PC）の上から: 職歴の案内（職歴が0件の人だけ。×で7日間出さない。2026-11-04 に中央の帯から移した）
  *     ★2026-11-12: 職歴はあるが、会社が1社だけ（「これ以上の経歴はない」と答えていない）か学歴が0件の人には、
  *       同じ場所に「前の会社・学校を足す」案内を出す（homeState の CareerNudge。×で7日間出さない）
- *     → あなたに合う会社（3社・「…」に 保存／あとで／興味なし）→ フォロー中のユーザー → 同じ経歴の人の行き先 → いつもの枠
+ *     → あなたに合う会社（3社・「…」に 保存／あとで／興味なし）→ ★相談できる人（2026-11-12。/people の左サイドバーと同じ人）→ フォロー中のユーザー → 同じ経歴の人の行き先 → いつもの枠
  *   ★右の列の箱と行の見た目は components/feed/railKit.tsx の1か所
  *   スマホ: 職歴の案内はページの一番上に同じ箱で出す
  *   スマホ: 合う会社はタイムラインの2件目と3件目の間（横スクロール）、行き先は5件目のあと（lib/home/homeState.ts）
@@ -57,7 +59,7 @@ export default async function HomePage() {
   const isTest = me.is_test === true;
 
   /* ★タイムライン（loadFeedProps）と上のブロックは互いに依存しないので並列に引く */
-  const [expRes, forYou, proposedRes, decisionPrompt, paths, feed, suggestions, eduRes, profRes] = await Promise.all([
+  const [expRes, forYou, proposedRes, decisionPrompt, paths, feed, suggestions, eduRes, profRes, consultants] = await Promise.all([
     db.from("ow_experiences").select(`id, ${EXPERIENCE_COMPANY_COLS}`).eq("user_id", owId),
     buildForYou(owId),
     db.from("ow_proposals").select("company_id").eq("candidate_user_id", owId),
@@ -72,6 +74,8 @@ export default async function HomePage() {
     db.from("ow_user_educations").select("id", { count: "exact", head: true }).eq("user_id", owId),
     /* ⚠️ ow_profiles.user_id は auth 空間 */
     db.from("ow_profiles").select("career_history_complete_at").eq("user_id", user.id).maybeSingle(),
+    /* ★相談できる人（2026-11-12）。失敗しても空配列（ホームを落とさない） */
+    getFeaturedConsultants(),
   ]);
   if (eduRes.error) console.error("[home] educations:", eduRes.error.message);
   if (profRes.error) console.error("[home] profile:", profRes.error.message);
@@ -118,13 +122,19 @@ export default async function HomePage() {
     declineReasons: CANDIDATE_DECLINE_REASONS.map((o) => ({ value: o.value, label: o.label })),
   };
   /* ⚠️ PC の右の列とスマホの差し込みは、どちらか一方しか描かれない（FeedClient が幅で出し分ける） */
-  const railTop = <ForYouSection {...forYouProps} compact={{ limit: HOME_FOR_YOU_LIMIT, moreHref: "/mypage/proposals", title: "あなたに合う会社", layout: "rail" }} />;
+  const railTop = (
+    <>
+      <ForYouSection {...forYouProps} compact={{ limit: HOME_FOR_YOU_LIMIT, moreHref: "/mypage/proposals", title: "あなたに合う会社", layout: "rail" }} />
+      <FeaturedConsultantsRail items={consultants} />
+    </>
+  );
   /* ★行き先は5人以上の行が1つも無ければ出さない（PrevCareerSummary も null を返すが、スマホの差し込みの枠ごと作らないためここでも見る） */
   const pathsHasRows = !!paths?.start && !!paths.summary && paths.summary.company.length + paths.summary.role.length + paths.summary.industry.length > 0;
   const railAfterUsers = paths && pathsHasRows ? <PrevCareerSummary view={paths} variant="rail" /> : null;
   const railSuggestions = suggestions.length > 0 ? <SuggestedUsers users={suggestions} layout="rail" /> : null;
   const mobileInserts = [
     { key: "home-for-you", after: HOME_MOBILE_FOR_YOU_AFTER, node: <ForYouSection {...forYouProps} compact={{ limit: HOME_FOR_YOU_LIMIT, moreHref: "/mypage/proposals", title: "あなたに合う会社", layout: "scroll" }} /> },
+    ...(consultants.length > 0 ? [{ key: "home-consultants", after: HOME_MOBILE_CONSULTANTS_AFTER, node: <div style={{ marginBottom: 16 }}><FeaturedConsultantsRail items={consultants} /></div> }] : []),
     ...(suggestions.length > 0 ? [{ key: "home-user-suggest", after: HOME_MOBILE_SUGGEST_AFTER, node: <SuggestedUsers users={suggestions} layout="scroll" /> }] : []),
     ...(paths && pathsHasRows ? [{ key: "home-paths", after: HOME_MOBILE_PATHS_AFTER, node: <div style={{ marginBottom: 16 }}><PrevCareerSummary view={paths} variant="home" /></div> }] : []),
   ];
