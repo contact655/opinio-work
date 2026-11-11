@@ -2,8 +2,6 @@
 
 import React, { useState } from "react";
 import { ProfileCard, type ProfileCardData } from "@/components/common/ProfileCard";
-import { FeaturedConsultantsCard } from "@/components/people/FeaturedConsultantsCard";
-import type { ConsultantCard } from "@/lib/featuredConsultants/server";
 
 /*
  * `/people` の左サイドバー（2026-09-18）。
@@ -14,7 +12,8 @@ import type { ConsultantCard } from "@/lib/featuredConsultants/server";
  *   ③ フォロー中 / フォロワー / フォロー中の企業
  *   ④ （面談OKだけ見る。2026-10-16 に撤去）
  *   ⑤ 近い人（同じ職種）。★「同じ会社にいた人」は 2026-11-12 に上部のつながりのチップへ移した（入口を2つにしない）
- *   ⑥ 相談できる人（2026-11-12。運営が選び、本人の同意を記録した人。0人なら出さない）
+ *   ⚠️ 「相談可能なユーザー」の箱は 2026-11-12 に一度置き、同日に外した（柴さんの指示）。/people では上部の「相談可能」のチップで絞る。
+ *      箱はホームの右の列だけ（components/people/FeaturedConsultantsRail）。ここに戻さないこと
  *
  * ⚠️★**%（完成度）を出さないこと**（2026-09-18 / 柴さんの判断）。
  *    完成度バーは 2026-08-16 に廃止され、2026-09-10 に「%も『あと N 項目』も出さない」と
@@ -51,8 +50,6 @@ export type PeopleSidebarProps = {
   myRole: { slug: string; label: string } | null;
   roleFilter: string[];
   onRole: (slugs: string[]) => void;
-  /** ★相談できる人（2026-11-12）。0人なら欄ごと出さない */
-  consultants?: ConsultantCard[];
 };
 
 function Row({
@@ -140,13 +137,6 @@ export function PeopleSidebar(p: PeopleSidebarProps) {
           me={p.me} counts={p.counts} nextStep={p.nextStep} activeRel={p.rel}
         />
       </div>
-
-      {/* ── ⑥ 相談できる人。⚠️ 狭い画面では他と同じく畳む（開けば出る） ── */}
-      {p.consultants && p.consultants.length > 0 && (
-        <div className={`pps-collapsible${open ? " is-open" : ""}`}>
-          <FeaturedConsultantsCard items={p.consultants} />
-        </div>
-      )}
 
       {/* ── ⑤ 近い人。⚠️ 自分の職種・職歴が無ければ、その行ごと出さない ── */}
       {p.myRole && (

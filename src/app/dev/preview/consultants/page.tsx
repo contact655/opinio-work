@@ -1,4 +1,3 @@
-import { FeaturedConsultantsCard } from "@/components/people/FeaturedConsultantsCard";
 import { FeaturedConsultantsRail } from "@/components/people/FeaturedConsultantsRail";
 import type { ConsultantCard } from "@/lib/featuredConsultants/server";
 import { devOnly } from "../guard";
@@ -23,27 +22,8 @@ export default function ConsultantsPreview() {
   return (
     <div>
       <PreviewHeader title="相談可能なユーザー">
-        /people の左サイドバーの「相談可能なユーザー」（<code>FeaturedConsultantsCard</code>）です。0人なら何も出ません。
+        ホームの右の列の「相談可能なユーザー」（<code>FeaturedConsultantsRail</code>）です。0人なら何も出ません。
       </PreviewHeader>
-      <Variant label="1人">
-        <W><FeaturedConsultantsCard items={[c(1)]} sample /></W>
-      </Variant>
-      <Variant label="4人（職歴が無い人・タグが無い人・ひとことが無い人・以前の職歴の人）">
-        <W><FeaturedConsultantsCard sample items={[
-          c(1, { name: "柴 久人", currentCompany: null, currentRole: null, talkTags: ["role_change", "resume"], message: "キャリア全般の相談にのります。" }),
-          c(2, { name: "福永 陽貴", talkTags: [] }),
-          c(3, { name: "木村 雅樹", message: null }),
-          c(4, { name: "大塚 悠貴", isCurrent: false, currentCompany: "SmartHR", currentRole: "フィールドセールス" }),
-        ]} /></W>
-      </Variant>
-      <Variant label="長い名前・会社名・タグ全部・ひとこと200字（3行で切る）">
-        <W><FeaturedConsultantsCard sample items={[c(9, {
-          name: "寿限無寿限無五劫のすりきれ海砂利水魚の水行末雲来末風来末",
-          currentCompany: "株式会社とても長い会社名のサンプルホールディングスジャパン", currentRole: "エンタープライズセールス",
-          talkTags: ["newcomer_rampup", "interview", "resume", "salary_negotiation", "english", "foreign_eval_quota", "workstyle_remote", "role_change"],
-          message: "あ".repeat(200),
-        })]} /></W>
-      </Variant>
       <Variant label="ホームの右の列（3人・幅300px。本物はサーバーが3人に絞る）">
         <div style={{ width: 300, maxWidth: "100%" }}><FeaturedConsultantsRail sample items={[
           c(1, { name: "柴 久人", currentCompany: null, currentRole: null, talkTags: ["role_change", "resume"], message: "キャリア全般の相談にのります。" }),
@@ -52,7 +32,7 @@ export default function ConsultantsPreview() {
         ]} /></div>
       </Variant>
       <Variant label="0人（何も出ない）">
-        <W><FeaturedConsultantsCard items={[]} sample /></W>
+        <W><FeaturedConsultantsRail items={[]} sample /></W>
       </Variant>
     </div>
   );

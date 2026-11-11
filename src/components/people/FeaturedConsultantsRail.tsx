@@ -9,7 +9,7 @@ import { CONSULTANTS_LIST_HREF, CONSULTANTS_NOTE, CONSULTANTS_SETTINGS_HREF, CON
 import type { ConsultantCard } from "@/lib/featuredConsultants/server";
 
 /**
- * ★相談できる人（ホームの右の列。2026-11-12 / 柴さんの指示）。中身は /people の左サイドバーと同じ（getFeaturedConsultants）。
+ * ★相談できる人（ホームの右の列。2026-11-12 / 柴さんの指示）。★相談可能なユーザーの箱はここ（ホーム）だけ。/people は上部の「相談可能」のチップで絞る（2026-11-12）。
  *   右の列の「提案の箱」なので3行の形（RailStackRow）: 名前／今の会社と職種（無ければ話せること）／「相談する」。
  * ⚠️ 箱の見た目は railKit の RailBox。ここで style を書き直さないこと。
  * ⚠️ 0人なら箱ごと出さない。「話を聞ける」「面談OK」の語は使わない。
