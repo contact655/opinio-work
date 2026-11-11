@@ -10,7 +10,7 @@ const AGES = ["20代", "30代", "40代", "50代", "60代", "70代"].map((l, i) =
 /** 見本用。条件は画面の中だけで持つ（URL にも DB にも書かない） */
 export function PeopleFilterDemo() {
   const [open, setOpen] = useState(true);
-  const [v, setV] = useState<PeopleFilterValues>({ rel: "following", roles: ["r0"], ages: [], foreign: false });
+  const [v, setV] = useState<PeopleFilterValues>({ rel: "following", roles: ["r0"], ages: [], foreign: false, consult: false });
   return (
     <div>
       <button type="button" onClick={() => setOpen(true)} style={{ padding: "8px 14px", borderRadius: 999, border: "1.5px solid var(--royal)", color: "var(--royal)", background: "#fff", fontWeight: 600 }}>
@@ -18,7 +18,7 @@ export function PeopleFilterDemo() {
       </button>
       <pre style={{ fontSize: 12 }}>{JSON.stringify(v)}</pre>
       <PeopleFilterDrawer open={open} onClose={() => setOpen(false)} values={v} relOptions={REL} roleOptions={ROLES} ageOptions={AGES}
-        onApply={setV} onReset={() => setV({ rel: "", roles: [], ages: [], foreign: false })} />
+        showConsult onApply={setV} onReset={() => setV({ rel: "", roles: [], ages: [], foreign: false, consult: false })} />
     </div>
   );
 }

@@ -44,12 +44,11 @@ export default function ConsultantsPreview() {
           message: "あ".repeat(200),
         })]} /></W>
       </Variant>
-      <Variant label="ホームの右の列（4人・幅300px）">
+      <Variant label="ホームの右の列（3人・幅300px。本物はサーバーが3人に絞る）">
         <div style={{ width: 300, maxWidth: "100%" }}><FeaturedConsultantsRail sample items={[
           c(1, { name: "柴 久人", currentCompany: null, currentRole: null, talkTags: ["role_change", "resume"], message: "キャリア全般の相談にのります。" }),
           c(2, { name: "福永 陽貴" }),
           c(3, { name: "木村 雅樹", currentCompany: "株式会社とても長い会社名のサンプルホールディングスジャパン" }),
-          c(4, { name: "大塚 悠貴", isCurrent: false, currentCompany: "SmartHR", currentRole: "フィールドセールス" }),
         ]} /></div>
       </Variant>
       <Variant label="0人（何も出ない）">

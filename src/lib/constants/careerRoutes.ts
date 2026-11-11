@@ -209,8 +209,11 @@ export function parseHostInput(raw: unknown, ctx: { isListed?: boolean; now?: Da
 /** 見出しと説明（1か所） */
 export const CONSULTANTS_TITLE = "相談可能なユーザー";
 export const CONSULTANTS_NOTE = "本人が「相談にのれる」と設定した人です。";
-/** 箱に出す人数の上限（オンにした日時が新しい順） */
-export const CONSULTANTS_LIMIT = 5;
+/** 箱に出す人数の上限（表示順 → オンにした日時が新しい順）。★2026-11-12 に5→3（柴さんの指示。残りは「すべて見る」の一覧で） */
+export const CONSULTANTS_LIMIT = 3;
+/** ★「すべて見る」の行き先（2026-11-12）。/people を相談可能なユーザーだけに絞った一覧。キーは CONSULTANTS_PARAM */
+export const CONSULTANTS_PARAM = "consult";
+export const CONSULTANTS_LIST_HREF = `/people?${CONSULTANTS_PARAM}=1`;
 /** マイページの設定の場所（箱の下の「あなたも載る」） */
 export const CONSULTANTS_SETTINGS_HREF = "/mypage/settings#consultant-setting";
 

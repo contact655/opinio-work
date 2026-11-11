@@ -19,6 +19,7 @@ import type { ConsultantCard } from "@/lib/featuredConsultants/server";
 import { useHideOnScroll } from "@/lib/hooks/useHideOnScroll";
 import { PrevCareerChip } from "@/components/people/PrevCareerChip";
 import { PeopleFilterDrawer, type PeopleFilterValues } from "@/components/people/PeopleFilterDrawer";
+import { CONSULTANTS_PARAM } from "@/lib/constants/careerRoutes";
 import { showFollowOnCard } from "@/lib/people/followButton";
 import { prevParams, type PrevSelection } from "@/lib/people/prevCareer";
 import type { PathsOption, PathsStartView } from "@/lib/paths/server";
@@ -48,6 +49,8 @@ type Props = {
   followerUserIds: string[];
   /** ★左サイドバーの中身（2026-09-18）。未ログイン・自分の行が無いときは null */
   sidebar: PeopleSidebarData | null;
+  /** ★相談可能なユーザー全員の ow_users.id（2026-11-12。?consult=1 の絞り込み）。読めなかったら null（絞り込みのチップを出さない） */
+  consultantUserIds?: string[] | null;
   /** ★相談できる人（2026-11-12。左サイドバー）。0人なら出さない */
   consultants?: ConsultantCard[];
   /** ★前の経歴（2026-11-03。旧 /paths）。読み込めなかったときは null（チップを出さない） */
@@ -764,7 +767,7 @@ function matchRole(card: AmbassadorCard, slugs: string[], roleSlugToId: Record<s
 }
 
 // ── PeopleListClient ─────────────────────────────────────────────────
-export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUserId, followedUserIds, followerUserIds, sidebar, prevCareer = null, consultants = [] }: Props) {
+export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUserId, followedUserIds, followerUserIds, sidebar, prevCareer = null, consultants = [], consultantUserIds = null }: Props) {
   /* ★前の経歴で絞っているとき（2026-11-03）。⚠️ 人数を出さない（PrevCareerProps の注記） */
   const prevNotes = prevCareer?.notes ?? null;
   /* ★絞り込みは URL に持つ（2026-09-18）。共有リンク・リロード・戻るで同じ結果になる。
@@ -790,6 +793,10 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     [searchParams],
   );
   const foreignOnly = searchParams.get("foreign") === "1";
+  /* ★相談可能なユーザーだけ（2026-11-12。URL は ?consult=1。ホームの箱の「すべて見る」から来る）。
+     ⚠️ 判定は lib/featuredConsultants/server.ts の getConsultantUserIds（箱と同じ条件）。ここで条件を作らない */
+  const consultOnly = searchParams.get(CONSULTANTS_PARAM) === "1";
+  const consultantSet = useMemo(() => new Set(consultantUserIds ?? []), [consultantUserIds]);
   /* ★つながりの選択肢（2026-11-12。上部のチップと「すべてのフィルター」が同じものを使う）。
      ⚠️ ログインしていない・自分の行が無いときは空。同じ会社にいた人は、マスタに紐づく職歴があるときだけ */
   const relOptions = useMemo(() => (sidebar
@@ -799,10 +806,10 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
         ...(sidebar.myCompanyIds.length > 0 ? [{ value: "coworkers", label: "同じ会社にいた人" }] : []),
       ]
     : []), [sidebar]);
-  const drawerValues = useMemo(() => ({ rel, roles, ages, foreign: foreignOnly }), [rel, roles, ages, foreignOnly]);
+  const drawerValues = useMemo(() => ({ rel, roles, ages, foreign: foreignOnly, consult: consultOnly }), [rel, roles, ages, foreignOnly, consultOnly]);
   /* 選んでいる条件の数（「すべてのフィルター」に添える。⚠️ 人数ではない） */
   const prevActive = !!(prevCareer?.selected.role || prevCareer?.selected.industry || prevCareer?.selected.company);
-  const activeFilterCount = (rel ? 1 : 0) + roles.length + ages.length + (foreignOnly ? 1 : 0) + (prevActive ? 1 : 0);
+  const activeFilterCount = (rel ? 1 : 0) + roles.length + ages.length + (foreignOnly ? 1 : 0) + (consultOnly ? 1 : 0) + (prevActive ? 1 : 0);
 
   /** URL のパラメータを1つ書き換える。⚠️ 空文字は**キーごと消す**（`?role=` を残さない） */
   const setParam = (patch: Record<string, string>) => {
@@ -917,6 +924,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
          ⚠️ マスタに紐付いていない職歴（自由入力の社名）の人は false になり、
             **外資で絞り込んだときだけ**落ちる。 */
       if (foreignOnly && !a.hasForeignExperience) return false;
+      if (consultOnly && !consultantSet.has(a.userId)) return false;
       /* ★前の経歴（2026-11-03）。その経歴から次へ進んだ人だけ */
       if (prevNotes && !(a.userId in prevNotes)) return false;
       /* ★年代。⚠️ 生年月日が無い人（ageBand === null）は**ここで絞ったときだけ**落ちる。
@@ -953,7 +961,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     });
   }, [ambassadors, roles, keyword, roleSlugToId, keywordRoleIds,
       rel, followedUserIds, followerUserIds, myUserId, myCompanyIdSet,
-      foreignOnly, ages, prevNotes]);
+      foreignOnly, consultOnly, consultantSet, ages, prevNotes]);
 
   const sorted = useMemo(() => {
     if (sort === "updated") {
@@ -1082,6 +1090,13 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
               onClick={() => setParam({ foreign: foreignOnly ? "" : "1" })} aria-pressed={foreignOnly}>
               外資{foreignOnly && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
             </button>
+            {/* ★相談可能（2026-11-12）。ON/OFF なので外資と同じ形。⚠️ 一覧を読めなかったときは出さない */}
+            {consultantUserIds && (
+              <button type="button" className={`ppl-chip${consultOnly ? " active" : ""}`} data-state="people-consult-chip"
+                onClick={() => setParam({ [CONSULTANTS_PARAM]: consultOnly ? "" : "1" })} aria-pressed={consultOnly}>
+                相談可能{consultOnly && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
+              </button>
+            )}
             {/* ★前の経歴（2026-11-03。旧 /paths）。⚠️ 値は URL の prev_*（?role= はいまの職種なので使わない） */}
             {prevCareer && (
               <PrevCareerChip
@@ -1167,8 +1182,9 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
         relOptions={relOptions}
         roleOptions={ROLE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
         ageOptions={AGE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-        onApply={(next: PeopleFilterValues) => setParam({ rel: next.rel, role: next.roles.join(","), age: next.ages.join(","), foreign: next.foreign ? "1" : "" })}
-        onReset={() => setParam({ rel: "", role: "", age: "", foreign: "", ...prevParams({ role: null, industry: null, company: null }) })}
+        showConsult={!!consultantUserIds}
+        onApply={(next: PeopleFilterValues) => setParam({ rel: next.rel, role: next.roles.join(","), age: next.ages.join(","), foreign: next.foreign ? "1" : "", [CONSULTANTS_PARAM]: next.consult ? "1" : "" })}
+        onReset={() => setParam({ rel: "", role: "", age: "", foreign: "", [CONSULTANTS_PARAM]: "", ...prevParams({ role: null, industry: null, company: null }) })}
       />
 
       {/* ── コンテンツ ── */}

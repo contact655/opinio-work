@@ -42,22 +42,40 @@ function blockersOf(c: Record<string, unknown>, u: UserRow | undefined): string[
   });
 }
 
+/** 載せられる人の行（表示順 → オンにした日時が新しい順）。⚠️ 失敗したら null */
+async function listableRows(): Promise<{ rows: Record<string, unknown>[]; userById: Map<string, UserRow> } | null> {
+  const db = createAdminClient();
+  const { data, error } = await db.from("ow_featured_consultants").select(COLS)
+    .eq("is_listed", true).is("stopped_at", null)
+    .order("display_order").order("consent_confirmed_at", { ascending: false });
+  if (error) { console.error("[featuredConsultants] list:", error.message); return null; }
+  const rows = (data ?? []) as Record<string, unknown>[];
+  if (rows.length === 0) return { rows: [], userById: new Map() };
+  const { data: users, error: uErr } = await db.from("ow_users").select(USER_COLS).in("id", rows.map((r) => r.user_id as string));
+  if (uErr) { console.error("[featuredConsultants] users:", uErr.message); return null; }
+  const userById = new Map(((users ?? []) as UserRow[]).map((u) => [u.id, u]));
+  return { rows: rows.filter((r) => blockersOf(r, userById.get(r.user_id as string)).length === 0), userById };
+}
+
+/**
+ * ★/people の「相談可能なユーザー」の絞り込み（?consult=1）に使う、載せられる人全員の ow_users.id。⚠️ 失敗したら null
+ * ⚠️ 箱（getFeaturedConsultants）と同じ条件（listableRows）。条件を書き写さないこと
+ */
+export async function getConsultantUserIds(): Promise<string[] | null> {
+  const l = await listableRows();
+  return l ? l.rows.map((r) => r.user_id as string) : null;
+}
+
 /**
  * 箱に出す人。表示順が小さい順 → オンにした日時が新しい順に、CONSULTANTS_LIMIT 人まで。⚠️ 失敗したら空配列
  * ⚠️ excludeOwUserId: 見ている本人を外す（自分に相談するボタンは出ない。自分の行を並べても意味が無い）
  */
 export async function getFeaturedConsultants(opts: { excludeOwUserId?: string | null } = {}): Promise<ConsultantCard[]> {
-  const db = createAdminClient();
-  const { data, error } = await db.from("ow_featured_consultants").select(COLS)
-    .eq("is_listed", true).is("stopped_at", null)
-    .order("display_order").order("consent_confirmed_at", { ascending: false });
-  if (error) { console.error("[featuredConsultants] list:", error.message); return []; }
-  const rows = ((data ?? []) as Record<string, unknown>[]).filter((r) => r.user_id !== opts.excludeOwUserId);
-  if (rows.length === 0) return [];
-  const { data: users, error: uErr } = await db.from("ow_users").select(USER_COLS).in("id", rows.map((r) => r.user_id as string));
-  if (uErr) { console.error("[featuredConsultants] users:", uErr.message); return []; }
-  const userById = new Map(((users ?? []) as UserRow[]).map((u) => [u.id, u]));
-  const listable = rows.filter((r) => blockersOf(r, userById.get(r.user_id as string)).length === 0).slice(0, CONSULTANTS_LIMIT);
+  const l = await listableRows();
+  if (!l) return [];
+  const userById = l.userById;
+  const listable = l.rows.filter((r) => r.user_id !== opts.excludeOwUserId).slice(0, CONSULTANTS_LIMIT);
+  if (listable.length === 0) return [];
   const jobs = await currentJobs(listable.map((r) => r.user_id as string));
   if (!jobs) return [];
   return listable.map((r) => {
