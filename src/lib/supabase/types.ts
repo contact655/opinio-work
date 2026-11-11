@@ -4311,6 +4311,66 @@ export type Database = {
         }
         Relationships: []
       }
+      ow_featured_consultants: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          consent_confirmed_at: string | null
+          consent_method: string | null
+          created_at: string
+          display_order: number
+          id: string
+          is_listed: boolean
+          message: string | null
+          talk_tags: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          consent_confirmed_at?: string | null
+          consent_method?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_listed?: boolean
+          message?: string | null
+          talk_tags?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          consent_confirmed_at?: string | null
+          consent_method?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_listed?: boolean
+          message?: string | null
+          talk_tags?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_featured_consultants_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_featured_consultants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_fit_axis_answers: {
         Row: {
           axes_version: number

@@ -82,6 +82,8 @@ const NAV_GROUPS = [
       { label: "公開面に出ている人", href: "/admin/public-faces", icon: <Eye          size={16} strokeWidth={2} /> },
       /* ★2026-11-11。転職ルート（/routes/…）の追加・公開と、経験者の登録・承認 */
       { label: "転職ルート",          href: "/admin/routes",           icon: <Eye          size={16} strokeWidth={2} /> },
+      /* ★2026-11-12。相談できる人（/people の左サイドバー）の登録・同意の記録・承認 */
+      { label: "相談できる人",        href: "/admin/consultants",      icon: <Eye          size={16} strokeWidth={2} /> },
       { label: "学校マスタ",          href: "/admin/schools",          icon: <School       size={16} strokeWidth={2} /> },
       { label: "就職実績管理",        href: "/admin/placements",       icon: <Award        size={16} strokeWidth={2} /> },
       /* ⚠️ 「スカウト枠管理」は 2026-10-08 にスカウトごと廃止した。戻さないこと */

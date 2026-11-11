@@ -196,3 +196,75 @@ export function parseHostInput(raw: unknown, ctx: { isListed?: boolean; now?: Da
   if ((r.acceptingConsult || ctx.isListed === true) && consentConfirmedAt === null) return { ok: false, message: ROUTE_CONSENT_REQUIRED_MESSAGE };
   return { ok: true, value: { movedYear, talkTags: sortRouteTalkTags(tagsRaw), message: message || null, acceptingConsult: r.acceptingConsult, consentConfirmedAt, consentMethod } };
 }
+
+/* ═══ 相談できる人（/people の左サイドバー。2026-11-12 / 柴さんの決定）═══════════════════════════
+ * 保存先は ow_featured_consultants（migration 20261112090000）。読み書きは lib/featuredConsultants/server.ts。
+ * ⚠️ 2026-10-16 に撤去した「面談OK」とは別物。運営が人を選び、本人の同意を記録して承認した人だけを出す。
+ * ⚠️ 話せること・同意を確認した方法は転職ルートの経験者と同じ選択肢を使う（DB の CHECK もそろえてある）。
+ */
+
+/** サイドバーの見出しと説明（1か所） */
+export const CONSULTANTS_TITLE = "相談できる人";
+export const CONSULTANTS_NOTE = "OPINIO が選び、本人の同意を得て載せています。";
+
+export type ConsultantListableInput = {
+  visibility: string | null | undefined;
+  authId: string | null | undefined;
+  isTest: boolean | null | undefined;
+  isSystem: boolean | null | undefined;
+  isListed: boolean | null | undefined;
+  approvedAt: string | null | undefined;
+  consentConfirmedAt: string | null | undefined;
+  consentMethod: string | null | undefined;
+};
+
+/**
+ * ★サイドバーに出せない理由（空なら出せる）。条件はこの関数だけ（書き写さないこと）。
+ * ⚠️ /people はログインが要る画面なので、公開範囲は「非公開」でなければよい（「ログインユーザーのみ」で出せる）。
+ *    ログインしていない人に見せる場所へ広げるなら、そこでは「公開」に絞ること。
+ * ⚠️ 値が取れなければ出さない側に倒す。
+ */
+export function consultantBlockers(c: ConsultantListableInput): string[] {
+  const out: string[] = [];
+  if (c.isListed !== true || !c.approvedAt) out.push("運営が未承認");
+  if (!c.consentConfirmedAt || !isRouteConsentMethod(c.consentMethod)) out.push("本人の同意の記録が無い");
+  if (c.visibility !== "public" && c.visibility !== "login_only") out.push("公開範囲が「非公開」");
+  if (!c.authId) out.push("本人が登録していない");
+  if (c.isTest !== false) out.push(c.isTest === true ? "検証用アカウント" : "検証用かどうか不明");
+  if (c.isSystem !== false) out.push(c.isSystem === true ? "システムアカウント" : "システムかどうか不明");
+  return out;
+}
+
+/**
+ * 運営画面の入力を確かめる（相談できる人）。⚠️ 承認（is_listed）はここでは扱わない（別の操作）。
+ * ctx.isListed: いま掲載中か（掲載中の人の同意の記録は消させない）。ctx.now: テスト用
+ */
+export function parseConsultantInput(raw: unknown, ctx: { isListed?: boolean; now?: Date } = {}):
+  | { ok: true; value: { talkTags: RouteTalkTag[]; message: string | null; displayOrder: number; consentConfirmedAt: string | null; consentMethod: RouteConsentMethod | null } }
+  | { ok: false; message: string } {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const tagsRaw = r.talkTags == null ? [] : r.talkTags;
+  if (!Array.isArray(tagsRaw) || tagsRaw.some((t) => !isRouteTalkTag(t))) return { ok: false, message: "話せることを選び直してください" };
+  const msgRaw = r.message == null ? "" : r.message;
+  if (typeof msgRaw !== "string") return { ok: false, message: "ひとことを入力し直してください" };
+  const message = msgRaw.trim();
+  if (message.length > ROUTE_HOST_MESSAGE_MAX) return { ok: false, message: `ひとことは${ROUTE_HOST_MESSAGE_MAX}字以内で入力してください` };
+  const order = r.displayOrder === "" || r.displayOrder == null ? 0 : Number(r.displayOrder);
+  if (!Number.isInteger(order) || order < -9999 || order > 9999) return { ok: false, message: "表示順は整数で入力してください" };
+  const atRaw = r.consentConfirmedAt == null ? "" : r.consentConfirmedAt;
+  if (typeof atRaw !== "string") return { ok: false, message: "同意を確認した日時を入力し直してください" };
+  const consentConfirmedAt = jstLocalToIso(atRaw);
+  if (consentConfirmedAt === undefined) return { ok: false, message: "同意を確認した日時を入力し直してください" };
+  if (consentConfirmedAt && new Date(consentConfirmedAt).getTime() > (ctx.now ?? new Date()).getTime() + 10 * 60_000) {
+    return { ok: false, message: "同意を確認した日時に、未来の日時は入れられません" };
+  }
+  const methodRaw = r.consentMethod == null ? "" : r.consentMethod;
+  if (methodRaw !== "" && !isRouteConsentMethod(methodRaw)) return { ok: false, message: "同意を確認した方法を選び直してください" };
+  const consentMethod = methodRaw === "" ? null : (methodRaw as RouteConsentMethod);
+  if ((consentConfirmedAt === null) !== (consentMethod === null)) return { ok: false, message: "同意を確認した日時と方法は、両方入れてください" };
+  if (ctx.isListed === true && consentConfirmedAt === null) return { ok: false, message: CONSULTANT_CONSENT_REQUIRED_MESSAGE };
+  return { ok: true, value: { talkTags: sortRouteTalkTags(tagsRaw), message: message || null, displayOrder: order, consentConfirmedAt, consentMethod } };
+}
+
+/** 同意の記録が無いまま承認しようとしたときの文言（画面とサーバーで同じ） */
+export const CONSULTANT_CONSENT_REQUIRED_MESSAGE = "本人の同意を確認した日時と方法を入れて保存してから、承認してください";
