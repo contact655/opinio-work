@@ -351,6 +351,34 @@ export function PeopleCardStyles() {
             /* ★つながりと他の条件の区切り（2026-11-12）。⚠️ ここも style タグの中。バッククォートを書かないこと */
             .ppl-chip-sep { width: 1px; height: 22px; background: var(--line); flex-shrink: 0; margin: 0 2px; }
             .ppl-all-filters { border-color: var(--royal); color: var(--royal); font-weight: 600; }
+            /* ★/people の上部の見た目（2026-11-12 / 柴さんの指示）。検索欄を広げ、検索・フィルター・条件・並び替えの高さを 40px・丸い形にそろえる。
+                  ⚠️ /people だけ（.ppl-toolbar）。/companies・/jobs は変えない。⚠️ ここも style タグの中。バッククォートを書かないこと */
+            /* ⚠️ 共通の .lsb.lsb--always .lsb-field（42px・3クラス）に勝つよう4クラスにしてある */
+            .ppl-toolbar .lsb.lsb--always .search-shell { height: 40px; box-sizing: border-box; }
+            .ppl-toolbar .search-shell input { padding-top: 0; padding-bottom: 0; height: 100%; }
+            .ppl-active-row { padding-bottom: 10px; flex-wrap: wrap; }
+            /* ★1023px 以下は3段（検索 ／ フィルターと並び替え ／ 効いている条件）。並び替えを1段使わない */
+            @media (max-width: 1023px) {
+              .ppl-toolbar.lt-compact { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; }
+              .ppl-toolbar .lt-search-row.lt-search-row { flex-basis: 100%; }
+              .ppl-toolbar .lt-chip-row.lt-chip-row { flex: 1 1 auto; min-width: 0; }
+              .ppl-toolbar .lt-result-row.lt-result-row { order: 2; flex: 0 0 auto; border-top: none; padding: 0 0 10px; }
+              .ppl-toolbar .ppl-active-row { order: 3; flex-basis: 100%; }
+            }
+            .ppl-toolbar .ppl-chip, .ppl-toolbar .sort-select-btn { height: 40px; min-height: 40px; box-sizing: border-box; }
+            .ppl-toolbar .ppl-chip { padding-left: 14px; padding-right: 14px; }
+            .ppl-view-toggle { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 999px; background: #fff; }
+            .ppl-view-btn { width: 34px; height: 34px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: 999px; background: transparent; color: var(--ink-mute); cursor: pointer; padding: 0; }
+            .ppl-view-btn[aria-pressed="true"] { background: var(--bg-tint); color: var(--ink); }
+            .ppl-view-btn:hover { color: var(--ink); }
+            @media (min-width: 1024px) {
+              /* ⚠️ 子の結合子（不等号）を使わない（style タグの中では書けない）。共通の .lt-compact の指定（4つ）に勝つよう、クラスを重ねて5つにしてある */
+              .ppl-toolbar.lt-compact .lt-search-row.lt-search-row.lt-search-row { flex: 1 1 480px; min-width: 280px; max-width: 480px; }
+              .ppl-toolbar.lt-compact { flex-wrap: wrap; row-gap: 10px; }
+              .ppl-toolbar .lt-result-row.lt-result-row { order: 2; }
+              .ppl-toolbar .ppl-active-row { order: 3; flex-basis: 100%; padding-bottom: 0; }
+              .ppl-toolbar .lt-search-row .lsb.lsb--always { width: 100%; max-width: none; }
+            }
             .ppl-all-count {
               display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px;
               margin-left: 6px; border-radius: 999px; background: var(--royal); color: #fff; font-size: 11px; font-weight: 700;
@@ -1011,7 +1039,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
         {/* ★lt-compact: 1024px 以上では検索・チップ・件数を1行にまとめる（2026-10-21。globals.css） */}
         {/* ★下の余白は globals.css の .lt-compact が持つ（2026-11-04。/companies・/jobs とそろえた。それまでここに 14px）。
               ⚠️ padding をまとめて書かないこと（下の余白まで 0 で上書きしてしまう） */}
-        <div className="ppl-wrap lt-compact" style={{ margin: "0 auto", paddingLeft: 24, paddingRight: 24 }}>
+        <div className="ppl-wrap lt-compact ppl-toolbar" style={{ margin: "0 auto", paddingLeft: 24, paddingRight: 24 }}>
           {/* ★2026-10-20: 3行にした（柴さんの要望。見本 /dev/preview/list-toolbar。/companies・/jobs と同じ形）。
                  1行目 検索欄（常に開いている）／2行目 条件のチップ（職種・年代・外資）／3行目 件数と並び替え
               ⚠️★**「絞り込み」ボタンは置かない。** 条件が3つしか無く、3つとも外に出したので中身が空になる
@@ -1039,17 +1067,28 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
                    絞り込んだ一覧を見ている理由が分からなくなる（ホームの「すべて見る」から来たとき特に）。
                 ⚠️★**同じ項目の中は OR、項目どうしは AND**（`/companies` と同じ約束）。 */}
             <button type="button" className={`ppl-chip ppl-all-filters${activeFilterCount > 0 ? " has-count" : ""}`} data-action="people-all-filters"
-              onClick={() => setDrawerOpen(true)} aria-haspopup="dialog">
-              すべてのフィルター{activeFilterCount > 0 && <span className="ppl-all-count">{activeFilterCount}</span>}
+              onClick={() => setDrawerOpen(true)} aria-haspopup="dialog" aria-label={activeFilterCount > 0 ? `すべてのフィルター（${activeFilterCount}件の条件）` : "すべてのフィルター"}>
+              {/* ★2026-11-12: 先頭に調整のアイコンを付け、文字は「フィルター」に短くした（柴さんの指示） */}
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden style={{ marginRight: 6, flexShrink: 0 }}>
+                <line x1="4" y1="6" x2="20" y2="6" /><circle cx="9" cy="6" r="2.2" fill="#fff" />
+                <line x1="4" y1="12" x2="20" y2="12" /><circle cx="15" cy="12" r="2.2" fill="#fff" />
+                <line x1="4" y1="18" x2="20" y2="18" /><circle cx="7" cy="18" r="2.2" fill="#fff" />
+              </svg>
+              フィルター{activeFilterCount > 0 && <span className="ppl-all-count">{activeFilterCount}</span>}
             </button>
-            {activeChips.map((c) => (
-              <button key={c.key} type="button" className="ppl-chip active" data-state="people-active-chip"
-                onClick={c.onRemove} aria-label={`${c.label}の条件を外す`} title={c.label}
-                style={{ maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis" }}>
-                {c.label}<span aria-hidden style={{ fontSize: 12, opacity: 0.85, marginLeft: 4 }}>✕</span>
-              </button>
-            ))}
           </div>
+          {/* ★いま効いている条件（2026-11-12）。条件があるときだけ、1行目（検索・フィルター・並び替え・表示切替）の下に1行で出す */}
+          {activeChips.length > 0 && (
+            <div className="list-toolbar ppl-active-row" data-state="people-active-row" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {activeChips.map((c) => (
+                <button key={c.key} type="button" className="ppl-chip active" data-state="people-active-chip"
+                  onClick={c.onRemove} aria-label={`${c.label}の条件を外す`} title={c.label}
+                  style={{ maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", flexShrink: 0 }}>
+                  {c.label}<span aria-hidden style={{ fontSize: 12, opacity: 0.85, marginLeft: 4 }}>✕</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* ★3行目: 「前の経歴で絞り込み中」（左）と、表示切替・並び替え（文字だけ）（右）
                 ★人数は画面に出さない（2026-11-04 / 柴さんの指示。/companies・/jobs も同じ）。読み上げにだけ残す */}
@@ -1061,34 +1100,25 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
               <span className="sr-only" aria-live="polite">{sorted.length}名</span>
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, marginLeft: "auto" }}>
-              {/* 表示モード。★意匠は `/companies` のビュートグルと揃えてある（2026-08-27）。⚠️ 片方だけ変えないこと。
-                  ⚠️ 情報が減る切り替えを作らないこと。⚠️ 560px 以下では出さない（isNarrow） */}
+              {/* ★並び替え（2026-11-12 / 柴さんの指示）。文字だけをやめて「並び替え: 新着順 ▾」のボタンにし、高さを上部の他の部品とそろえた（.ppl-toolbar）。
+                  ⚠️ 選択肢は SORT_OPTIONS に足すだけ（部品は表示と開閉だけ） */}
+              <SortSelect variant="pill" value={sort} options={SORT_OPTIONS} onChange={setSort} />
+              {/* 表示モード。★2026-11-12: 濃紺の塗りをやめ、アイコンだけの小さな切り替えにして右端へ（選んでいる方だけ薄い灰色）。
+                  ⚠️ 読み上げ名は aria-label。⚠️ 情報が減る切り替えを作らないこと。⚠️ 560px 以下では出さない（isNarrow） */}
               {!isNarrow && (
-                <div role="group" aria-label="表示の切り替え" style={{
-                  display: "flex", gap: 2,
-                  background: "var(--line-soft)", borderRadius: 8, padding: 2,
-                }}>
+                <div role="group" aria-label="表示の切り替え" className="ppl-view-toggle">
                   <button type="button" onClick={() => changeView("grid")}
-                    aria-pressed={view === "grid"} className="view-btn" title="コンパクト一覧"
-                    style={{
-                      background: view === "grid" ? "var(--royal)" : "transparent",
-                      color: view === "grid" ? "#fff" : "var(--ink-mute)",
-                    }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+                    aria-pressed={view === "grid"} aria-label="一覧で表示" title="一覧" className="ppl-view-btn btn-fixed-size">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
                       <rect x="3" y="3" width="7" height="7" rx="1"/>
                       <rect x="14" y="3" width="7" height="7" rx="1"/>
                       <rect x="3" y="14" width="7" height="7" rx="1"/>
                       <rect x="14" y="14" width="7" height="7" rx="1"/>
                     </svg>
-                    一覧
                   </button>
                   <button type="button" onClick={() => changeView("list")}
-                    aria-pressed={view === "list"} className="view-btn" title="詳細リストビュー"
-                    style={{
-                      background: view === "list" ? "var(--royal)" : "transparent",
-                      color: view === "list" ? "#fff" : "var(--ink-mute)",
-                    }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+                    aria-pressed={view === "list"} aria-label="詳細で表示" title="詳細" className="ppl-view-btn btn-fixed-size">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
                       <line x1="8" y1="6" x2="21" y2="6"/>
                       <line x1="8" y1="12" x2="21" y2="12"/>
                       <line x1="8" y1="18" x2="21" y2="18"/>
@@ -1096,12 +1126,9 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
                       <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/>
                       <circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
                     </svg>
-                    詳細
                   </button>
                 </div>
               )}
-              {/* ★並び替え。⚠️ 選択肢は SORT_OPTIONS に足すだけ（部品は表示と開閉だけ） */}
-              <SortSelect variant="text" value={sort} options={SORT_OPTIONS} onChange={setSort} />
             </div>
           </div>
         </div>

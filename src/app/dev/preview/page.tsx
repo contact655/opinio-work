@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/people-toolbar", label: "ユーザー一覧の上部（/people）",
+    desc: "★検索・フィルター・並び替え・表示切替。条件は ?foreign=1&consult=1&age=30s などを足して見る" },
   { href: "/dev/preview/people-filters", label: "ユーザーフィルター（/people の「すべてのフィルター」）",
     desc: "★PC は右から・767px 以下は下から。リセット・結果を表示" },
   { href: "/dev/preview/consultants", label: "相談可能なユーザー（ホームの右の列）",
