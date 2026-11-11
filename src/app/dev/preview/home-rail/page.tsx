@@ -10,7 +10,7 @@ import { CANDIDATE_DECLINE_REASONS } from "@/lib/constants/declineReasons";
 /**
  * ホームの右の列とスマホの差し込み（2026-11-04）。実データではこの形がそろう利用者がいないので、ここで見る。
  * ⚠️ DB を読まない。固定データだけ。⚠️ ボタンを押すと本物の API を叩く（存在しない id なので 404 になる）。押さない
- * 何を見るか: 右の列（1024px 以上は 300px・768〜1023px は 340px）で社名・理由・ボタンがはみ出さない／折り返さないこと。「…」の中に 保存・あとで・興味なし
+ * 何を見るか: 右の列（1024px 以上は 300px・768〜1023px は 340px）で社名・理由・ボタンがはみ出さない／折り返さないこと。「…」の中に 保存・興味なし（「あとで」は 2026-11-12 に外した）
  */
 const base: Omit<ForYouView, "id" | "rank" | "name"> = {
   href: null, logoUrl: null, tagline: "チームの作業を割り当て、進捗を追う", reasons: [], groupLabel: null, hasOpenJobs: false,

@@ -37,7 +37,7 @@ export async function reactForYou(input: {
   consentVersion?: unknown;
   /** ★「話を聞いてみたい」の取り消し。会話がまだ開いていないとき（担当者のいない会社）だけ */
   undo?: unknown;
-  /** ★「あとで」を外す（2026-10-23）。何も押していない状態に戻す */
+  /** ★何も押していない状態に戻す（「あとで」「興味なし」だけ。2026-11-12 から「興味なし」の「一覧に戻す」もこれ） */
   clear?: unknown;
 }): Promise<ReactOutcome> {
   if (input.undo === true) return undoInterest(input.owUserId, input.companyId);
@@ -126,11 +126,14 @@ async function undoInterest(owUserId: string, companyId: string): Promise<ReactO
   return { ok: true, result: "recorded" };
 }
 
-/** ★「あとで」を外す（2026-10-23）。「あとで」以外（気になる・興味なし・会話あり）には触らない */
+/**
+ * ★何も押していない状態に戻す。「あとで」（2026-10-23）と「興味なし」（2026-11-12。「一覧に戻す」）だけ。
+ * ⚠️ 「話を聞いてみたい」・会話ありには触らない（そちらは undoInterest）
+ */
 async function clearReaction(owUserId: string, companyId: string): Promise<ReactOutcome> {
   const db = createAdminClient();
   const { data: saved, error } = await db.from("ow_for_you_reactions")
-    .delete().eq("user_id", owUserId).eq("company_id", companyId).eq("reaction", "later")
+    .delete().eq("user_id", owUserId).eq("company_id", companyId).in("reaction", ["later", "not_interested"])
     .is("interested_at", null).is("conversation_id", null).select("user_id");
   if (error) {
     console.error("[forYou/react] あとでを外す:", error.message);
