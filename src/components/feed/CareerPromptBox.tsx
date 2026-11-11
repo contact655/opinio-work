@@ -5,7 +5,7 @@ import Link from "next/link";
 import { RailBox, RAIL_ACTION_STYLE, RAIL_TEXT_STYLE } from "@/components/feed/railKit";
 import {
   CAREER_BOX_TITLE, CAREER_BOX_BODY, careerBannerHiddenUntil, isCareerBannerHidden,
-  CAREER_NUDGE_EDU_BODY, CAREER_NUDGE_EDU_HREF, CAREER_NUDGE_EDU_LABEL, CAREER_NUDGE_PAST_BODY, CAREER_NUDGE_PAST_HREF, CAREER_NUDGE_PAST_LABEL,
+  CAREER_NUDGE_EDU_HREF, CAREER_NUDGE_EDU_LABEL, CAREER_NUDGE_PAST_HREF, CAREER_NUDGE_PAST_LABEL,
   careerNudgeTitle, type CareerNudge,
 } from "@/lib/home/homeState";
 
@@ -45,20 +45,19 @@ export function CareerNudgeBox({ nudge, onClose }: { nudge: CareerNudge; onClose
   const title = careerNudgeTitle(nudge);
   if (!title) return null;
   /* ★文字とボタンは右の列のほかの箱と同じ（railKit の RAIL_TEXT_STYLE / RAIL_ACTION_STYLE。2026-11-12） */
-  const linkStyle: React.CSSProperties = { ...RAIL_ACTION_STYLE, marginTop: 8 };
+  /* ★2026-11-12: 説明の文（同じ会社にいた人が見つかります など）は外した（柴さんの指示）。見出しとボタンだけ */
+  const linkStyle: React.CSSProperties = { ...RAIL_ACTION_STYLE };
   return (
     <div style={{ position: "relative" }} data-state="home-career-nudge-box">
       <RailBox title={title} state="home-career-nudge">
-        <div style={{ display: "grid", gap: 12 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {nudge.pastJob && (
             <div data-state="home-career-nudge-past">
-              <p style={RAIL_TEXT_STYLE}>{CAREER_NUDGE_PAST_BODY}</p>
               <Link href={CAREER_NUDGE_PAST_HREF} data-action="home-add-past-experience" style={linkStyle}>{CAREER_NUDGE_PAST_LABEL}</Link>
             </div>
           )}
           {nudge.education && (
             <div data-state="home-career-nudge-edu">
-              <p style={RAIL_TEXT_STYLE}>{CAREER_NUDGE_EDU_BODY}</p>
               <Link href={CAREER_NUDGE_EDU_HREF} data-action="home-add-education" style={linkStyle}>{CAREER_NUDGE_EDU_LABEL}</Link>
             </div>
           )}

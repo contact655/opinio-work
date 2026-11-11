@@ -26,10 +26,8 @@ export const CAREER_BOX_BODY = "入れると、あなたに合う会社と、同
  * ⚠️ 職歴が0件の人には出さない（上の CAREER_BOX が出る）。
  */
 export type CareerNudge = { pastJob: boolean; education: boolean };
-export const CAREER_NUDGE_PAST_BODY = "前の会社を足すと、同じ会社にいた人が見つかります";
 export const CAREER_NUDGE_PAST_LABEL = "前の会社を追加";
 export const CAREER_NUDGE_PAST_HREF = "/mypage?add=past";
-export const CAREER_NUDGE_EDU_BODY = "学校を足すと、同じ学校の人が見つかります";
 export const CAREER_NUDGE_EDU_LABEL = "学歴を追加";
 export const CAREER_NUDGE_EDU_HREF = "/mypage?add=education";
 
