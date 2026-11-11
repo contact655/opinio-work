@@ -43,7 +43,7 @@ export type PeopleSidebarProps = {
   counts: ProfileCardData["counts"];
   /** 次に埋めるとよい項目。**1件だけ**。無ければ null（「完了！」は出さない） */
   nextStep: { label: string; href: string } | null;
-  /** いま効いている関係の絞り込み。"" / "following" / "followers" / "coworkers" */
+  /** いま効いている関係の絞り込み。"" / "following" / "followers"（"coworkers" は 2026-11-12 に無くした） */
   rel: string;
   onRel: (v: string) => void;
   /** 自分の現職の職種。**無ければ「同じ職種の人」を出さない**（推測で埋めない） */
