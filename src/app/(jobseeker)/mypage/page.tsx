@@ -557,6 +557,8 @@ export default async function MypagePage({
       isNewUser={isNewUser}
       initialAddCompany={initialAddCompany}
       initialAddFirst={searchParams?.add === "career"}
+      /* ★ホームの「前の会社・学校を足す」から来たとき（2026-11-12） */
+      initialAdd={searchParams?.add === "past" ? "past" : searchParams?.add === "education" ? "education" : null}
       /* ★メッセージの前に職歴の登録を案内された人の戻り先（2026-11-05）。⚠️ 同じサイトのパスだけ（safeNext。外のサイトへ飛ばさない） */
       returnAfterCareer={safeReturnPath(searchParams?.return)}
       initialFocus={parseProfileFocus(searchParams?.focus)}

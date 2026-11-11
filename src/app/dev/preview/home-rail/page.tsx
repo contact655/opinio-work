@@ -3,6 +3,7 @@ import { Variant, PreviewHeader } from "../Variant";
 import ForYouSection, { type ForYouView } from "@/app/(jobseeker)/mypage/proposals/ForYouSection";
 import { PrevCareerSummary } from "@/components/people/PrevCareerSummary";
 import CareerPromptDemo from "./CareerPromptDemo";
+import CareerNudgeDemo from "./CareerNudgeDemo";
 import type { PathsView } from "@/lib/paths/server";
 import { CANDIDATE_DECLINE_REASONS } from "@/lib/constants/declineReasons";
 
@@ -56,6 +57,13 @@ export default function HomeRailPreview() {
       </Variant>
       <Variant label="職歴が0件の人の案内（右の列の一番上・スマホはページの一番上）" note="×で閉じると7日間出ない（この端末だけ。見本では閉じても記録しない）">
         <div style={{ width: 300, maxWidth: "100%" }}><CareerPromptDemo /></div>
+      </Variant>
+      <Variant label="前の会社・学校の案内（職歴はあるが1社だけ・学歴なし。2026-11-12）" note="同じ場所に出る。足りないものだけを出し、×で閉じると7日間出ない">
+        <div style={{ display: "grid", gap: 16 }}>
+          <div style={{ width: 300, maxWidth: "100%" }}><CareerNudgeDemo nudge={{ pastJob: true, education: true }} /></div>
+          <div style={{ width: 300, maxWidth: "100%" }}><CareerNudgeDemo nudge={{ pastJob: true, education: false }} /></div>
+          <div style={{ width: 300, maxWidth: "100%" }}><CareerNudgeDemo nudge={{ pastJob: false, education: true }} /></div>
+        </div>
       </Variant>
     </div>
   );

@@ -630,6 +630,7 @@ export default function ProfileTab({
   initialContentLinks,
   initialAddCompany = null,
   initialAddFirst = false,
+  initialAdd = null,
   returnAfterCareer = null,
   initialFocus = null,
   initialCareerHistoryCompleteAt = null,
@@ -692,6 +693,8 @@ export default function ProfileTab({
   initialAddCompany?: { id: string; name: string } | null;
   /** ★ホーム（/home）の「職歴を1件入れる」から来たとき（`/mypage?add=career`。2026-10-27）。職歴の追加を短い形で開く */
   initialAddFirst?: boolean;
+  /** ★ホームの「前の会社・学校を足す」から来たとき（`/mypage?add=past|education`。2026-11-12）。その追加画面を開く */
+  initialAdd?: "past" | "education" | null;
   /** ★職歴を登録したあとに戻る画面（2026-11-05）。メッセージを送ろうとして職歴の登録を案内された人が、登録後に戻るため */
   returnAfterCareer?: string | null;
   /** ★ホームの左のカードの「次の1件」から来たとき（`/mypage?focus=`。2026-11-04）。その欄へ寄せる */
@@ -1051,6 +1054,17 @@ export default function ProfileTab({
   /* 学歴（2026-08-16 / 2-5）。行の鉛筆・ゴミ箱から編集フォームを開くための id */
   const [editingEduId, setEditingEduId] = useState<string | null>(null);
   const [deleteEduId,  setDeleteEduId]  = useState<string | null>(null);
+  /* ★ホームの「前の会社・学校を足す」から来たとき（2026-11-12）。前職は短い形・学歴は追加の画面を開き、印は URL から消す（リロードで二度開かない） */
+  useEffect(() => {
+    if (!initialAdd) return;
+    if (initialAdd === "past") setCareerAddPastNonce((n) => n + 1);
+    else setEduAddNonce((n) => n + 1);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("add");
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    } catch { /* URL が読めなくても開くのは変わらない */ }
+  }, [initialAdd]);
   /* ★本体に出す行数の上限（2026-08-17 / フェーズ3）。
         ⚠️ この4つは `sort_order` で並べて取得しており、**その順がそのまま表示順**。
            だから先頭から切ってよい（職歴・学歴のように日付で並べ替え直す必要が無い）。

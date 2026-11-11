@@ -8,7 +8,8 @@ import { useRouter } from "next/navigation";
 import { HomeProfileCard, type HomeProfileCardData } from "@/components/feed/HomeProfileCard";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
-import { CareerPromptBox, useCareerPrompt } from "@/components/feed/CareerPromptBox";
+import { CareerNudgeBox, CareerPromptBox, useCareerNudge, useCareerPrompt } from "@/components/feed/CareerPromptBox";
+import type { CareerNudge } from "@/lib/home/homeState";
 import { RailBox, RailRow, RAIL_BOX_STYLE, RAIL_TITLE_STYLE, RAIL_LIST_STYLE, RAIL_SUB_STYLE, RAIL_THUMB } from "@/components/feed/railKit";
 import { stripActorPrefix } from "@/lib/feed/postContent";
 import type { SidebarFollow, SidebarUserFollow, SidebarJob, SidebarCompany } from "./page";
@@ -186,6 +187,8 @@ type Props = {
   mobileInserts?: { key: string; after: number; node: React.ReactNode }[];
   /** ★職歴が0件の人か（2026-11-04。/home）。true なら職歴の案内の箱を、PC は右の列の一番上・スマホはページの一番上に出す */
   careerPrompt?: boolean;
+  /** ★前の会社・学歴の案内（2026-11-12）。職歴0件の案内が出ているときは出さない */
+  careerNudge?: CareerNudge | null;
 };
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
@@ -2273,10 +2276,13 @@ export default function FeedClient({
   railSuggestions,
   mobileInserts,
   careerPrompt = false,
+  careerNudge = null,
 }: Props) {
   /* ★職歴の案内（×で7日間出さない）。出している間は左の列の「職歴を追加する」を隠す（2026-11-04） */
   const [careerVisible, closeCareer] = useCareerPrompt(careerPrompt);
-  const careerBox = careerVisible ? <CareerPromptBox onClose={closeCareer} /> : null;
+  const [nudgeVisible, closeNudge] = useCareerNudge(careerPrompt ? null : careerNudge);
+  const careerBox = careerVisible ? <CareerPromptBox onClose={closeCareer} />
+    : nudgeVisible && careerNudge ? <CareerNudgeBox nudge={careerNudge} onClose={closeNudge} /> : null;
   /* ★「すべて／フォロー中」のタブは 2026-10-20 になくした（柴さんの指示）。1本の流れにし、フォローしている人・企業の投稿を先に出す。
         ⚠️ `tab` は "all" 固定の名残。API の tab=followed は残してある（使い手は無い） */
   const tab = "all" as "all" | "followed";
