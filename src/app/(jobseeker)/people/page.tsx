@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 import { getDirectoryPeople } from "@/lib/people/directory";
 import { getRoleTree, getRoleAliases } from "@/lib/supabase/queries";
 import { getPeopleSidebarData } from "@/lib/people/sidebarData";
-import { getConsultantUserIds, getFeaturedConsultants, type ConsultantCard } from "@/lib/featuredConsultants/server";
+import { getConsultantUserIds } from "@/lib/featuredConsultants/server";
 import { PeopleListClient, type PrevCareerProps } from "./PeopleListClient";
 import { getPathsView } from "@/lib/paths/server";
 import { PrevCareerSummary } from "@/components/people/PrevCareerSummary";
@@ -57,8 +57,6 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
   let followerUserIds: string[] = [];
   let sidebar: Awaited<ReturnType<typeof getPeopleSidebarData>> = null;
   let prevCareer: PrevCareerProps | null = null;
-  /* ★相談できる人（2026-11-12）。サイドバーはログイン中だけ出るので、読むのもログイン中だけ */
-  let consultants: ConsultantCard[] = [];
   /* ★相談可能なユーザー全員（2026-11-12。?consult=1 の絞り込み）。読めなかったら null（チップを出さない） */
   let consultantUserIds: string[] | null = null;
   if (user) {
@@ -67,7 +65,7 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
     if (meErr) console.error("[people] me:", meErr.message);
     myUserId = me?.id ?? null;
     if (myUserId) {
-      const [outRes, inRes, sidebarData, pathsView, consultantList, consultantIds] = await Promise.all([
+      const [outRes, inRes, sidebarData, pathsView, consultantIds] = await Promise.all([
         admin.from("ow_user_follows").select("target_user_id").eq("follower_user_id", myUserId),
         admin.from("ow_user_follows").select("follower_user_id").eq("target_user_id", myUserId),
         getPeopleSidebarData(myUserId),
@@ -77,10 +75,8 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
           { owUserId: myUserId, isTest: me?.is_test === true },
           { autoStart: false },
         ),
-        getFeaturedConsultants({ excludeOwUserId: myUserId }),
         getConsultantUserIds(),
       ]);
-      consultants = consultantList;
       consultantUserIds = consultantIds;
       if (pathsView) {
         const start = pathsView.start;
@@ -120,7 +116,6 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
         followerUserIds={followerUserIds}
         sidebar={sidebar}
         prevCareer={prevCareer}
-        consultants={consultants}
         consultantUserIds={consultantUserIds}
       />
     </div>
