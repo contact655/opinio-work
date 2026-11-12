@@ -1,27 +1,20 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { FilterChip } from "@/components/common/FilterChip";
-import { ActiveFilterChips, type ActiveFilter } from "@/components/common/DetailSearch";
+import { ActiveFilterRow, FilterButton, ListFilterDrawer, type FilterSection, type FilterValues } from "@/components/common/ListFilterDrawer";
 import { companySortLabel } from "@/components/companies/GridSortBar";
 import { ListSearchButton } from "@/components/common/ListSearchButton";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { BusinessDomainOption } from "@/lib/companies/businessDomains";
-import { WORK_STYLE_LABELS, WORK_STYLE_OPTIONS } from "@/lib/constants/workStyle";
+import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 import { PREFECTURE_FILTER_GROUPS, PREFECTURES } from "@/lib/utils/location";
 /* ⚠️ フェーズは**マスタ全件**を出す（該当0社の段も出す）。実データから絞らないこと
       —— 段階の梯子が歯抜けに見える。経緯は lib/constants/phase.ts のコメント。 */
 import { PHASE_OPTIONS } from "@/lib/constants/phase";
 import { COMPANY_STAGES } from "@/lib/companies/classification";
 
-/**
- * 勤務形態フィルターを出すか。
- *
- * ⚠️ 2026-08-11 時点で `ow_companies.remote_work_status` に値があるのは
- *    **76社中2社**しかない。出すと「リモート可は2社だけ」と誤読されるので隠している。
- *    充填率が上がったら true に戻す。ロジック側（searchCompanies）は無変更。
- */
-const SHOW_WORK_STYLE_FILTER = false;
+/* ⚠️ 勤務形態（`?workStyle=`）の選択肢は 2026-08-11 に画面から外したまま（`remote_work_status` が76社中2社しか無いため）。
+      URL で効いているときだけ、選んでいる条件のチップに出す（下の activeChips） */
 import { fetchCompanyBookmarks } from "@/lib/bookmarks/companyBookmarks";
 import { COMPANY_SIZE_GROUPS } from "@/lib/constants/employeeBand";
 import { splitMulti } from "@/lib/search/companyListParams";
@@ -69,23 +62,13 @@ export function CompanySearchBar({
   const searchParams = useSearchParams();
 
   const [inputValue, setInputValue] = useState(searchParams.get("q") ?? "");
-  const [openChip, setOpenChip] = useState<string | null>(null);
+  /* ★「フィルター」のパネル（2026-11-12）。条件はすべてここで選ぶ（/people と同じ形） */
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [bookmarkCount, setBookmarkCount] = useState(0);
-  const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // 企業カードと同じ一覧。共有キャッシュを通すので追加のリクエストは飛ばない
     fetchCompanyBookmarks().then((c) => setBookmarkCount(c.ids.size));
-  }, []);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpenChip(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -123,18 +106,6 @@ export function CompanySearchBar({
   function clearQuery() {
     setInputValue("");
     updateParam("q", null);
-  }
-
-  /* ★複数選択（2026-10-29 / 柴さんの指示）。URL はカンマ区切り。同じ項目の中は OR（lib/search/companies.ts）。
-        ⚠️ 1つずつ外すときも、まとめて外すときも URL を1回だけ書き換える（FilterChip の onClear の注記） */
-  function toggleMultiParam(key: string, v: string) {
-    const cur = splitMulti(searchParams.get(key));
-    const next = cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v];
-    updateParam(key, next.length > 0 ? next.join(",") : null);
-  }
-
-  function toggleChip(name: string) {
-    setOpenChip(openChip === name ? null : name);
   }
 
   const currentPhase      = searchParams.get("phase") ?? "";
@@ -182,33 +153,75 @@ export function CompanySearchBar({
         g.prefectures.map((l) => ({ value: l, label: l, group: g.group })),
       );
 
-  /* ★いま効いている条件のチップ（2026-09-17）。**「絞り込む」を閉じていても外に出す。**
-     ⚠️★**消さないこと。** 6つのチップを畳んだので、これが無いと
-        **絞り込んだ結果を見ている最中に理由が画面から消える**
-        （/jobs の `activeChips` と同じ判断）。
-     ⚠️ 並びは下のチップの並びと**同じ順**にしてある。片方だけ変えないこと。
-     ⚠️ ✕ は近道であって唯一の入口ではない。「絞り込む」を開けば元のチップからも外せる。
-     ⚠️ 検索語（`q`）は入れない。入力欄に出ていて、そこの ✕ で消せる。 */
-  const activeChips: ActiveFilter[] = [];
-
-  const labelOf = (opts: { value: string; label: string }[], v: string) =>
+  const labelOf = (opts: readonly { value: string; label: string }[], v: string) =>
     opts.find((o) => o.value === v)?.label ?? v;
-
-  /* ★2026-10-29 に「絞り込み」をやめ、条件をすべて1行のボタンに並べた（柴さんの指示）。
-        選んだ条件はボタン自身に出る（「都道府県: 大阪府 +1」）ので、ここに入れるのは
-        **画面にボタンが無い条件だけ**（被リンクで来た旧フェーズ・顧客の業界・勤務形態）。
-        ⚠️ ボタンがある条件をここに入れないこと（同じ語が2回並ぶ） */
-  if (currentPhase) activeChips.push({ key: "phase", label: labelOf(PHASE_OPTIONS, currentPhase), clear: () => updateParam("phase", null) });
-  if (currentTarget) activeChips.push({ key: "target", label: `顧客の業界: ${currentTarget}`, clear: () => updateParam("target", null) });
-  if (currentWorkStyle) activeChips.push({ key: "workStyle", label: WORK_STYLE_LABELS[currentWorkStyle] ?? currentWorkStyle, clear: () => updateParam("workStyle", null) });
-  /* ⚠️ 並び替えは 2026-10-20 から件数の右に常に出しているので、選択中の条件には入れない（同じ語が2回並ぶ） */
   void currentSortLabel;
 
-  /* ⚠️ かつてここで `activeFilters`（「絞り込み中」行のチップ）を組み立てていた。
-        2026-09-06 に行ごと廃止したので消した。理由はこのファイル下部のコメント。
-        ⚠️★2026-09-17 に**別の理由で**戻した（上の `activeChips`）。あちらは
-           「同じことを2箇所に出していた」ので消したが、今回は**チップを畳んだので
-           理由が画面から消える**のを防ぐため。**目的が違う。** */
+  /* ★「フィルター」のパネルの項目（2026-11-12 / 柴さんの指示「ユーザーと同じように」）。
+        条件の意味と URL のキーはそれまでのチップと同じ（同じ項目の中は OR・項目どうしは AND）。
+     ⚠️ 選択肢の作り方は変えていない（業種・事業・会社規模は掲載中の会社があるものだけ・都道府県とステージは全部） */
+  const industrySectionOptions = industryOptions.map((d) => ({
+    value: d.slug, label: d.name,
+    searchOnly: d.display_kind === "search",
+    keywords: (d.aliases ?? []).join(" "),
+    count: "count" in d ? (d as { count: number }).count : undefined,
+  }));
+  const sections: FilterSection[] = [
+    ...((industryTreeOptions.length > 0 || currentInd)
+      ? [{ key: "ind", title: "業種", kind: "multi" as const, options: industryTreeOptions, searchable: true }]
+      : []),
+    { key: "industry", title: "事業", kind: "multi", options: industrySectionOptions, searchable: true, hint: "2つ目・3つ目の事業にも当たります" },
+    { key: "location", title: "都道府県", kind: "multi", options: locationOptions, searchable: true },
+    { key: "stage", title: "事業ステージ", kind: "multi", options: COMPANY_STAGES.map((x) => ({ value: x.value, label: x.label, desc: x.desc })), columns: 1 },
+    ...(sizeChipOptions.length > 0 ? [{ key: "size", title: "会社規模", kind: "multi" as const, options: sizeChipOptions }] : []),
+    { key: "foreign", title: "資本", kind: "toggle", label: "外資系" },
+    { key: "hiring", title: "募集", kind: "toggle", label: "募集あり" },
+  ];
+  const values: FilterValues = {
+    ind: indValues, industry: industryValues, location: locationValues, stage: stageValues, size: sizeValues,
+    foreign: currentForeign ? ["1"] : [], hiring: currentHiring ? ["1"] : [],
+  };
+  /* パネルで選んだ条件をまとめて当てる（URL を1回だけ書き換える。履歴は積まない） */
+  function applyFilters(next: FilterValues) {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const k of ["ind", "industry", "location", "stage", "size"]) {
+      const v = (next[k] ?? []).join(",");
+      if (v) params.set(k, v); else params.delete(k);
+    }
+    for (const k of ["foreign", "hiring"]) {
+      if ((next[k] ?? []).length > 0) params.set(k, "1"); else params.delete(k);
+    }
+    router.replace(`?${params.toString()}`);
+  }
+  /* リセットは条件だけを外す（検索語・並び替え・表示形式は残す）。URL だけで効いている旧フェーズなども外す */
+  function resetFilters() {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const k of ["ind", "industry", "location", "stage", "size", "foreign", "hiring", "phase", "target", "workStyle"]) params.delete(k);
+    router.replace(`?${params.toString()}`);
+  }
+  const filterCount = Object.values(values).reduce((n, v) => n + v.length, 0)
+    + (currentPhase ? 1 : 0) + (currentTarget ? 1 : 0) + (currentWorkStyle ? 1 : 0);
+
+  /* ★選んでいる条件のチップ（2026-11-12）。パネルを閉じていても、いま効いている条件を全部ここに出す。
+     ⚠️ 消さないこと（条件をパネルに畳んだので、無いと絞り込んだ理由が画面から消える）。
+     ⚠️ 検索語（q）は入れない（入力欄に出ていて、そこの ✕ で消せる）。
+     ⚠️ 旧フェーズ・顧客の業界・勤務形態はパネルに項目が無いが、URL で効いているときはここに出して外せるようにする */
+  const removeOne = (key: string, v: string, cur: string[]) => {
+    const rest = cur.filter((x) => x !== v);
+    updateParam(key, rest.length > 0 ? rest.join(",") : null);
+  };
+  const activeChips: { key: string; label: string; onRemove: () => void }[] = [
+    ...indValues.map((v) => ({ key: `ind:${v}`, label: labelOf(industryTreeOptions, v), onRemove: () => removeOne("ind", v, indValues) })),
+    ...industryValues.map((v) => ({ key: `industry:${v}`, label: labelOf(industrySectionOptions, v), onRemove: () => removeOne("industry", v, industryValues) })),
+    ...locationValues.map((v) => ({ key: `location:${v}`, label: v, onRemove: () => removeOne("location", v, locationValues) })),
+    ...stageValues.map((v) => ({ key: `stage:${v}`, label: labelOf(COMPANY_STAGES, v), onRemove: () => removeOne("stage", v, stageValues) })),
+    ...sizeValues.map((v) => ({ key: `size:${v}`, label: labelOf(sizeChipOptions, v), onRemove: () => removeOne("size", v, sizeValues) })),
+    ...(currentForeign ? [{ key: "foreign", label: "外資系", onRemove: () => updateParam("foreign", null) }] : []),
+    ...(currentHiring ? [{ key: "hiring", label: "募集あり", onRemove: () => updateParam("hiring", null) }] : []),
+    ...(currentPhase ? [{ key: "phase", label: labelOf(PHASE_OPTIONS, currentPhase), onRemove: () => updateParam("phase", null) }] : []),
+    ...(currentTarget ? [{ key: "target", label: `顧客の業界: ${currentTarget}`, onRemove: () => updateParam("target", null) }] : []),
+    ...(currentWorkStyle ? [{ key: "workStyle", label: WORK_STYLE_LABELS[currentWorkStyle] ?? currentWorkStyle, onRemove: () => updateParam("workStyle", null) }] : []),
+  ];
 
   return (
     <>
@@ -217,7 +230,7 @@ export function CompanySearchBar({
       {/* ★lt-compact--keep（2026-10-29 / 柴さんの指示）: 1024px 以上で、絞り込みを開いても・条件を選んでも
              1行目（検索・チップ・件数）を動かさない。パネルと選択中の条件は1行目の下に全幅で出す（globals.css）。
              それまでは開いた瞬間に2段へ組み変わり、押した「絞り込み」ボタン自体が左へ飛んでいた。 */}
-      <div ref={wrapRef} className="lt-compact lt-compact--keep" style={{ marginBottom: 0 }}>
+      <div className="lt-compact lt-like-people" style={{ marginBottom: 0 }}>
         {/* ★2026-10-20: 3行にした（柴さんの要望。見本 /dev/preview/list-toolbar）。
                1行目 検索欄（常に開いている）／2行目 絞り込み＋条件のチップ／3行目 件数と並び替え（sortBar） */}
         <div className="lt-search-row">
@@ -225,7 +238,7 @@ export function CompanySearchBar({
             alwaysOpen
             value={currentQuery}
             draft={inputValue}
-            onDraftChange={(v) => { setInputValue(v); setOpenChip(null); }}
+            onDraftChange={setInputValue}
             onCommit={commitQuery}
             onClear={clearQuery}
             placeholder="企業名・キーワードで検索"
@@ -236,225 +249,16 @@ export function CompanySearchBar({
         </div>
         {/* ★`list-toolbar`: スマホでは1行に並べ、横にスクロールする（2026-10-17。globals.css 末尾） */}
         {/* ⚠️ 下の余白は CSS（.lt-chip-row）。インラインに戻すと1行にまとめたときに消せない */}
-        <div className="csb-bar list-toolbar lt-chip-row" style={{ paddingTop: 0 }}>
-
-          {/* ⚠️ 「一覧内を検索」のボタンは 2026-10-20 に上の行（常に開いた検索欄）へ移した */}
-
-          {/* ★「絞り込み」のボタンとパネルは 2026-10-29 に外した（柴さんの指示）。外と中に分かれた条件が混在して
-                 わかりにくかったため。⚠️ 条件を「絞り込み」に戻して2か所に分けないこと。/jobs も同じ形 */}
-
-          {/* ★1段目に常に見える軸（2026-10-09）: 事業領域 / 都道府県 / 話を聞ける人。
-                 ⚠️ 詳細検索の中は フェーズ / 顧客の業界 / 外資系 / 募集あり / 並び替え。 */}
-          {/* 事業領域（何を作っているか）
-              ⚠️★**ラベルは「事業領域」。**「業種」に戻さないこと（2026-09-06）。
-                 中身は `ow_business_domains` で、`/jobs` も「事業領域」と呼んでいる。
-                 「業種」は `ow_industries`（IT・ソフトウェア／製造業…）に使う語で、
-                 **すぐ隣の「対象業界」チップがそちらのマスタ**。名前が衝突する。
-              ⚠️ URL のキーは `?industry=` のまま。2026-08-26 の移行で被リンクを
-                 切らないためで、**キーとラベルが一致していないのは承知のうえ。** */}
-          {/* ★業種（2026-10-12 / `?ind=`）。大分類を選ぶと、その小分類と大分類だけの会社も出る（提案A）。
-                 ⚠️ 掲載中の会社がある業種だけ（0件の選択肢を出さない） */}
-          {(industryTreeOptions.length > 0 || currentInd) && (
-            <FilterChip
-              label="業種"
-              labelPrefix
-              value=""
-              values={indValues}
-              onToggleValue={(v) => toggleMultiParam("ind", v)}
-              onClear={() => updateParam("ind", null)}
-              options={industryTreeOptions}
-              onSelect={() => updateParam("ind", null)}
-              isOpen={openChip === "ind"}
-              onToggle={() => toggleChip("ind")}
-              listStyle
-              searchable
-            />
-          )}
-
-          {/* ★事業（2026-10-12 に「事業領域」から改名。中身は ow_business_domains・URL は `?industry=` のまま）。
-                 ⚠️ 主な事業以外（2つ目・3つ目）にも当たる（searchCompanies は全部の紐付けを見る）。
-                 ⚠️ 全部を並べない。main の事業を先に出し、search の事業は入力して探す（searchOnly）。
-                 ⚠️ 掲載中の会社がある事業だけ（getBusinessDomainFacets）。 */}
-          <FilterChip
-            label="事業"
-            labelPrefix
-            value=""
-            values={industryValues}
-            onToggleValue={(v) => toggleMultiParam("industry", v)}
-            onClear={() => updateParam("industry", null)}
-            options={industryOptions.map((d) => ({
-              value: d.slug, label: d.name,
-              searchOnly: d.display_kind === "search",
-              keywords: (d.aliases ?? []).join(" "),
-              count: "count" in d ? (d as { count: number }).count : undefined,
-            }))}
-            onSelect={() => updateParam("industry", null)}
-            isOpen={openChip === "industry"}
-            onToggle={() => toggleChip("industry")}
-            listStyle
-            searchable
-            hint="2つ目・3つ目の事業にも当たります"
-          />
-
-          {/* 都道府県。⚠️ 47件あるので `searchable`（絞り込み入力）を付ける */}
-          <FilterChip
-            label="都道府県"
-            labelPrefix
-            value=""
-            values={locationValues}
-            onToggleValue={(v) => toggleMultiParam("location", v)}
-            onClear={() => updateParam("location", null)}
-            options={locationOptions}
-            onSelect={() => updateParam("location", null)}
-            isOpen={openChip === "location"}
-            onToggle={() => toggleChip("location")}
-            listStyle
-            searchable
-          />
-
-          {/* ⚠️ 「話を聞ける人」（`?talk=1`）のトグルは 2026-10-16 に撤去した（面談OKの撤去） */}
-
-
-
-          {/* ★事業ステージ（2026-10-12。旧「フェーズ」を置き換えた）。7つとも出す（段階の梯子が歯抜けに見えないように。フェーズと同じ扱い） */}
-          <FilterChip
-            label="事業ステージ"
-            labelPrefix
-            value=""
-            values={stageValues}
-            onToggleValue={(v) => toggleMultiParam("stage", v)}
-            onClear={() => updateParam("stage", null)}
-            options={COMPANY_STAGES.map((x) => ({ value: x.value, label: x.label, desc: x.desc }))}
-            onSelect={() => updateParam("stage", null)}
-            isOpen={openChip === "stage"}
-            onToggle={() => toggleChip("stage")}
-            listStyle
-          />
-
-          {/* ★会社規模（2026-10-10）。従業員数の帯を4つにまとめて出す（`COMPANY_SIZE_GROUPS`）。
-                 ⚠️ 0件のまとまりは出さない（掲載中の企業がある分だけサーバーが渡す） */}
-          {sizeChipOptions.length > 0 && (
-            <FilterChip
-              label="会社規模"
-              labelPrefix
-              value=""
-              values={sizeValues}
-              onToggleValue={(v) => toggleMultiParam("size", v)}
-              onClear={() => updateParam("size", null)}
-              options={sizeChipOptions}
-              onSelect={() => updateParam("size", null)}
-              isOpen={openChip === "size"}
-              onToggle={() => toggleChip("size")}
-            />
-          )}
-
-
-
-
-          {/* ③ 勤務形態フィルター
-                 ⚠️ **2026-08-11 に UI から外した（ロジックは残してある）。**
-                    `ow_companies.remote_work_status` に値があるのは **76社中2社**だけ
-                    （残りは migration が一括投入した 'hybrid' を 2026-07-27 に
-                     NULL へ戻したため）。この状態で絞り込みを出すと
-                    「リモート可の企業は2社しかない」と誤読される。
-                 ⚠️ **消していないのは、充填率が上がったら戻すため。**
-                    `SHOW_WORK_STYLE_FILTER` を true にすれば元に戻る。
-                    URL の `?workStyle=` も引き続き効く（searchCompanies 側は無変更）。 */}
-          {SHOW_WORK_STYLE_FILTER && (
-          <div style={{ position: "relative", flexShrink: 0 }}>
-            <button
-              type="button"
-              className={`csb-filter-pill${currentWorkStyle ? " active" : ""}`}
-              onClick={() => currentWorkStyle ? updateParam("workStyle", null) : toggleChip("workStyle")}
-            >
-              {currentWorkStyle ? (WORK_STYLE_LABELS[currentWorkStyle] ?? currentWorkStyle) : "勤務形態"}
-              {currentWorkStyle
-                ? <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>
-                : <span style={{ fontSize: 12, marginLeft: 2 }}>▾</span>}
-            </button>
-            {openChip === "workStyle" && (
-              <div className="csb-filter-pill-menu">
-                {/* ⚠️ ラベルは workStyle.ts の1箇所で決める。ここに直書きしない。
-                       アイコンは 2026-08-08 に削除（ラベルだけで意味は通る）。 */}
-                {WORK_STYLE_OPTIONS.map(({ value, label }) => (
-                  <button key={value} type="button" className={`csb-filter-pill-item${currentWorkStyle === value ? " selected" : ""}`}
-                    onClick={() => { updateParam("workStyle", value); setOpenChip(null); }}
-                  >{label}</button>
-                ))}
-              </div>
-            )}
-          </div>
-          )}
-
-          {/* ⚠️ **年収フィルタは 2026-08-25 に外した。戻さないこと。**
-                ① 年収はポジションによって違うので、会社単位の1つの数字では表せない
-                ② 実データでも成り立っていなかった。掲載79社のうち求人に年収が入って
-                   いるのは**1社だけ**（`ow_companies.avg_salary` は0社）で、
-                   どの閾値を選んでも**78社が無条件に落ちていた**
-                （2026-08-20 に外した年齢フィルタと同じ形。生年月日が未入力の人を
-                  無条件に落としていて、法令以前に機能として壊れていた）
-             ⚠️ 旧 URL の `?salaryMin=` は無視される。壊れない。 */}
-          {/* 外資系 */}
-          <button
-            type="button"
-            className={`foreign-toggle${currentForeign ? " active" : ""}`}
-            onClick={() => updateParam("foreign", currentForeign ? null : "1")}
-            aria-pressed={currentForeign}
-          >
-            外資系{currentForeign && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
-          </button>
-
-          {/*
-            ⚠️ ラベルは「募集あり」。2026-08-06 まで「面談受付中」と書いていたが、
-                 2026-08-08 に「求人あり」→「募集あり」（ナビの「募集」に用語を揃えた）。
-               ?hiring=1 が絞っているのは ow_jobs に公開求人があるかどうか
-               （lib/search/companies.ts で hiringSet を作る）で、
-               面談の可否（accepting_casual_meetings）ではない。
-               クエリパラメータ名 hiring と絞り込みロジックは変えていない。
-          */}
-          <label className={`csb-hiring${currentHiring ? " active" : ""}`}>
-            <input
-              type="checkbox"
-              checked={currentHiring}
-              onChange={(e) => updateParam("hiring", e.target.checked ? "1" : null)}
-            />
-            <span style={{
-              width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
-              /* ⚠️ オレンジにしない（2026-10-29）。オレンジはカジュアル面談だけの色（ui-conventions の色の役割） */
-              background: currentHiring ? "#fff" : "var(--royal)",
-              animation: "pulseDot 1.8s ease-in-out infinite",
-              display: "inline-block",
-            }} />
-            {currentHiring ? (
-              <>募集あり <span style={{ fontSize: 12, opacity: 0.85 }}>✕</span></>
-            ) : (
-              <>募集あり</>
-            )}
-          </label>
-
-          {/* ⚠️★**「すべてクリア」は廃止した**（2026-09-06 / 柴さんの判断）。
-                 絞り込みが1つ付くたびに現れて右端の並びが動くうえ、
-                 **すべての条件は個別に外せる** —— チップは ✕、
-                 外資系と募集ありはもう一度押せば解除される（元からトグル）。
-              ⚠️ 戻すなら、検索欄の ✕ と役割が重ならないようにすること
-                 （あちらは検索文字だけを消す）。 */}
-
-          {/* ⚠️ 並び替えは 2026-10-20 に詳細検索の中から件数の右（sortBar）へ移した */}
-
-          {/* ボタンが無い条件（旧フェーズ・顧客の業界・勤務形態）が URL で効いているときだけ出す */}
-          <ActiveFilterChips chips={activeChips} />
-
+        {/* ★2026-11-12: 条件のチップを1行に並べる形をやめ、「フィルター」1つにした（/people と同じ形。柴さんの指示）。
+               条件はすべてパネル（ListFilterDrawer）で選ぶ。1024px 以上は並び替えのすぐ左に並ぶ（globals.css の .lt-like-people）。
+            ⚠️ チップを1行に並べる形に戻さないこと。⚠️ 選んでいる条件は下の ActiveFilterRow に必ず出す */}
+        <div className="csb-bar list-toolbar lt-chip-row" style={{ paddingTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
           {/* 保存件数 */}
           {bookmarkCount > 0 && (
             <a
               href="/mypage"
               className="csb-bookmark-link"
               style={{
-                /* ⚠️★**並び替えがある行では `marginLeft: "auto"` を付けない**（2026-10-01）。
-                      `.sort-bar-row` にも auto があり、**2つあると余白が等分されて
-                      並び替えが右端まで行かない。** あるときは並び替えの直後に並ぶ。
-                   ⚠️ 並び替えが無いとき（絞り込み中）は**こちらが右端役**。外さないこと。 */
-                marginLeft: "auto",
                 flexShrink: 0,
                 display: "inline-flex", alignItems: "center", gap: 5,
                 padding: "6px 12px", borderRadius: 999,
@@ -468,10 +272,13 @@ export function CompanySearchBar({
               {bookmarkCount}件保存中
             </a>
           )}
+          <FilterButton count={filterCount} onClick={() => setDrawerOpen(true)} />
         </div>
 
         {/* ★3行目: 件数（左）と並び替え（右）。⚠️ 出すかどうかと件数はページが決める */}
         {sortBar}
+
+        <ActiveFilterRow chips={activeChips} />
 
         {/* ⚠️★**「絞り込み中」のサマリー行は廃止した**（2026-09-06 / 柴さんの判断）。
                絞り込みはチップ自体が選択状態（濃紺 + ✕）で示すので、
@@ -480,6 +287,8 @@ export function CompanySearchBar({
                先に確かめること（ここには `workStyle` も入っていた。
                あれは `SHOW_WORK_STYLE_FILTER = false` でチップ自体が出ていない）。 */}
       </div>
+      <ListFilterDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="企業フィルター"
+        sections={sections} values={values} onApply={applyFilters} onReset={resetFilters} />
     </>
   );
 }
