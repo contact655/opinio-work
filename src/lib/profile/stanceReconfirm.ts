@@ -8,7 +8,7 @@
  * ⚠️ `stance_updated_at`（転職・面談の状況カード）は今までどおり、値が変わったときだけ打つ。
  *
  * 出す条件（shouldAskStanceReconfirm）:
- *   オンボーディングが終わっている ／ 検証用でない ／ career_stance が入っている ／
+ *   オンボーディングが終わっている ／ career_stance が入っている ／
  *   日時が null か、STANCE_RECONFIRM_AFTER_DAYS より前
  * 閉じたら STANCE_RECONFIRM_SNOOZE_DAYS は出さない（端末の localStorage。確かめた記録ではないので DB に持たない）。
  */
@@ -40,7 +40,8 @@ export type StanceReconfirmInput = {
 
 /** サーバーで判定する（閉じた記録は見ない。そちらは端末で isStanceReconfirmHidden） */
 export function shouldAskStanceReconfirm(i: StanceReconfirmInput): boolean {
-  if (!i.onboardingCompleted || i.isTest) return false;
+  /* ⚠️ 検証用アカウントにも出す（2026-11-12 / 柴さんの判断。本番で確かめられるように） */
+  if (!i.onboardingCompleted) return false;
   /* ⚠️ 未回答（null）はここでは聞かない。/onboarding/stance が拾う */
   if (!i.careerStance) return false;
   if (!i.careerStanceUpdatedAt) return true;
