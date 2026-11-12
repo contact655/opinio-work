@@ -2957,6 +2957,24 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
   .lt-compact--keep .csb-bookmark-link { order: 1; }
   .lt-compact--keep:has(.csb-bookmark-link) > .lt-result-row { margin-left: 0; }
 }
+/* ★/people と同じ形（.lt-like-people。/companies・/jobs。2026-11-12 / 柴さんの指示「企業と募集もユーザーと同じに」）。
+     [検索欄（伸びる）][フィルター][件数・並び替え・表示切替] の1行。選んでいる条件（.lfd-active-row）は下の行に全幅で出す。
+     1023px 以下は [検索欄] ／ [フィルター・並び替え（右寄せ）] ／ [選んでいる条件] の3段。
+   ⚠️ 条件のチップを1行に並べる形には戻さないこと（条件は「フィルター」のパネル ListFilterDrawer で選ぶ） */
+.lt-compact.lt-like-people { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; }
+.lt-like-people > .lt-search-row { flex: 1 1 100%; }
+.lt-like-people > .lt-chip-row { flex: 1 1 auto; justify-content: flex-end; min-width: 0; }
+.lt-like-people > .lt-result-row { flex: 0 0 auto; border-top: none; padding: 0 0 10px; }
+.lt-like-people > .lfd-active-row { order: 3; flex-basis: 100%; }
+@media (min-width: 768px) { .lt-like-people > .lt-search-row .lsb.lsb--always { max-width: none; } }
+/* ⚠️ 共通の .lt-compact:not(:has(…)):not(:has(…)) > … （4クラス分）に勝つよう、クラスを重ねて5つ以上にしてある */
+@media (min-width: 1024px) {
+  .lt-compact.lt-like-people.lt-like-people.lt-like-people { flex-wrap: wrap; row-gap: 10px; column-gap: 12px; }
+  .lt-compact.lt-like-people.lt-like-people > .lt-search-row.lt-search-row { flex: 1 1 auto; min-width: 280px; padding: 0; }
+  .lt-compact.lt-like-people.lt-like-people > .lt-chip-row.lt-chip-row { flex: 0 0 auto; padding-bottom: 0; }
+  .lt-compact.lt-like-people.lt-like-people > .lt-result-row.lt-result-row { margin-left: 0; padding: 0; }
+  .lt-compact.lt-like-people > .lfd-active-row { padding-bottom: 0; }
+}
 .sort-select-btn.sort-select-btn--text { border: none; background: none; height: auto; min-height: 0; padding: 4px 0; gap: 3px; font-size: 13px; color: var(--ink); }
 .sort-select-btn.sort-select-btn--text:hover { background: none; color: var(--royal); }
 .sort-select-btn.sort-select-btn--text > svg:first-child,

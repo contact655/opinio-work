@@ -2,7 +2,7 @@
 
 import { SearchAllLink } from "@/components/jobseeker/SearchAllLink";
 import { ListSearchButton } from "@/components/common/ListSearchButton";
-import { FilterChip } from "@/components/common/FilterChip";
+import { ActiveFilterRow, FilterButton, ListFilterDrawer, type FilterSection, type FilterValues } from "@/components/common/ListFilterDrawer";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -347,25 +347,8 @@ export default function JobsClient({
   const q = searchParams.get("q") ?? "";
   const [qDraft, setQDraft] = useState(q);
   useEffect(() => { setQDraft(q); }, [q]);
-  const [openFilter, setOpenFilter] = useState<string | null>(null);
-  const toggleFilter = (k: string) => setOpenFilter((cur) => (cur === k ? null : k));
-
-  const filterPillsRef = useRef<HTMLDivElement>(null);
-
-  /* フィルターピルの外クリックで閉じる。
-     ⚠️ サジェストの開閉は `ListSearchButton` が自分で持つようになった（2026-10-01）。 */
-  useEffect(() => {
-    function onOutside(e: MouseEvent) {
-      const target = e.target as Node;
-      const inFilterBar = filterPillsRef.current?.contains(target);
-      /* ⚠️ メニューは FilterChip の中（ツールバーの中）にあるので、ツールバーの外だけ見ればよい */
-      if (!inFilterBar) {
-        setOpenFilter(null);
-      }
-    }
-    document.addEventListener("mousedown", onOutside);
-    return () => document.removeEventListener("mousedown", onOutside);
-  }, []);
+  /* ★「フィルター」のパネル（2026-11-12 / 柴さんの指示「ユーザーと同じように」）。条件はすべてここで選ぶ */
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // ⑧ 企業グルーピング toggle（デフォルトON）
   const [groupByCompany, setGroupByCompany] = useState(false);
@@ -387,10 +370,6 @@ export default function JobsClient({
   function toggleStage(value: string) {
     if (value === "foreign") setParam("foreign", foreignParam ? "" : "1");
     else toggleParam("phase", value, phaseParam);
-  }
-  /** フェーズだけを全部外す。⚠️ 外資系（別のキー）は残す */
-  function clearPhases() {
-    setParam("phase", "");
   }
 
   // Which filter chip dropdown is open
@@ -899,6 +878,63 @@ export default function JobsClient({
     return map;
   }, [allJobs, companyMap]);
 
+  /* ★「フィルター」のパネルの項目（2026-11-12 / 柴さんの指示「ユーザーと同じように」）。
+        条件の意味と URL のキーはそれまでのチップと同じ（同じ項目の中は OR・項目どうしは AND。年収は下限なので1つだけ）。
+     ⚠️ 職種は親職種だけ（子まで出すと148件になり選べない）。都道府県は47件すべて（募集がある県を上に） */
+  const roleFilterOptions = parentRoles.map((r) => ({ value: r.id, label: r.name, count: roleCounts.get(r.id) ?? 0 }));
+  const industryFilterOptions = industryOptions.map((g) => ({ value: g.slug, label: g.name, count: industryCounts.get(g.slug) ?? 0 }));
+  const phaseLabelOf = (v: string) => PHASE_OPTIONS.find((o) => o.value === v)?.label ?? v;
+  const filterSections: FilterSection[] = [
+    { key: "category", title: "職種", kind: "multi", options: roleFilterOptions },
+    { key: "prefecture", title: "勤務地", kind: "multi", searchable: true, options: [
+      ...PREFECTURES.filter((p) => (prefectureCounts.get(p) ?? 0) > 0)
+        .map((p) => ({ value: p, label: p, group: "募集がある都道府県", count: prefectureCounts.get(p) })),
+      ...PREFECTURES.filter((p) => !((prefectureCounts.get(p) ?? 0) > 0))
+        .map((p) => ({ value: p, label: p, group: "そのほかの都道府県", muted: true })),
+    ] },
+    { key: "salary", title: "年収", kind: "single", options: SALARY_PILL_TIERS.map((t) => ({ value: t.value, label: t.label })) },
+    { key: "work_style", title: "働き方", kind: "multi", options: WORK_STYLE_FILTERS.map((v) => ({ value: v, label: v })) },
+    { key: "phase", title: "フェーズ", kind: "multi", columns: 1,
+      options: phaseOptions.map((o) => ({ value: o.value, label: o.label, desc: o.desc, indent: !!o.parent })) },
+    { key: "industry", title: "事業領域", kind: "multi", options: industryFilterOptions },
+    { key: "emp_type", title: "雇用形態", kind: "multi", options: JOB_EMPLOYMENT_TYPES.map((v) => ({ value: v, label: v })) },
+    { key: "foreign", title: "資本", kind: "toggle", label: "外資系" },
+  ];
+  const filterValues: FilterValues = {
+    category: Array.from(categorySet), prefecture: Array.from(prefectureSet), salary: salary ? [salary] : [],
+    work_style: Array.from(workStyleSet), phase: Array.from(phaseSet), industry: Array.from(industrySet),
+    emp_type: Array.from(empTypeSet), foreign: foreignParam ? ["1"] : [],
+  };
+  /* パネルで選んだ条件をまとめて当てる（URL を1回だけ書き換える。setParam と同じく page を外し、履歴は積まない） */
+  function applyFilters(next: FilterValues) {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const k of ["category", "prefecture", "salary", "work_style", "phase", "industry", "emp_type"]) {
+      const v = (next[k] ?? []).join(",");
+      if (v) params.set(k, v); else params.delete(k);
+    }
+    if ((next.foreign ?? []).length > 0) params.set("foreign", "1"); else params.delete("foreign");
+    params.delete("page");
+    router.replace(`/jobs?${params.toString()}`, { scroll: false });
+  }
+  /* リセットはパネルの条件だけを外す（検索語・並び替え・表示形式・会社の指定は残す） */
+  function resetFilters() {
+    applyFilters({});
+  }
+  const filterCount = Object.values(filterValues).reduce((n, v) => n + v.length, 0);
+  /* ★選んでいる条件のチップ（2026-11-12）。パネルを閉じていても、いま効いている条件を全部ここに出す。
+     ⚠️ 消さないこと（条件をパネルに畳んだので、無いと絞り込んだ理由が画面から消える） */
+  const labelIn = (opts: { value: string; label: string }[], v: string) => opts.find((o) => o.value === v)?.label ?? v;
+  const activeFilterChips: { key: string; label: string; onRemove: () => void }[] = [
+    ...Array.from(categorySet).map((v) => ({ key: `category:${v}`, label: labelIn(roleFilterOptions, v), onRemove: () => toggleParam("category", v, category) })),
+    ...Array.from(prefectureSet).map((v) => ({ key: `prefecture:${v}`, label: v, onRemove: () => toggleParam("prefecture", v, prefecture) })),
+    ...(salary ? [{ key: "salary", label: `年収 ${labelIn(SALARY_PILL_TIERS.map((t) => ({ value: t.value, label: t.label })), salary)}`, onRemove: () => setParam("salary", "") }] : []),
+    ...Array.from(workStyleSet).map((v) => ({ key: `work_style:${v}`, label: v, onRemove: () => toggleParam("work_style", v, work_style) })),
+    ...Array.from(phaseSet).map((v) => ({ key: `phase:${v}`, label: phaseLabelOf(v), onRemove: () => toggleStage(v) })),
+    ...Array.from(industrySet).map((v) => ({ key: `industry:${v}`, label: labelIn(industryFilterOptions, v), onRemove: () => toggleParam("industry", v, industry) })),
+    ...Array.from(empTypeSet).map((v) => ({ key: `emp_type:${v}`, label: v, onRemove: () => toggleParam("emp_type", v, empType) })),
+    ...(foreignParam ? [{ key: "foreign", label: "外資系", onRemove: () => toggleStage("foreign") }] : []),
+  ];
+
 
 
   /* ★進捗バー・もっと見る・センチネル。**一覧（グリッド）と詳細（分割）で共有する**
@@ -1013,7 +1049,7 @@ export default function JobsClient({
                  1行目 検索欄（常に開いている）／2行目 絞り込み＋よく使う条件（職種・勤務地・年収・働き方）／3行目 件数と並び替え
               ⚠️ 外側クリックで条件のメニューを閉じる判定は filterPillsRef（この3行の入れ物）で見ている */}
           {/* ★lt-compact: 1024px 以上では検索・条件・件数を1行にまとめる（2026-10-21。globals.css） */}
-          <div ref={filterPillsRef} className="lt-compact">
+          <div className="lt-compact lt-like-people">
           <div className="lt-search-row">
             <ListSearchButton
               alwaysOpen
@@ -1032,61 +1068,11 @@ export default function JobsClient({
           {/* ★折り返しは CSS（`.list-toolbar`）が持つ。スマホでは1行に並べて横にスクロール（2026-10-17）。
                 ⚠️ flexWrap をインラインに戻さないこと（CSS に勝つのでスマホで1行にできなくなる） */}
           {/* ⚠️ 下の余白は CSS（.lt-chip-row）。インラインに戻すと1行にまとめたときに消せない */}
-          <div className="list-toolbar list-toolbar--wrap lt-chip-row" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {/* ★外に出す条件（2026-10-20）。⚠️ `labelPrefix` を外さないこと（値だけだと何の条件か分からない）。
-                   ⚠️ 職種は親職種だけ（子まで出すと148件になり選べない）。件数は公開求人の数で 0 も出す */}
-            <FilterChip label="職種" labelPrefix listStyle value="" values={Array.from(categorySet)}
-              options={parentRoles.map((r) => ({ value: r.id, label: r.name, count: roleCounts.get(r.id) ?? 0 }))}
-              onSelect={() => setParam("category", "")} onClear={() => setParam("category", "")}
-              onToggleValue={(v) => toggleParam("category", v, category)}
-              isOpen={openFilter === "category"} onToggle={() => toggleFilter("category")} />
-            {/* 勤務地（中身は都道府県。複数選択。募集がある県を上に件数つきで、0件の県は薄く下に） */}
-            <FilterChip label="勤務地" labelPrefix listStyle searchable value="" values={Array.from(prefectureSet)}
-              options={[
-                ...PREFECTURES.filter((p) => (prefectureCounts.get(p) ?? 0) > 0)
-                  .map((p) => ({ value: p, label: p, group: "募集がある都道府県", count: prefectureCounts.get(p) })),
-                ...PREFECTURES.filter((p) => !((prefectureCounts.get(p) ?? 0) > 0))
-                  .map((p) => ({ value: p, label: p, group: "そのほかの都道府県", muted: true })),
-              ]}
-              onSelect={() => setParam("prefecture", "")} onClear={() => setParam("prefecture", "")}
-              onToggleValue={(v) => toggleParam("prefecture", v, prefecture)}
-              isOpen={openFilter === "prefecture"} onToggle={() => toggleFilter("prefecture")} />
-            <FilterChip label="年収" labelPrefix listStyle value={salary}
-              options={SALARY_PILL_TIERS.map((t) => ({ value: t.value, label: t.label }))}
-              onSelect={(v) => setParam("salary", v ?? "")}
-              isOpen={openFilter === "salary"} onToggle={() => toggleFilter("salary")} />
-            {/* 働き方（中身は勤務形態。複数選択） */}
-            <FilterChip label="働き方" labelPrefix value="" values={Array.from(workStyleSet)}
-              options={WORK_STYLE_FILTERS.map((v) => ({ value: v, label: v }))}
-              onSelect={() => setParam("work_style", "")} onClear={() => setParam("work_style", "")}
-              onToggleValue={(v) => toggleParam("work_style", v, work_style)}
-              isOpen={openFilter === "work_style"} onToggle={() => toggleFilter("work_style")} />
-
-              {/* フェーズ（複数選択）。⚠️ ✕ は外資系を消さない（clearPhases） */}
-              <FilterChip label="フェーズ" labelPrefix phaseStyle value="" values={Array.from(phaseSet)}
-                options={phaseOptions}
-                onSelect={clearPhases} onClear={clearPhases} onToggleValue={toggleStage}
-                isOpen={openFilter === "phase"} onToggle={() => toggleFilter("phase")} />
-              <FilterChip label="事業領域" labelPrefix listStyle value="" values={Array.from(industrySet)}
-                options={industryOptions.map((g) => ({ value: g.slug, label: g.name, count: industryCounts.get(g.slug) ?? 0 }))}
-                onSelect={() => setParam("industry", "")} onClear={() => setParam("industry", "")}
-                onToggleValue={(v) => toggleParam("industry", v, industry)}
-                isOpen={openFilter === "industry"} onToggle={() => toggleFilter("industry")} />
-              {/* 雇用形態（複数選択）。⚠️ 選択肢は careerOptions.ts の JOB_EMPLOYMENT_TYPES */}
-              <FilterChip label="雇用形態" labelPrefix value="" values={Array.from(empTypeSet)}
-                options={JOB_EMPLOYMENT_TYPES.map((v) => ({ value: v, label: v }))}
-                onSelect={() => setParam("emp_type", "")} onClear={() => setParam("emp_type", "")}
-                onToggleValue={(v) => toggleParam("emp_type", v, empType)}
-                isOpen={openFilter === "empType"} onToggle={() => toggleFilter("empType")} />
-              {/* 外資系 トグル。⚠️ 見た目は /companies と同じ .foreign-toggle */}
-              <button type="button"
-                className={`foreign-toggle${companyStageSet.has("foreign") ? " active" : ""}`}
-                onClick={() => toggleStage("foreign")}
-                aria-pressed={companyStageSet.has("foreign")}
-              >
-                外資系{companyStageSet.has("foreign") && <span style={{ fontSize: 12, opacity: 0.85, marginLeft: 3 }}>✕</span>}
-              </button>
-              {/* ⚠️ 「面談受付中」ピル（2026-08-06）と「✕ リセット」（2026-09-06）は廃止済み。戻さないこと */}
+          {/* ★2026-11-12: 条件のチップを1行に並べる形をやめ、「フィルター」1つにした（/people と同じ形。柴さんの指示）。
+                 条件はすべてパネル（ListFilterDrawer）で選ぶ。1024px 以上は並び替えのすぐ左に並ぶ（globals.css の .lt-like-people）。
+              ⚠️ チップを1行に並べる形に戻さないこと。⚠️ 選んでいる条件は下の ActiveFilterRow に必ず出す */}
+          <div className="list-toolbar lt-chip-row" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <FilterButton count={filterCount} onClick={() => setDrawerOpen(true)} />
           </div>
 
           {/* ★3行目: 「絞込中」（左）と並び替え（右・文字だけ）。⚠️ 選択肢と既定値はここが持つ（部品は表示と開閉だけ）
@@ -1128,6 +1114,9 @@ export default function JobsClient({
               />
             </div>
           </div>
+          <ActiveFilterRow chips={activeFilterChips} />
+          <ListFilterDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="募集フィルター"
+            sections={filterSections} values={filterValues} onApply={applyFilters} onReset={resetFilters} />
           </div>
         </div>
       </div>
