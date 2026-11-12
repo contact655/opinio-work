@@ -380,7 +380,9 @@ export function PeopleCardStyles() {
             .ppl-view-btn:hover { color: var(--ink); }
             @media (min-width: 1024px) {
               /* ⚠️ 子の結合子（不等号）を使わない（style タグの中では書けない）。共通の .lt-compact の指定（4つ）に勝つよう、クラスを重ねて5つにしてある */
-              .ppl-toolbar.lt-compact .lt-search-row.lt-search-row.lt-search-row { flex: 1 1 480px; min-width: 280px; max-width: 480px; }
+              /* ★検索欄は右のボタンまでの幅いっぱいに伸ばす（2026-11-12 / 柴さんの指示。それまでは最大 480px） */
+              .ppl-toolbar.lt-compact .lt-search-row.lt-search-row.lt-search-row { flex: 1 1 auto; min-width: 280px; max-width: none; }
+              .ppl-toolbar.lt-compact .lt-result-row.lt-result-row { flex: 0 0 auto; }
               .ppl-toolbar.lt-compact { flex-wrap: wrap; row-gap: 10px; }
               .ppl-toolbar .lt-result-row.lt-result-row { order: 2; }
               .ppl-toolbar .ppl-active-row { order: 3; flex-basis: 100%; padding-bottom: 0; }
