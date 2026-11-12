@@ -734,7 +734,7 @@ curl -s -H "Cache-Control: no-cache" "$URL/api/industries" | jq '.industries | l
       絶対に上がってこない**部分ソート**で、「全体を並べ替えた」ように見えるのが
       一番まずい形だった。**再ソートを足すなら `searchCompanies` 側に足すこと。**
 
-⚠️ `/biz` の `lib/utils/disclosureScore.ts`（95点満点）と `/jobs` の同名ソートは**別物**。
+⚠️ `/biz` の旧 `lib/utils/disclosureScore.ts`（95点満点。2026-11-12 に削除）と `/jobs` の同名ソートは**別物**。
 
 ### ⚠️★「社員数順」の結果は、画面から検証できない（2026-08-28）
 
@@ -1562,7 +1562,7 @@ select c.name, c.source,
 
 | # | 実体 | 用途 | 満点 | `avg_salary` |
 |---|---|---|---|---|
-| 1 | [lib/utils/disclosureScore.ts](src/lib/utils/disclosureScore.ts) `calcDisclosureScore` | `/biz/dashboard` `/biz/company` の「開示充実度」 | 95 | **含まない** |
+| ~~1~~ | ~~`lib/utils/disclosureScore.ts` の `calcDisclosureScore`~~ | **2026-11-12 に削除**（`/biz/dashboard` の作り直し `a6537f08` 以降、呼び出し元0件だった） | 95 | — |
 | 2 | [lib/search/companies.ts](src/lib/search/companies.ts) の**ローカル関数** `disclosureScore` | `/companies` の並び替え「開示充実順」 | 8（旧10） | **含んでいた → 2026-08-11 に削除** |
 | ~~3~~ | ~~`companies/(list)/page.tsx` の `sort === "disclosure"` 分岐~~ | **2026-08-28 に削除** | — | — |
 | 4 | [jobs/(list)/JobsClient.tsx](src/app/(jobseeker)/jobs/(list)/JobsClient.tsx) の `sort === "disclosure"` | `/jobs` の並び替え | 7 | 無関係 |
@@ -1579,7 +1579,7 @@ select c.name, c.source,
    上書きするところだった。** 実害が無い理由を取り違えないこと。
 
 ⚠️ 削除が真に no-op であることは、**dev と本番の並びが完全一致する**ことで確かめた。
-   `disclosureScore.ts` の `reality_disclosure` 40点が全社0点だったのと同じ根。
+   旧 `disclosureScore.ts`（削除済み）の `reality_disclosure` 40点が全社0点だったのと同じ根。
 
 ---
 
@@ -4775,7 +4775,7 @@ flex_time / side_job_ok について（2026-07-28 記録）:
 もう片方で**空欄に見え、保存した瞬間に消える。**
 
 ⚠️ 2026-09-14 に `/mypage/settings` を作ったとき、既存の `LOCATIONS`
-   （`mockProfileData.ts`・**11件**）を数えずに `PREFECTURE_FILTER_GROUPS`（47件）で
+   （`mockProfileData.ts`・**11件**。ファイルごと 2026-11-12 に削除）を数えずに `PREFECTURE_FILTER_GROUPS`（47件）で
    2つ目を作ったのが原因。**38県は片方でしか選べなかった。**
    実害0件だったのは、実ユーザー3人の値が**たまたま両方に入っていた**ため。
 ⚠️★**絞り込み（`/companies` `/jobs`）は `PREFECTURE_FILTER_GROUPS` のまま。**
@@ -8464,7 +8464,7 @@ layout が残る。ページ側の `BusinessLayout` が自前で枠を描くが 
 
 **問題の構造（2026-04-27 調査結果）:**
 - ヘッダー（`src/lib/business/dashboard.ts:146`）: `auth.users.raw_user_meta_data.name` を参照
-- TeamMembers（`src/lib/business/team.ts`）: `ow_users.name` を参照
+- TeamMembers（旧 `src/lib/business/team.ts`。2026-11-12 に削除・呼び出し元0件だった）: `ow_users.name` を参照
 - 両者が常に一致する保証なし
 - migration 032 の backfill が `ON CONFLICT (auth_id) DO NOTHING` のため、既存ユーザーは自動同期されない
 
