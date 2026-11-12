@@ -3,7 +3,6 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { ActiveFilterRow, FilterButton, ListFilterDrawer, type FilterSection, type FilterValues } from "@/components/common/ListFilterDrawer";
 import { companySortLabel } from "@/components/companies/GridSortBar";
-import { ListSearchButton } from "@/components/common/ListSearchButton";
 import { useEffect, useState } from "react";
 import type { BusinessDomainOption } from "@/lib/companies/businessDomains";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
@@ -43,7 +42,6 @@ type Props = {
 export function CompanySearchBar({
   industryOptions,
   industryTreeOptions,
-  companySuggestions = [],
   sizeOptions = [],
   prefectureCounts = null,
   /**
@@ -61,7 +59,6 @@ export function CompanySearchBar({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [inputValue, setInputValue] = useState(searchParams.get("q") ?? "");
   /* ★「フィルター」のパネル（2026-11-12）。条件はすべてここで選ぶ（/people と同じ形） */
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [bookmarkCount, setBookmarkCount] = useState(0);
@@ -71,15 +68,6 @@ export function CompanySearchBar({
     fetchCompanyBookmarks().then((c) => setBookmarkCount(c.ids.size));
   }, []);
 
-  useEffect(() => {
-    setInputValue(searchParams.get("q") ?? "");
-  }, [searchParams]);
-
-  const filtered = inputValue.length >= 1
-    ? companySuggestions
-        .filter((c) => c.name.toLowerCase().includes(inputValue.toLowerCase()))
-        .slice(0, 6)
-    : [];
 
   function updateParam(key: string, value: string | null) {
     const params = new URLSearchParams(searchParams.toString());
@@ -90,23 +78,9 @@ export function CompanySearchBar({
     router.replace(`?${params.toString()}`);
   }
 
-  /* ★「一覧内を検索」になった（2026-10-01 / ステップ2）。
-        ⚠️★**打つたびに URL を書き換えるのはやめた。** Enter で確定する。
-           それまで 300ms のデバウンスで `?q=` を push しており、
-           1文字ごとに履歴が積まれていた（戻るが効かない形）。
-        ⚠️ `inputValue` は**入力中の値**。確定済みは URL（`currentQuery`）。
-           サジェストの計算に入力中の値が要るので、ページ側で持っている。 */
+  /* ★キーワード（`?q=`）は 2026-11-12 に一覧の上の検索欄から「フィルター」のパネルへ移した（柴さんの指示。
+        ヘッダーの検索と入力欄が縦に2つ並び、どちらに打つか迷わせていた）。意味は今までと同じ（一覧の中を絞る） */
   const currentQuery = searchParams.get("q") ?? "";
-
-  function commitQuery(v: string) {
-    setInputValue(v);
-    updateParam("q", v || null);
-  }
-
-  function clearQuery() {
-    setInputValue("");
-    updateParam("q", null);
-  }
 
   const currentPhase      = searchParams.get("phase") ?? "";
   const currentLocation   = searchParams.get("location") ?? "";
@@ -167,6 +141,7 @@ export function CompanySearchBar({
     count: "count" in d ? (d as { count: number }).count : undefined,
   }));
   const sections: FilterSection[] = [
+    { key: "q", title: "キーワード", kind: "text", placeholder: "企業名・キーワード" },
     ...((industryTreeOptions.length > 0 || currentInd)
       ? [{ key: "ind", title: "業種", kind: "multi" as const, options: industryTreeOptions, searchable: true }]
       : []),
@@ -178,13 +153,14 @@ export function CompanySearchBar({
     { key: "hiring", title: "募集", kind: "toggle", label: "募集あり" },
   ];
   const values: FilterValues = {
+    q: currentQuery ? [currentQuery] : [],
     ind: indValues, industry: industryValues, location: locationValues, stage: stageValues, size: sizeValues,
     foreign: currentForeign ? ["1"] : [], hiring: currentHiring ? ["1"] : [],
   };
   /* パネルで選んだ条件をまとめて当てる（URL を1回だけ書き換える。履歴は積まない） */
   function applyFilters(next: FilterValues) {
     const params = new URLSearchParams(searchParams.toString());
-    for (const k of ["ind", "industry", "location", "stage", "size"]) {
+    for (const k of ["q", "ind", "industry", "location", "stage", "size"]) {
       const v = (next[k] ?? []).join(",");
       if (v) params.set(k, v); else params.delete(k);
     }
@@ -193,10 +169,10 @@ export function CompanySearchBar({
     }
     router.replace(`?${params.toString()}`);
   }
-  /* リセットは条件だけを外す（検索語・並び替え・表示形式は残す）。URL だけで効いている旧フェーズなども外す */
+  /* リセットはパネルの条件（キーワードを含む）を外す（並び替え・表示形式は残す）。URL だけで効いている旧フェーズなども外す */
   function resetFilters() {
     const params = new URLSearchParams(searchParams.toString());
-    for (const k of ["ind", "industry", "location", "stage", "size", "foreign", "hiring", "phase", "target", "workStyle"]) params.delete(k);
+    for (const k of ["q", "ind", "industry", "location", "stage", "size", "foreign", "hiring", "phase", "target", "workStyle"]) params.delete(k);
     router.replace(`?${params.toString()}`);
   }
   const filterCount = Object.values(values).reduce((n, v) => n + v.length, 0)
@@ -204,13 +180,14 @@ export function CompanySearchBar({
 
   /* ★選んでいる条件のチップ（2026-11-12）。パネルを閉じていても、いま効いている条件を全部ここに出す。
      ⚠️ 消さないこと（条件をパネルに畳んだので、無いと絞り込んだ理由が画面から消える）。
-     ⚠️ 検索語（q）は入れない（入力欄に出ていて、そこの ✕ で消せる）。
+     ★キーワード（q）も入れる（2026-11-12 からパネルの中で入れるので、ここに出さないと見えなくなる）。
      ⚠️ 旧フェーズ・顧客の業界・勤務形態はパネルに項目が無いが、URL で効いているときはここに出して外せるようにする */
   const removeOne = (key: string, v: string, cur: string[]) => {
     const rest = cur.filter((x) => x !== v);
     updateParam(key, rest.length > 0 ? rest.join(",") : null);
   };
   const activeChips: { key: string; label: string; onRemove: () => void }[] = [
+    ...(currentQuery ? [{ key: "q", label: `「${currentQuery}」`, onRemove: () => updateParam("q", null) }] : []),
     ...indValues.map((v) => ({ key: `ind:${v}`, label: labelOf(industryTreeOptions, v), onRemove: () => removeOne("ind", v, indValues) })),
     ...industryValues.map((v) => ({ key: `industry:${v}`, label: labelOf(industrySectionOptions, v), onRemove: () => removeOne("industry", v, industryValues) })),
     ...locationValues.map((v) => ({ key: `location:${v}`, label: v, onRemove: () => removeOne("location", v, locationValues) })),
@@ -233,20 +210,6 @@ export function CompanySearchBar({
       <div className="lt-compact lt-like-people" style={{ marginBottom: 0 }}>
         {/* ★2026-10-20: 3行にした（柴さんの要望。見本 /dev/preview/list-toolbar）。
                1行目 検索欄（常に開いている）／2行目 絞り込み＋条件のチップ／3行目 件数と並び替え（sortBar） */}
-        <div className="lt-search-row">
-          <ListSearchButton
-            alwaysOpen
-            value={currentQuery}
-            draft={inputValue}
-            onDraftChange={setInputValue}
-            onCommit={commitQuery}
-            onClear={clearQuery}
-            placeholder="企業名・キーワードで検索"
-            inputAriaLabel="企業を検索"
-            suggestions={filtered.map((c) => ({ key: c.id, label: c.name }))}
-            onPickSuggestion={(sg) => commitQuery(sg.label)}
-          />
-        </div>
         {/* ★`list-toolbar`: スマホでは1行に並べ、横にスクロールする（2026-10-17。globals.css 末尾） */}
         {/* ⚠️ 下の余白は CSS（.lt-chip-row）。インラインに戻すと1行にまとめたときに消せない */}
         {/* ★2026-11-12: 条件のチップを1行に並べる形をやめ、「フィルター」1つにした（/people と同じ形。柴さんの指示）。

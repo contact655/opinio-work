@@ -2978,7 +2978,8 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
 @media (min-width: 1024px) {
   .lt-compact.lt-like-people.lt-like-people.lt-like-people { flex-wrap: wrap; row-gap: 10px; column-gap: 12px; }
   .lt-compact.lt-like-people.lt-like-people > .lt-search-row.lt-search-row { flex: 1 1 auto; min-width: 280px; padding: 0; }
-  .lt-compact.lt-like-people.lt-like-people > .lt-chip-row.lt-chip-row { flex: 0 0 auto; padding-bottom: 0; }
+  /* ★検索欄をパネルへ移したので（2026-11-12）、ボタンを右に寄せる（/people と同じ位置） */
+  .lt-compact.lt-like-people.lt-like-people > .lt-chip-row.lt-chip-row { flex: 0 0 auto; padding-bottom: 0; margin-left: auto; }
   .lt-compact.lt-like-people.lt-like-people > .lt-result-row.lt-result-row { margin-left: 0; padding: 0; }
   .lt-compact.lt-like-people > .lfd-active-row { padding-bottom: 0; }
 }

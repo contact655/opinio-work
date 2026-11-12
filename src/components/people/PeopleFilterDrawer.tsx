@@ -15,7 +15,8 @@ import { PrevCareerFields } from "@/components/people/PrevCareerFields";
  * ★2026-11-12: 上部の条件のチップをなくし、条件はすべてこのパネルで選ぶ形にした（柴さんの指示）。
  *   前の経歴（prev_*。職種・業界・会社の選択）もここ（PrevCareerFields）。「リセット」は全部外す。
  */
-export type PeopleFilterValues = { rel: string; roles: string[]; ages: string[]; foreign: boolean; consult: boolean; prev: PrevSelection };
+/* ★q はキーワード（2026-11-12 に一覧の上の検索欄からここへ移した / 柴さんの指示） */
+export type PeopleFilterValues = { q: string; rel: string; roles: string[]; ages: string[]; foreign: boolean; consult: boolean; prev: PrevSelection };
 
 type Opt = { value: string; label: string };
 
@@ -74,6 +75,7 @@ export function PeopleFilterDrawer({
         .pfd-opt { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; color: var(--ink); cursor: pointer; min-width: 0; }
         .pfd-opt input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--royal); margin: 0; }
         .pfd-opt span { min-width: 0; overflow-wrap: anywhere; }
+        .pfd-keyword { width: 100%; box-sizing: border-box; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; font-family: inherit; }
         .pfd-note { margin: 0; font-size: 12.5px; color: var(--ink-mute); line-height: 1.7; }
         .pfd-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--line); }
         .pfd-btn { min-height: 44px; padding: 0 20px; border-radius: 999px; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; }
@@ -91,6 +93,12 @@ export function PeopleFilterDrawer({
           <button type="button" className="pfd-x" aria-label="閉じる" onClick={onClose}>✕</button>
         </div>
         <div className="pfd-body">
+          <section className="pfd-sec" data-state="pfd-q">
+            <h3 className="pfd-sec-title">キーワード</h3>
+            <input type="search" className="pfd-keyword" value={draft.q} placeholder="名前・会社名・職種" aria-label="キーワード" enterKeyHint="search"
+              onChange={(e) => { const v = e.target.value; setDraft((d) => ({ ...d, q: v })); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); onApply({ ...draft, q: draft.q.trim() }); onClose(); } }} />
+          </section>
           {relOptions.length > 0 && (
             <section className="pfd-sec" data-state="pfd-rel">
               <h3 className="pfd-sec-title">あなたのつながり</h3>
@@ -154,7 +162,7 @@ export function PeopleFilterDrawer({
         </div>
         <div className="pfd-foot">
           <button type="button" className="pfd-btn pfd-reset" data-action="pfd-reset" onClick={() => { onReset(); onClose(); }}>リセット</button>
-          <button type="button" className="pfd-btn pfd-apply" data-action="pfd-apply" onClick={() => { onApply(draft); onClose(); }}>結果を表示</button>
+          <button type="button" className="pfd-btn pfd-apply" data-action="pfd-apply" onClick={() => { onApply({ ...draft, q: draft.q.trim() }); onClose(); }}>結果を表示</button>
         </div>
       </div>
     </div>

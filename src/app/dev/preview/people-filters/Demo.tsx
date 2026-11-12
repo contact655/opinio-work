@@ -14,7 +14,7 @@ const PREV = {
   },
   selfStart: { role: { slug: "sales", name: "営業" }, industry: { slug: "it", name: "IT・インターネット" }, company: null },
 };
-const EMPTY: PeopleFilterValues = { rel: "", roles: [], ages: [], foreign: false, consult: false, prev: { role: null, industry: null, company: null } };
+const EMPTY: PeopleFilterValues = { q: "", rel: "", roles: [], ages: [], foreign: false, consult: false, prev: { role: null, industry: null, company: null } };
 
 /** 見本用。条件は画面の中だけで持つ（URL にも DB にも書かない） */
 export function PeopleFilterDemo() {
