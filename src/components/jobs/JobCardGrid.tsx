@@ -1,5 +1,6 @@
 "use client";
 
+import { listAddress } from "@/lib/jobs/heroFacts";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Heart } from "lucide-react";
@@ -100,10 +101,8 @@ export function JobCardGrid({
   if (!company) return null;
 
   const salaryKnown = hasSalaryData(job.salary_min, job.salary_max);
-  /* ⚠️ `JobListItem` と同じ整形。括弧書きを落として先頭だけ出す */
-  const locationLabel = job.location
-    ? job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()
-    : "";
+  /* ★一覧は都道府県＋市区町村まで（listAddress。2026-11-12 / 柴さんの指示）。⚠️ `JobListItem` と同じ関数を通す */
+  const locationLabel = listAddress(job.location) ?? "";
 
   return (
     <div className="job-grid-card">

@@ -1,5 +1,6 @@
 "use client";
 
+import { listAddress } from "@/lib/jobs/heroFacts";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Heart } from "lucide-react";
@@ -302,7 +303,8 @@ export function JobListItem({
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                 </svg>
-                {job.location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim()}
+                {/* ★都道府県＋市区町村まで（listAddress。2026-11-12）。⚠️ JobCardGrid と同じ関数 */}
+                {listAddress(job.location)}
               </span>
             )}
             {job.work_style && (
