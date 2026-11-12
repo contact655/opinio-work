@@ -157,7 +157,7 @@ export const TENURE_BANDS = [
 /** ★年齢の絞り込みの選択肢（下限・上限。2026-10-12）。⚠️ 使えるのは CANDIDATE_AGE_FILTER_ENABLED のときだけ（ageFilter.ts） */
 export const AGE_FILTER_OPTIONS = [20, 25, 30, 35, 40, 45, 50, 55, 60, 65] as const;
 
-/** 転職への意向を更新した時期の帯（2026-09-19。2026-10-12 に 7日／30日／90日 にした）。⚠️ 読むのは `career_stance_updated_at` */
+/** 転職への意向を更新した時期の帯（2026-09-19。2026-10-12 に 7日／30日／90日 にした）。⚠️ 読むのは `career_stance_updated_at`（2026-11-12 から「本人が最後に確かめた日時」。値が同じでも /home で確かめると新しくなる） */
 export const STANCE_FRESHNESS_BANDS = [
   { value: "7d",  label: "7日以内",  days: 7 },
   { value: "30d", label: "30日以内", days: 30 },

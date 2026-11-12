@@ -267,7 +267,11 @@ export async function PUT(req: Request) {
      ⚠️★**打つのはここだけ。** `career_stance` を書く経路はこのルート1本しか無い
         （2026-09-19 実測。オンボーディング3画面目もここを呼ぶ）。
         経路を足したら、この行も一緒に足すこと。
-     ⚠️ 同じ値を選び直しても更新しない（上の2つと同じ考え方）。 */
+     ⚠️ 同じ値を選び直しても更新しない（上の2つと同じ考え方）。
+     ★★2026-11-12 から意味は「本人が最後に確かめた日時」。値を変えたときに加えて、
+        /home の「変わりありませんか？」で同じ値のまま答えたときも打つ
+        （POST /api/jobseeker/career-stance/confirm。lib/profile/stanceReconfirm.ts）。
+        ⚠️ ここの「同じ値なら打たない」は残す（年収などを直しただけで新しくならないように）。 */
   if ("career_stance" in patch) {
     const before = existing?.career_stance ?? null;
     if (patch.career_stance !== before) {
