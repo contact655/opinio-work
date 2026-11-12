@@ -357,12 +357,11 @@ export function PeopleCardStyles() {
             .ppl-toolbar .lsb.lsb--always .search-shell { height: 40px; box-sizing: border-box; }
             .ppl-toolbar .search-shell input { padding-top: 0; padding-bottom: 0; height: 100%; }
             .ppl-active-row { padding-bottom: 10px; flex-wrap: wrap; }
-            /* ★1023px 以下は3段（検索 ／ フィルターと並び替え ／ 効いている条件）。並び替えを1段使わない */
+            /* ★1023px 以下は3段（検索 ／ フィルターと並び替え（右寄せ） ／ 効いている条件） */
             @media (max-width: 1023px) {
               .ppl-toolbar.lt-compact { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; }
               .ppl-toolbar .lt-search-row.lt-search-row { flex-basis: 100%; }
-              .ppl-toolbar .lt-chip-row.lt-chip-row { flex: 1 1 auto; min-width: 0; }
-              .ppl-toolbar .lt-result-row.lt-result-row { order: 2; flex: 0 0 auto; border-top: none; padding: 0 0 10px; }
+              .ppl-toolbar .lt-result-row.lt-result-row { order: 2; flex: 1 1 100%; border-top: none; padding: 0 0 10px; }
               .ppl-toolbar .ppl-active-row { order: 3; flex-basis: 100%; }
             }
             .ppl-toolbar .ppl-chip, .ppl-toolbar .sort-select-btn { height: 40px; min-height: 40px; box-sizing: border-box; }
@@ -1085,25 +1084,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
             />
           </div>
 
-          {/* ★折り返しは CSS（`.list-toolbar`）。スマホでは1行で横にスクロール（2026-10-17） */}
-          {/* ⚠️ 下の余白は CSS（.lt-chip-row）。インラインに戻すと1行にまとめたときに消せない */}
-          <div className="list-toolbar list-toolbar--wrap lt-chip-row" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {/* ★2026-11-12: 上部は「すべてのフィルター」と、いま効いている条件のチップだけにした（柴さんの指示）。
-                   条件はすべてパネル（PeopleFilterDrawer）で選ぶ。フォロー中・フォロワーは左のプロフィール欄の数字からも絞れる。
-                ⚠️★効いている条件のチップを消さないこと。パネルに隠した条件が画面から消えると、
-                   絞り込んだ一覧を見ている理由が分からなくなる（ホームの「すべて見る」から来たとき特に）。
-                ⚠️★**同じ項目の中は OR、項目どうしは AND**（`/companies` と同じ約束）。 */}
-            <button type="button" className={`ppl-chip ppl-all-filters${activeFilterCount > 0 ? " has-count" : ""}`} data-action="people-all-filters"
-              onClick={() => setDrawerOpen(true)} aria-haspopup="dialog" aria-label={activeFilterCount > 0 ? `すべてのフィルター（${activeFilterCount}件の条件）` : "すべてのフィルター"}>
-              {/* ★2026-11-12: 先頭に調整のアイコンを付け、文字は「フィルター」に短くした（柴さんの指示） */}
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden style={{ marginRight: 6, flexShrink: 0 }}>
-                <line x1="4" y1="6" x2="20" y2="6" /><circle cx="9" cy="6" r="2.2" fill="#fff" />
-                <line x1="4" y1="12" x2="20" y2="12" /><circle cx="15" cy="12" r="2.2" fill="#fff" />
-                <line x1="4" y1="18" x2="20" y2="18" /><circle cx="7" cy="18" r="2.2" fill="#fff" />
-              </svg>
-              フィルター{activeFilterCount > 0 && <span className="ppl-all-count">{activeFilterCount}</span>}
-            </button>
-          </div>
           {/* ★いま効いている条件（2026-11-12）。条件があるときだけ、1行目（検索・フィルター・並び替え・表示切替）の下に1行で出す */}
           {activeChips.length > 0 && (
             <div className="list-toolbar ppl-active-row" data-state="people-active-row" style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1127,6 +1107,22 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
               <span className="sr-only" aria-live="polite">{sorted.length}名</span>
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, marginLeft: "auto" }}>
+              {/* ★フィルターは並び替えの左に置く（2026-11-12 / 柴さんの指示）。それまでは検索欄のすぐ右の別の段にあった */}
+              {/* ★2026-11-12: 上部は「すべてのフィルター」と、いま効いている条件のチップだけにした（柴さんの指示）。
+                     条件はすべてパネル（PeopleFilterDrawer）で選ぶ。フォロー中・フォロワーは左のプロフィール欄の数字からも絞れる。
+                  ⚠️★効いている条件のチップを消さないこと。パネルに隠した条件が画面から消えると、
+                     絞り込んだ一覧を見ている理由が分からなくなる（ホームの「すべて見る」から来たとき特に）。
+                  ⚠️★**同じ項目の中は OR、項目どうしは AND**（`/companies` と同じ約束）。 */}
+              <button type="button" className={`ppl-chip ppl-all-filters${activeFilterCount > 0 ? " has-count" : ""}`} data-action="people-all-filters"
+                onClick={() => setDrawerOpen(true)} aria-haspopup="dialog" aria-label={activeFilterCount > 0 ? `すべてのフィルター（${activeFilterCount}件の条件）` : "すべてのフィルター"}>
+                {/* ★2026-11-12: 先頭に調整のアイコンを付け、文字は「フィルター」に短くした（柴さんの指示） */}
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden style={{ marginRight: 6, flexShrink: 0 }}>
+                  <line x1="4" y1="6" x2="20" y2="6" /><circle cx="9" cy="6" r="2.2" fill="#fff" />
+                  <line x1="4" y1="12" x2="20" y2="12" /><circle cx="15" cy="12" r="2.2" fill="#fff" />
+                  <line x1="4" y1="18" x2="20" y2="18" /><circle cx="7" cy="18" r="2.2" fill="#fff" />
+                </svg>
+                フィルター{activeFilterCount > 0 && <span className="ppl-all-count">{activeFilterCount}</span>}
+              </button>
               {/* ★並び替え（2026-11-12 / 柴さんの指示）。文字だけをやめて「並び替え: 新着順 ▾」のボタンにし、高さを上部の他の部品とそろえた（.ppl-toolbar）。
                   ⚠️ 選択肢は SORT_OPTIONS に足すだけ（部品は表示と開閉だけ） */}
               <SortSelect variant="pill" value={sort} options={SORT_OPTIONS} onChange={setSort} />
