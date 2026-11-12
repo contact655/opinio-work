@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { shortAddress, annualHolidays, postedAgo } from "./heroFacts.ts";
+import { shortAddress, listAddress, annualHolidays, postedAgo } from "./heroFacts.ts";
 
 test("住所を都道府県＋市区町村までに縮める", () => {
   assert.equal(shortAddress("大阪府大阪市北区堂島2-3-5 JPR堂島ウエスト2階"), "大阪府大阪市北区");
@@ -31,4 +31,15 @@ test("掲載日を短く言う", () => {
   assert.equal(postedAgo("2026-10-26T12:00:00Z", now), "3日前");
   assert.equal(postedAgo("2026-07-29T12:00:00Z", now), "3か月前");
   assert.equal(postedAgo(null, now), null);
+});
+
+test("一覧の勤務地は都道府県＋市区町村まで（政令市は市まで）", () => {
+  assert.equal(listAddress("大阪府大阪市北区堂島2-3-5 JPR堂島ウエスト2階"), "大阪府大阪市");
+  assert.equal(listAddress("東京都港区赤坂2-21-4"), "東京都港区");
+  assert.equal(listAddress("神奈川県横浜市西区みなとみらい2-2-1"), "神奈川県横浜市");
+  assert.equal(listAddress("千葉県船橋市本町1-1"), "千葉県船橋市");
+  assert.equal(listAddress("東京都千代田区丸の内1-1（本社）・大阪府大阪市北区梅田"), "東京都千代田区");
+  assert.equal(listAddress("リモート"), "リモート");
+  assert.equal(listAddress(""), null);
+  assert.equal(listAddress(null), null);
 });

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { listAddress } from "@/lib/jobs/heroFacts";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 
 /**
@@ -104,7 +105,7 @@ export function JobsForYouPanel({ state }: { state: JobsForYouState }) {
                   <div className="jfy-body">
                     <div className="jfy-job" title={it.title}>{it.title}</div>
                     <div className="jfy-co">{it.companyName}</div>
-                    {it.location && <div className="jfy-loc">{it.location}</div>}
+                    {it.location && <div className="jfy-loc">{listAddress(it.location)}</div>}
                     {it.reason && <div className="jfy-reason">✓ {it.reason}</div>}
                     {it.connections > 0 && <div className="jfy-conn">つながりが{it.connections}人働いています</div>}
                   </div>

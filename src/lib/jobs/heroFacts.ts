@@ -12,6 +12,21 @@
  * ⚠️ 都道府県で始まらない書き方（「東京・大阪」「フルリモート」など）は元の文をそのまま返す。
  * ⚠️ 番地とビル名は勤務条件の「勤務地」に全文が出るので、ここで捨ててよい。
  */
+/**
+ * ★一覧に出す勤務地（2026-11-12 / 柴さんの指示「住所の細かさは一覧でいらない。大阪府大阪市でいい」）。
+ *   都道府県＋市区町村まで（政令市は区を落として市まで: 大阪府大阪市北区… → 大阪府大阪市）。東京23区は区まで（東京都港区）。
+ *   複数の勤務地（「・」区切り）は先頭だけ、括弧書きは落とす（それまでの一覧の整形と同じ）。
+ * ⚠️ 求人の詳細ページの勤務条件は全文のまま。上の帯は shortAddress（区まで）。一覧だけこちら。
+ */
+export function listAddress(location: string | null | undefined): string | null {
+  if (!location) return null;
+  const first = location.split("・")[0].replace(/[（(][^）)]*[）)]/g, "").trim();
+  const short = shortAddress(first);
+  if (!short) return null;
+  /* 政令市の区（「◯◯市◯◯区」の区）を落とす。⚠️ 東京23区（市が無い）はそのまま */
+  return short.replace(/(市)[^\s\d]{1,4}?区$/, "$1");
+}
+
 export function shortAddress(location: string | null | undefined): string | null {
   if (!location) return null;
   const s = location.normalize("NFKC").trim();

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { listAddress } from "@/lib/jobs/heroFacts";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getJobs, getRoleTree } from "@/lib/supabase/queries";
@@ -251,7 +252,7 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
                         )}
                         {job.location && (
                           <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
-                            📍 {job.location}
+                            📍 {listAddress(job.location)}
                           </span>
                         )}
                         {job.is_new && (

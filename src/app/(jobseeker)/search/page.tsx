@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { listAddress } from "@/lib/jobs/heroFacts";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -221,7 +222,9 @@ function JobCard({ item }: { item: SearchResults["job"]["items"][number] }) {
   const money = chipStyle("money");
   /* 「東京都（ハイブリッド）」。片方しか無ければその片方だけ */
   const ws = item.workStyle ? WORK_STYLE_LABELS[item.workStyle] ?? null : null;
-  const place = item.location && ws ? `${item.location}（${ws}）` : item.location ?? ws;
+  /* ★勤務地は都道府県＋市区町村まで（listAddress。2026-11-12） */
+  const loc = listAddress(item.location);
+  const place = loc && ws ? `${loc}（${ws}）` : loc ?? ws;
   const since = sinceLabel(item.publishedAt);
   return (
     <div data-state="job-row" style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 0", borderTop: "1px solid var(--line-soft)" }}>

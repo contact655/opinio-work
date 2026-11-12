@@ -1,5 +1,6 @@
 "use client";
 
+import { listAddress } from "@/lib/jobs/heroFacts";
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import type { Job } from "@/app/jobs/mockJobData";
@@ -64,7 +65,8 @@ export function JobPane({
   }, [job.id]);
 
   /* ⚠️ 値が無い項目は**要素ごと出さない**（「—」や「0」で埋めない）。 */
-  const badges = [job.location, job.work_style, job.employment_type].filter(Boolean) as string[];
+  /* ★上のバッジの勤務地は都道府県＋市区町村まで（listAddress。2026-11-12）。全文は下の勤務条件の「勤務地」に出る */
+  const badges = [listAddress(job.location), job.work_style, job.employment_type].filter(Boolean) as string[];
 
   /* ★スキルは全件出す（2026-09-17。上位5件の制限をやめた）。
      ⚠️ ピルは `flexWrap` ＋ ピル側 `overflowWrap` なので、件数が増えても縦に伸びるだけ。 */
