@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { RailBox, RailStackRow, RAIL_LIST_STYLE, RAIL_THUMB } from "@/components/feed/railKit";
+import { RailBox, RailRow, RAIL_LIST_STYLE, RAIL_THUMB } from "@/components/feed/railKit";
 import { FollowUserButton } from "@/app/(jobseeker)/u/[id]/FollowUserButton";
 import type { UserSuggestionView } from "@/lib/people/suggestServer";
 
 /**
  * ★ホームの「おすすめのユーザー」（2026-11-04 / 柴さんの指示）。選び方は lib/people/suggest.ts、材料は suggestServer.ts。
- *   rail   … PC の右の列（「フォロー中のユーザー」の下）。右の列の共通の箱と3行の形（RailStackRow。名前／おすすめの理由／操作）
+ *   rail   … PC の右の列（「フォロー中のユーザー」の下）。右の列の共通の箱と1行の形（RailRow。名前とおすすめの理由の右に「フォローする」と×。2026-11-12 に3行の形から変えた / 柴さんの指示）
  *   scroll … スマホのタイムラインに挟む横スクロールのカード
  *   右に「フォローする」（押すと「フォロー中」。その場では行を消さない）と「×」（押すと30日間その人を出さない）。
  * ⚠️ ×はすぐ隠し、保存に失敗したら元に戻してエラーを出す
@@ -103,7 +103,7 @@ export function SuggestedUsers({ users, layout }: { users: UserSuggestionView[];
       <div style={RAIL_LIST_STYLE}>
         {visible.map((u) => (
           <div key={u.userId} data-user-id={u.userId}>
-            <RailStackRow href={`/u/${u.userId}`} title={`${u.name}：${u.reason}`}
+            <RailRow href={`/u/${u.userId}`} title={`${u.name}：${u.reason}`}
               thumb={<Avatar u={u} size={RAIL_THUMB} />}
               name={u.name} sub={u.reason}
               action={<>
