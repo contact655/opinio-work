@@ -52,14 +52,48 @@ Sentry.init({
   },
   replaysOnErrorSampleRate: 1.0,
   replaysSessionSampleRate: 0.01,
-  integrations: [
-    Sentry.replayIntegration({
-      maskAllText: true,
-      blockAllMedia: true,
-    }),
-  ],
+  /* ⚠️ 録画（Replay）はここに書かない。下の loadReplayLater が後から足す。 */
   /* ⚠️ エラーとトレースの**両方**に掛ける。片方だけだと標本が偏る（上の注記）。 */
   beforeSend: (event) => tagViewport(event),
   beforeSendTransaction: (event) => tagViewport(event),
   enabled: process.env.NODE_ENV === "production",
 });
+
+/**
+ * ★録画（Session Replay）は、ページが落ち着いてから CDN から読み込む（2026-11-12）。
+ *
+ * ── なぜ ──────────────────────────────────────────────────────────────────
+ * `integrations: [Sentry.replayIntegration()]` と書くと、録画のコードが
+ * **全ページの JS に同梱される**（2026-11-12 実測: Sentry のチャンクが gzip で約146KB、
+ * どのページでも読み込む JS 350〜420KB のうち最大）。
+ * `lazyLoadIntegration` は import しないので同梱されず、読み込み後に
+ * `browser.sentry-cdn.com` から同じ版の録画コードだけを取ってくる。
+ *
+ * ⚠️ 引き換え: 録画が始まる前（ページを開いてから数秒）に起きたエラーは、
+ *    録画が付かない（エラー自体は今までどおり送られる）。
+ * ⚠️ CSP の script-src に `https://browser.sentry-cdn.com` が要る（next.config.mjs にある。外さないこと）。
+ * ⚠️ `Sentry.replayIntegration` をこのファイルや他のクライアントコードで import しないこと。
+ *    1か所でも書くと、また全ページに同梱される。
+ */
+function loadReplayLater() {
+  if (typeof window === "undefined" || process.env.NODE_ENV !== "production") return;
+  const start = () => {
+    Sentry.lazyLoadIntegration("replayIntegration")
+      .then((replayIntegration) => {
+        Sentry.addIntegration(replayIntegration({ maskAllText: true, blockAllMedia: true }));
+      })
+      .catch((e) => {
+        /* 録画が読めなくてもエラー送信は動く。握り潰さずに残す */
+        console.warn("[sentry] replay の読み込みに失敗:", e);
+      });
+  };
+  const idle = () => {
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void })
+      .requestIdleCallback;
+    if (ric) ric(start, { timeout: 5000 });
+    else setTimeout(start, 2000);
+  };
+  if (document.readyState === "complete") idle();
+  else window.addEventListener("load", idle, { once: true });
+}
+loadReplayLater();
