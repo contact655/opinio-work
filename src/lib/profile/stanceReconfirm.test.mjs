@@ -22,10 +22,10 @@ test("日時が空なら聞く・90日たったら聞く・それより新しけ
   assert.equal(shouldAskStanceReconfirm({ ...base, careerStanceUpdatedAt: "壊れた値" }), true);
 });
 
-test("未回答・オンボーディング未完了・検証用には聞かない", () => {
+test("未回答・オンボーディング未完了には聞かない。検証用には聞く", () => {
   assert.equal(shouldAskStanceReconfirm({ ...base, careerStance: null }), false);
   assert.equal(shouldAskStanceReconfirm({ ...base, onboardingCompleted: false }), false);
-  assert.equal(shouldAskStanceReconfirm({ ...base, isTest: true }), false);
+  assert.equal(shouldAskStanceReconfirm({ ...base, isTest: true }), true);
 });
 
 test("今は考えていない人にも聞く（気持ちが変わったかを確かめるため）", () => {
