@@ -325,11 +325,8 @@ export default function ForYouSection({
         <style>{FY_RAIL_CSS}</style>
         <ol className="fy-rail2" data-state="for-you-list">
           {top.map((c) => (
-            <RailCompanyRow key={c.id} c={c} busy={busy === c.id} menuOpen={menuFor === c.id} declining={declining === c.id}
-              onToggleMenu={() => { setMenuFor(menuFor === c.id ? null : c.id); setDeclining(null); }}
+            <RailCompanyRow key={c.id} c={c} busy={busy === c.id}
               onInterested={() => { setConfirmErr(null); setConfirming(c); }}
-              onStartDecline={() => { setDeclining(c.id); setDeclineReason(""); }}
-              declineUi={actionsFor(c)}
               error={errFor(c)} />
           ))}
         </ol>
@@ -562,22 +559,18 @@ function CompactItem(props: {
  *   ロゴと文字（ボタンと「…」を除く）を押すと会社ページへ。開けない会社（検証用など href が null）は押しても移らない。
  *   提案の理由が無い会社は2行目を出さない（会社の説明文で埋めない）。
  * ⚠️ 「…」の中身と記録（話を聞いてみたい・興味なし・保存）は変えていない。「あとで」は 2026-11-12 に外した。新しい経路を作らない
+ * ★★右の列からは「…」（興味なし）を外した（2026-11-12 / 柴さんの指示）。「興味なし」は /mypage/proposals とスマホの横スクロールに残る。
+ *   「…」の中にあった「保存」（担当者がいる会社）は、主の操作の横に並べた（保存の手段を減らさないため）。
  */
 function RailCompanyRow(props: {
   c: ForYouView;
   busy: boolean;
-  menuOpen: boolean;
-  declining: boolean;
-  onToggleMenu: () => void;
   onInterested: () => void;
-  onStartDecline: () => void;
-  declineUi: React.ReactNode;
   error: React.ReactNode;
 }) {
   const { c } = props;
   const reason = c.reasons[0] ?? null;
-  const menuBtn: React.CSSProperties = { display: "block", width: "100%", textAlign: "left", padding: "8px 10px", border: "none", background: "none", fontSize: 13, color: "var(--ink)", cursor: "pointer", fontFamily: "inherit", borderRadius: 6 };
-  const action = props.declining ? null : (
+  const action = (
     <>
       {c.interested ? (
         c.conversationId
@@ -589,8 +582,9 @@ function RailCompanyRow(props: {
       ) : (
         <span data-state="for-you-save"><BookmarkButton targetType="company" targetId={c.id} label="保存" variant="small" /></span>
       )}
-      <button type="button" onClick={props.onToggleMenu} aria-expanded={props.menuOpen} aria-label={`${c.name}のその他の操作`}
-        data-action="for-you-menu" className="fy-r-more">…</button>
+      {c.hasResponder && !c.interested && (
+        <span data-state="for-you-save"><BookmarkButton targetType="company" targetId={c.id} label="保存" variant="small" /></span>
+      )}
     </>
   );
   const title = reason ? `${c.name}：${reason}` : c.name;
@@ -613,17 +607,6 @@ function RailCompanyRow(props: {
           {action && <div className="fy-r-actions" data-state="for-you-rail-actions">{action}</div>}
         </div>
       </div>
-      {props.declining && <div className="fy-r-below">{props.declineUi}</div>}
-      {props.menuOpen && !props.declining && (
-        <div role="group" aria-label="その他の操作" data-state="for-you-menu" className="fy-r-below fy-r-menu">
-          {c.hasResponder && !c.interested && (
-            <span data-state="for-you-menu-save" style={{ display: "block", padding: "4px 10px" }}>
-              <BookmarkButton targetType="company" targetId={c.id} label="保存" variant="inline" />
-            </span>
-          )}
-          <button type="button" disabled={props.busy} onClick={props.onStartDecline} data-action="for-you-decline" style={menuBtn}>興味なし</button>
-        </div>
-      )}
       {props.error}
     </li>
   );
@@ -643,9 +626,6 @@ const FY_RAIL_CSS = `
   .fy-r-btn { display: inline-flex; align-items: center; justify-content: center; height: 30px; min-height: 0; padding: 0 10px; border-radius: 8px; border: 1px solid var(--royal); background: #fff; color: var(--royal); font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; font-family: inherit; text-decoration: none; }
   .fy-r-done { border-color: var(--line); color: var(--ink-soft); background: var(--line-soft); cursor: default; }
   a.fy-r-done { cursor: pointer; color: var(--royal); }
-  .fy-r-more { width: 30px; height: 30px; min-height: 0; padding: 0; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink-soft); font-size: 14px; line-height: 1; cursor: pointer; font-family: inherit; }
-  .fy-r-below { margin: 8px 0 0 50px; min-width: 0; }
-  .fy-r-menu { border: 1px solid var(--line); border-radius: 8px; padding: 4px; background: #fff; }
 `;
 
 /* ★スマホの横スクロール（scroll）の見た目（2026-11-04。右の列は FY_RAIL_CSS）。
