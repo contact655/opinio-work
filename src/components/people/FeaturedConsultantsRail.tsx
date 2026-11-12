@@ -1,7 +1,7 @@
 "use client";
 
 import { PersonAvatar } from "@/components/common/PersonAvatar";
-import { RailBox, RailStackRow, RAIL_ACTION_STYLE, RAIL_LIST_STYLE, RAIL_TEXT_STYLE, RAIL_THUMB } from "@/components/feed/railKit";
+import { RailBox, RailRow, RAIL_ACTION_STYLE, RAIL_LIST_STYLE, RAIL_TEXT_STYLE, RAIL_THUMB } from "@/components/feed/railKit";
 import { DMButton } from "@/components/profile/DMButton";
 import { CAREER_GENERAL_KEY } from "@/lib/constants/careerConsult";
 import Link from "next/link";
@@ -10,7 +10,7 @@ import type { ConsultantCard } from "@/lib/featuredConsultants/server";
 
 /**
  * ★相談できる人（ホームの右の列。2026-11-12 / 柴さんの指示）。★相談可能なユーザーの箱はここ（ホーム）だけ。/people は上部の「相談可能」のチップで絞る（2026-11-12）。
- *   右の列の「提案の箱」なので3行の形（RailStackRow）: 名前／今の会社と職種（無ければ話せること）／「相談する」。
+ *   1行の形（RailRow）: 名前と今の会社・職種（無ければ話せること）の右に「相談する」（2026-11-12 / 柴さんの指示。それまでは3行の形で、ボタンが名前の下にあった）。
  * ⚠️ 箱の見た目は railKit の RailBox。ここで style を書き直さないこと。
  * ⚠️ 0人なら箱ごと出さない。「話を聞ける」「面談OK」の語は使わない。
  * ⚠️ 相談は既存のキャリア相談を「キャリア全般」で開く（/people と同じ）。自分自身には DMButton がボタンを出さない。
@@ -25,7 +25,7 @@ export function FeaturedConsultantsRail({ items, sample = false }: { items: Cons
           const nowLine = [c.currentCompany, c.currentRole].filter(Boolean).join(" ");
           const sub = nowLine ? `${c.isCurrent ? "" : "以前: "}${nowLine}` : c.talkTags.map(routeTalkTagLabel).join("・") || null;
           return (
-            <RailStackRow
+            <RailRow
               key={c.userId}
               state="home-consultant"
               thumb={<PersonAvatar name={c.name} url={c.avatarUrl} size={RAIL_THUMB} colorByName />}
