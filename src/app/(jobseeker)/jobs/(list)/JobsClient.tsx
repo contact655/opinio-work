@@ -1099,10 +1099,9 @@ export default function JobsClient({
                   )}
                 </>
               )}
-              {/* ⚠️★既定（グリッド）のときは `?view=` を URL から消す（/companies の GridSortBar と同じ向き） */}
-              <ViewToggle value={view} onChange={(v) => setParam("view", v === "list" ? "list" : "")} />
+              {/* ★2026-11-12: /people と同じ並び（並び替え → 表示の切り替え）と見た目（枠つきの「並び替え: ◯◯」）にした */}
               <SortSelect
-                variant="text"
+                variant="pill"
                 value={sort}
                 onChange={(v) => setSort(v as typeof sort)}
                 options={[
@@ -1112,6 +1111,8 @@ export default function JobsClient({
                   { value: "disclosure", label: "開示充実順" },
                 ]}
               />
+              {/* ⚠️★既定（グリッド）のときは `?view=` を URL から消す（/companies の GridSortBar と同じ向き） */}
+              <ViewToggle value={view} onChange={(v) => setParam("view", v === "list" ? "list" : "")} />
             </div>
           </div>
           <ActiveFilterRow chips={activeFilterChips} />

@@ -2837,6 +2837,13 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
    ⚠️ 位置・枠・影・余白は .fc-menu が持つ（FilterChip のインラインに戻さないこと）。 */
 .list-toolbar--wrap { flex-wrap: wrap; }
 .view-toggle { display: flex; }
+/* ★表示の切り替え（ViewToggle。/companies・/jobs。2026-11-12）。/people の .ppl-view-toggle と同じ値。片方だけ変えないこと */
+.lt-view-toggle { gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 999px; background: #fff; flex-shrink: 0; }
+.lt-view-btn { width: 34px; height: 34px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: 999px; background: transparent; color: var(--ink-mute); cursor: pointer; padding: 0; }
+.lt-view-btn[aria-pressed="true"] { background: var(--bg-tint); color: var(--ink); }
+.lt-view-btn:hover { color: var(--ink); }
+/* ★並び替えのボタンの高さを上部の他の部品（40px）にそろえる（/people の .ppl-toolbar と同じ） */
+.lt-like-people .sort-select-btn { height: 40px; min-height: 40px; box-sizing: border-box; }
 .fc-menu {
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 200;
   min-width: var(--fc-min-w, 180px); max-height: var(--fc-max-h, none);
