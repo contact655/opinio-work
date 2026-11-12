@@ -37,9 +37,9 @@ test("職歴を入れる画面の行き先は1つ（ホームの左のカード�
 import { careerNudgeTitle, careerCompanyCount, CAREER_NUDGE_PAST_HREF, CAREER_NUDGE_EDU_HREF } from "./homeState.ts";
 
 test("前の会社・学校の案内: 見出しは足りないものに合わせ、どちらも無ければ出さない", () => {
-  assert.equal(careerNudgeTitle({ pastJob: true, education: true }), "前の会社と学校を足しませんか");
-  assert.equal(careerNudgeTitle({ pastJob: true, education: false }), "前の会社を足しませんか");
-  assert.equal(careerNudgeTitle({ pastJob: false, education: true }), "学校を足しませんか");
+  assert.equal(careerNudgeTitle({ pastJob: true, education: true }), "職歴と学歴を足しませんか");
+  assert.equal(careerNudgeTitle({ pastJob: true, education: false }), "職歴を足しませんか");
+  assert.equal(careerNudgeTitle({ pastJob: false, education: true }), "学歴を足しませんか");
   assert.equal(careerNudgeTitle({ pastJob: false, education: false }), null);
   assert.equal(careerNudgeTitle(null), null);
   assert.equal(CAREER_NUDGE_PAST_HREF, "/mypage?add=past");
