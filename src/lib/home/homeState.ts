@@ -26,7 +26,8 @@ export const CAREER_BOX_BODY = "入れると、あなたに合う会社と、同
  * ⚠️ 職歴が0件の人には出さない（上の CAREER_BOX が出る）。
  */
 export type CareerNudge = { pastJob: boolean; education: boolean };
-export const CAREER_NUDGE_PAST_LABEL = "前の会社を追加";
+/** ★文言は「職歴」「学歴」にそろえる（2026-11-12 / 柴さんの指示。それまでは「前の会社」「学校」） */
+export const CAREER_NUDGE_PAST_LABEL = "職歴を追加";
 export const CAREER_NUDGE_PAST_HREF = "/mypage?add=past";
 export const CAREER_NUDGE_EDU_LABEL = "学歴を追加";
 export const CAREER_NUDGE_EDU_HREF = "/mypage?add=education";
@@ -34,9 +35,9 @@ export const CAREER_NUDGE_EDU_HREF = "/mypage?add=education";
 /** 案内の見出し。どちらも無ければ null（出さない） */
 export function careerNudgeTitle(n: CareerNudge | null | undefined): string | null {
   if (!n) return null;
-  if (n.pastJob && n.education) return "前の会社と学校を足しませんか";
-  if (n.pastJob) return "前の会社を足しませんか";
-  if (n.education) return "学校を足しませんか";
+  if (n.pastJob && n.education) return "職歴と学歴を足しませんか";
+  if (n.pastJob) return "職歴を足しませんか";
+  if (n.education) return "学歴を足しませんか";
   return null;
 }
 
