@@ -209,6 +209,8 @@ export function parseHostInput(raw: unknown, ctx: { isListed?: boolean; now?: Da
 /** 見出しと説明（1か所） */
 export const CONSULTANTS_TITLE = "相談可能なユーザー";
 export const CONSULTANTS_NOTE = "本人が「相談にのれる」と設定した人です。";
+/** ★/people のカードと一覧の行に付ける印（2026-11-12 / 柴さんの指示）。⚠️「面談OK」「話を聞ける」に戻さない */
+export const CONSULTANT_BADGE_LABEL = "相談可能";
 /** 箱に出す人数の上限（表示順 → オンにした日時が新しい順）。★2026-11-12 に5→3（柴さんの指示。残りは「すべて見る」の一覧で） */
 export const CONSULTANTS_LIMIT = 3;
 /** ★「すべて見る」の行き先（2026-11-12）。/people を相談可能なユーザーだけに絞った一覧。キーは CONSULTANTS_PARAM */

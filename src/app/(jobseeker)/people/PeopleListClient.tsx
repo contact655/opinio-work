@@ -16,7 +16,7 @@ import { PeopleSidebar } from "@/components/people/PeopleSidebar";
 import type { PeopleSidebarData } from "@/lib/people/sidebarData";
 import { useHideOnScroll } from "@/lib/hooks/useHideOnScroll";
 import { PeopleFilterDrawer, type PeopleFilterValues } from "@/components/people/PeopleFilterDrawer";
-import { CONSULTANTS_PARAM } from "@/lib/constants/careerRoutes";
+import { CONSULTANTS_PARAM, CONSULTANTS_NOTE, CONSULTANT_BADGE_LABEL } from "@/lib/constants/careerRoutes";
 import { showFollowOnCard } from "@/lib/people/followButton";
 import { prevParams, type PrevSelection } from "@/lib/people/prevCareer";
 import type { PathsOption, PathsStartView } from "@/lib/paths/server";
@@ -473,9 +473,32 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
 
 /* ⚠️ 2026-11-03〜11-05 はここに「話を聞けます」の印（TalkOpenMark）があった。「話を聞ける」設定ごと外した（柴さんの指示）。戻さないこと */
 
+/**
+ * ★「相談可能」の印（2026-11-12 / 柴さんの指示）。本人がマイページで「相談にのれる」をオンにした人にだけ出す。
+ *   出す人は ow_featured_consultants の listableRows（consultantBlockers を通った人）で、ホームの箱・?consult=1 と同じ。
+ * ⚠️ 押しても何も起きない（カード全体がプロフィールへの導線）。申し込みの仕組みは作らない。
+ * ⚠️ 語は CONSULTANT_BADGE_LABEL の1か所。「面談OK」「話を聞ける」にしない。
+ * ⚠️ 色は塗らない（濃紺の線と文字）。一覧が主導線だらけにならないように。
+ */
+export function ConsultBadge() {
+  return (
+    <span data-state="ppl-consult-badge" title={CONSULTANTS_NOTE}
+      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999,
+        border: "1px solid var(--royal-100)", background: "#fff", color: "var(--royal)",
+        fontSize: 11.5, fontWeight: 700, lineHeight: 1.5, whiteSpace: "nowrap" }}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+      {CONSULTANT_BADGE_LABEL}
+    </span>
+  );
+}
+
 // ── グリッドカード ────────────────────────────────────────────────────
-export function GridCard({ card, myUserId, followedUserIds, followerUserIds = [], narrow = false, pathNote }: {
+export function GridCard({ card, myUserId, followedUserIds, followerUserIds = [], narrow = false, pathNote, consultable = false }: {
   card: AmbassadorCard; myUserId: string | null; followedUserIds: string[];
+  /** ★相談可能なユーザーか（2026-11-12）。印を出す */
+  consultable?: boolean;
   /** ★前の経歴で絞っているときの「以前: A → 次: B」（2026-11-03） */
   pathNote?: string;
   /** ★自分をフォローしている人（ボタンが「つながり」になる。2026-10-21） */
@@ -514,6 +537,7 @@ export function GridCard({ card, myUserId, followedUserIds, followerUserIds = []
                2026-08-20 に「年齢」フィルタも外し、型からも落とした。 */}
         <AffiliationBlock card={card} />
         <div className="ppl-role">{role}</div>
+        {consultable && <div style={{ marginTop: 8 }}><ConsultBadge /></div>}
         {pathNote && (
           <div data-state="ppl-path-note" title={pathNote} style={{ marginTop: 6, fontSize: 11.5, color: "var(--ink-mute)", lineHeight: 1.5, overflowWrap: "anywhere" }}>{pathNote}</div>
         )}
@@ -643,8 +667,10 @@ export function CompactRow({ card, myUserId, followedUserIds, followerUserIds = 
  *
  * ⚠️ 年齢は出さない（`PeopleCard` の型にそもそも無い。一覧に年齢を出さない方針）。
  */
-export function ListRow({ card, myUserId, followedUserIds, followerUserIds = [], pathNote }: {
+export function ListRow({ card, myUserId, followedUserIds, followerUserIds = [], pathNote, consultable = false }: {
   card: AmbassadorCard;
+  /** ★相談可能なユーザーか（2026-11-12）。名前の右に印を出す */
+  consultable?: boolean;
   myUserId: string | null;
   followedUserIds: string[];
   followerUserIds?: string[];
@@ -684,7 +710,8 @@ export function ListRow({ card, myUserId, followedUserIds, followerUserIds = [],
       <div style={{ flex: "0 1 auto", minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span className="ppl-row-name" style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", transition: "color 0.15s" }}>{card.name}</span>
-          {/* ⚠️ 名前の右の「面談OK」バッジは 2026-10-16 に撤去した */}
+          {/* ⚠️ 名前の右の「面談OK」バッジは 2026-10-16 に撤去した。2026-11-12 から「相談可能」の印を出す（別の仕組み） */}
+          {consultable && <ConsultBadge />}
         </div>
 
         {/* ★会社 → 職種 → 業種の移り変わりを**1行に畳んである**（2026-09-18）。
@@ -1185,19 +1212,19 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
             /* ★スマホは縦長のカードを2列（2026-10-19 / 柴さんの判断。それまでは1人1行の CompactRow）。ビュートグルは出さない */
             <><div className="ppl-grid">
               {shown.map((card) => (
-                <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} narrow pathNote={prevNotes?.[card.userId]} />
+                <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} narrow pathNote={prevNotes?.[card.userId]} consultable={consultantSet.has(card.userId)} />
               ))}
             </div>{moreButton}</>
           ) : view === "list" ? (
             <><div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {shown.map((card) => (
-                <ListRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} pathNote={prevNotes?.[card.userId]} />
+                <ListRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} pathNote={prevNotes?.[card.userId]} consultable={consultantSet.has(card.userId)} />
               ))}
             </div>{moreButton}</>
           ) : (
           <><div className="ppl-grid">
             {shown.map((card) => (
-              <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} pathNote={prevNotes?.[card.userId]} />
+              <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} pathNote={prevNotes?.[card.userId]} consultable={consultantSet.has(card.userId)} />
             ))}
           </div>{moreButton}</>
           )
