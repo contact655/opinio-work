@@ -17,6 +17,8 @@ import { FeaturedConsultantsRail } from "@/components/people/FeaturedConsultants
 import { getPathsView } from "@/lib/paths/server";
 import { PrevCareerSummary } from "@/components/people/PrevCareerSummary";
 import FeedClient from "../feed/(list)/FeedClient";
+import { StanceReconfirmDialog } from "@/components/profile/StanceReconfirmDialog";
+import { shouldAskStanceReconfirm } from "@/lib/profile/stanceReconfirm";
 import { loadFeedProps } from "../feed/(list)/loadFeedProps";
 
 /**
@@ -73,7 +75,8 @@ export default async function HomePage() {
     /* ★前の会社・学歴の案内（2026-11-12）。学歴の件数と「これ以上の経歴はない」 */
     db.from("ow_user_educations").select("id", { count: "exact", head: true }).eq("user_id", owId),
     /* ⚠️ ow_profiles.user_id は auth 空間 */
-    db.from("ow_profiles").select("career_history_complete_at").eq("user_id", user.id).maybeSingle(),
+    /* ★career_stance と確かめた日時は「変わりありませんか？」の判定（2026-11-12） */
+    db.from("ow_profiles").select("career_history_complete_at, onboarding_completed, career_stance, career_stance_updated_at").eq("user_id", user.id).maybeSingle(),
     /* ★相談できる人（2026-11-12）。失敗しても空配列（ホームを落とさない） */
     getFeaturedConsultants({ excludeOwUserId: owId }),
   ]);
@@ -91,6 +94,17 @@ export default async function HomePage() {
     education: !eduRes.error && (eduRes.count ?? 0) === 0,
   };
 
+  /* ★転職意欲の「変わりありませんか？」（2026-11-12）。90日たった人だけ。閉じた記録は端末で見る
+     ⚠️ 取得に失敗したときは出さない */
+  const prof = profRes.data as { onboarding_completed: boolean | null; career_stance: string | null; career_stance_updated_at: string | null } | null;
+  const askStance = !profRes.error && !!prof && shouldAskStanceReconfirm({
+    onboardingCompleted: prof.onboarding_completed === true,
+    isTest,
+    careerStance: prof.career_stance,
+    careerStanceUpdatedAt: prof.career_stance_updated_at,
+    nowMs: Date.now(),
+  });
+
   const proposed = new Set(((proposedRes.data ?? []) as { company_id: string }[]).map((p) => p.company_id));
   const forYouViews = toForYouViews(forYou, isTest, proposed);
 
@@ -107,6 +121,7 @@ export default async function HomePage() {
   const top = (
     <>
       {homeBoxCss}
+      {askStance && prof?.career_stance && <StanceReconfirmDialog ownerKey={owId} currentStance={prof.career_stance} />}
       {decisionPrompt && (() => {
         const e = exps.find((x) => x.id === decisionPrompt.experienceId);
         const name = e ? resolveExperienceCompanyLabel({ ...e, visibility_company: "real" }) ?? "今の会社" : "今の会社";
