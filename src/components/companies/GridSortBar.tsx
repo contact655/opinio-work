@@ -109,15 +109,16 @@ export function GridSortBar({ totalCount, showViewToggle = true, showSort = true
         {/* ★件数は画面に出さない（2026-11-04 / 柴さんの指示。/jobs・/people も同じ）。読み上げにだけ残す */}
         <span className="sr-only" aria-live="polite">{totalCount}社</span>
         <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, marginLeft: "auto" }}>
+          {/* ★2026-11-12: /people と同じ並び（並び替え → 表示の切り替え）と見た目（枠つきの「並び替え: ◯◯」）にした */}
+          {showSort && (
+            <SortSelect variant="pill" value={current} onChange={setSort}
+              options={SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} />
+          )}
           {/* ⚠️ 767px 以下は .companies-view-toggle ごと隠れる（従来どおり） */}
           {showViewToggle && (
             <div className="companies-view-toggle">
               <ViewToggle value={currentView === "list" ? "list" : "card"} onChange={setView} />
             </div>
-          )}
-          {showSort && (
-            <SortSelect variant="text" value={current} onChange={setSort}
-              options={SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} />
           )}
         </div>
       </div>

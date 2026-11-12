@@ -30,45 +30,38 @@ export function ViewToggle({
   value: "card" | "list";
   onChange: (v: "card" | "list") => void;
 }) {
+  /* ★2026-11-12: /people と同じ見た目にした（柴さんの指示「並び替えと表示切替も /people とそろえて」）。
+        濃紺の塗りと「一覧」「詳細」の文字をやめ、白地に枠の丸い入れ物とアイコンだけのボタン（選んでいる方だけ薄い灰色）。
+     ⚠️ 読み上げ名は aria-label（「一覧で表示」「詳細で表示」）。見た目の文字が無いので外さないこと。
+     ⚠️ CSS は globals.css の .lt-view-toggle / .lt-view-btn（/people の .ppl-view-toggle と同じ値） */
   return (
     /* ⚠️ `display` は CSS（`.view-toggle`）。スマホ（767px 以下）では出さないため（2026-10-17。
           スマホの一覧は1列なので切り替える意味が薄い）。インラインに戻さないこと */
-    <div className="view-toggle" style={{
-      gap: 2,
-      background: "var(--line-soft)", borderRadius: 8, padding: 2,
-      flexShrink: 0,
-    }}>
+    <div role="group" aria-label="表示の切り替え" className="view-toggle lt-view-toggle">
       <button
         type="button"
         onClick={() => onChange("card")}
-        className="view-btn"
-        style={{
-          background: value === "card" ? "var(--royal)" : "transparent",
-          color: value === "card" ? "#fff" : "var(--ink-mute)",
-        }}
-        title="コンパクト一覧"
+        className="lt-view-btn btn-fixed-size"
+        title="一覧"
+        aria-label="一覧で表示"
         aria-pressed={value === "card"}
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
           <rect x="3" y="3" width="7" height="7" rx="1"/>
           <rect x="14" y="3" width="7" height="7" rx="1"/>
           <rect x="3" y="14" width="7" height="7" rx="1"/>
           <rect x="14" y="14" width="7" height="7" rx="1"/>
         </svg>
-        一覧
       </button>
       <button
         type="button"
         onClick={() => onChange("list")}
-        className="view-btn"
-        style={{
-          background: value === "list" ? "var(--royal)" : "transparent",
-          color: value === "list" ? "#fff" : "var(--ink-mute)",
-        }}
-        title="詳細リストビュー"
+        className="lt-view-btn btn-fixed-size"
+        title="詳細"
+        aria-label="詳細で表示"
         aria-pressed={value === "list"}
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
           <line x1="8" y1="6" x2="21" y2="6"/>
           <line x1="8" y1="12" x2="21" y2="12"/>
           <line x1="8" y1="18" x2="21" y2="18"/>
@@ -76,7 +69,6 @@ export function ViewToggle({
           <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/>
           <circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
         </svg>
-        詳細
       </button>
     </div>
   );
