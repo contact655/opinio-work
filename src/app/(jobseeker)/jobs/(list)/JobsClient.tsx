@@ -1,7 +1,6 @@
 "use client";
 
 import { SearchAllLink } from "@/components/jobseeker/SearchAllLink";
-import { ListSearchButton } from "@/components/common/ListSearchButton";
 import { ActiveFilterRow, FilterButton, ListFilterDrawer, type FilterSection, type FilterValues } from "@/components/common/ListFilterDrawer";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -345,8 +344,8 @@ export default function JobsClient({
      ⚠️ `qDraft` は**入力中の値**。サジェストの計算に使う（確定前の候補を出すため）。
      ⚠️ LP のヒーロー検索から `?q=` で飛んでくる経路はそのまま効く。 */
   const q = searchParams.get("q") ?? "";
-  const [qDraft, setQDraft] = useState(q);
-  useEffect(() => { setQDraft(q); }, [q]);
+  /* ★2026-11-12: 一覧の上の検索欄をやめ、キーワードは「フィルター」のパネルで入れる（柴さんの指示。ヘッダーの検索と縦に2つ並んでいた）。
+        入力中のサジェスト（qDraft・suggestions）も一緒に外した */
   /* ★「フィルター」のパネル（2026-11-12 / 柴さんの指示「ユーザーと同じように」）。条件はすべてここで選ぶ */
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -451,31 +450,6 @@ export default function JobsClient({
         選んだ条件はボタン自身に出る（「勤務地: 大阪府 +1」）ので、選択中の条件の行（activeChips）も消した。
         ⚠️ 条件を「絞り込み」に戻して外と中に分けないこと（/companies も同じ形） */
 
-  // 検索サジェスト: キーワードから求人タイトル・会社名をマッチ
-  const suggestions = useMemo(() => {
-    /* ⚠️ 確定済み（`q`）ではなく**入力中**（`qDraft`）から作る。
-          確定してからしか候補が出ないと、サジェストの意味が無い。 */
-    const trimmed = qDraft.trim();
-    if (trimmed.length < 1) return [];
-    const lower = trimmed.toLowerCase();
-    const seen = new Set<string>();
-    const results: { label: string; sub: string; q: string }[] = [];
-    for (const j of allJobs) {
-      if (results.length >= 8) break;
-      const roleMatch = j.role.toLowerCase().includes(lower);
-      const co = companyMap.get(j.company_id);
-      const coName = co?.name ?? "";
-      const coMatch = coName.toLowerCase().includes(lower);
-      if (roleMatch) {
-        const key = j.role;
-        if (!seen.has(key)) { seen.add(key); results.push({ label: j.role, sub: coName, q: j.role }); }
-      } else if (coMatch) {
-        const key = `co:${coName}`;
-        if (!seen.has(key)) { seen.add(key); results.push({ label: coName, sub: "企業で絞り込む", q: coName }); }
-      }
-    }
-    return results;
-  }, [qDraft, allJobs, companyMap]);
 
 
   function setParam(key: string, value: string) {
@@ -885,6 +859,7 @@ export default function JobsClient({
   const industryFilterOptions = industryOptions.map((g) => ({ value: g.slug, label: g.name, count: industryCounts.get(g.slug) ?? 0 }));
   const phaseLabelOf = (v: string) => PHASE_OPTIONS.find((o) => o.value === v)?.label ?? v;
   const filterSections: FilterSection[] = [
+    { key: "q", title: "キーワード", kind: "text", placeholder: "職種・会社名" },
     { key: "category", title: "職種", kind: "multi", options: roleFilterOptions },
     { key: "prefecture", title: "勤務地", kind: "multi", searchable: true, options: [
       ...PREFECTURES.filter((p) => (prefectureCounts.get(p) ?? 0) > 0)
@@ -901,6 +876,7 @@ export default function JobsClient({
     { key: "foreign", title: "資本", kind: "toggle", label: "外資系" },
   ];
   const filterValues: FilterValues = {
+    q: q ? [q] : [],
     category: Array.from(categorySet), prefecture: Array.from(prefectureSet), salary: salary ? [salary] : [],
     work_style: Array.from(workStyleSet), phase: Array.from(phaseSet), industry: Array.from(industrySet),
     emp_type: Array.from(empTypeSet), foreign: foreignParam ? ["1"] : [],
@@ -908,7 +884,7 @@ export default function JobsClient({
   /* パネルで選んだ条件をまとめて当てる（URL を1回だけ書き換える。setParam と同じく page を外し、履歴は積まない） */
   function applyFilters(next: FilterValues) {
     const params = new URLSearchParams(searchParams.toString());
-    for (const k of ["category", "prefecture", "salary", "work_style", "phase", "industry", "emp_type"]) {
+    for (const k of ["q", "category", "prefecture", "salary", "work_style", "phase", "industry", "emp_type"]) {
       const v = (next[k] ?? []).join(",");
       if (v) params.set(k, v); else params.delete(k);
     }
@@ -916,7 +892,7 @@ export default function JobsClient({
     params.delete("page");
     router.replace(`/jobs?${params.toString()}`, { scroll: false });
   }
-  /* リセットはパネルの条件だけを外す（検索語・並び替え・表示形式・会社の指定は残す） */
+  /* リセットはパネルの条件（キーワードを含む）を外す（並び替え・表示形式・会社の指定は残す） */
   function resetFilters() {
     applyFilters({});
   }
@@ -925,6 +901,7 @@ export default function JobsClient({
      ⚠️ 消さないこと（条件をパネルに畳んだので、無いと絞り込んだ理由が画面から消える） */
   const labelIn = (opts: { value: string; label: string }[], v: string) => opts.find((o) => o.value === v)?.label ?? v;
   const activeFilterChips: { key: string; label: string; onRemove: () => void }[] = [
+    ...(q ? [{ key: "q", label: `「${q}」`, onRemove: () => setParam("q", "") }] : []),
     ...Array.from(categorySet).map((v) => ({ key: `category:${v}`, label: labelIn(roleFilterOptions, v), onRemove: () => toggleParam("category", v, category) })),
     ...Array.from(prefectureSet).map((v) => ({ key: `prefecture:${v}`, label: v, onRemove: () => toggleParam("prefecture", v, prefecture) })),
     ...(salary ? [{ key: "salary", label: `年収 ${labelIn(SALARY_PILL_TIERS.map((t) => ({ value: t.value, label: t.label })), salary)}`, onRemove: () => setParam("salary", "") }] : []),
@@ -1050,20 +1027,6 @@ export default function JobsClient({
               ⚠️ 外側クリックで条件のメニューを閉じる判定は filterPillsRef（この3行の入れ物）で見ている */}
           {/* ★lt-compact: 1024px 以上では検索・条件・件数を1行にまとめる（2026-10-21。globals.css） */}
           <div className="lt-compact lt-like-people">
-          <div className="lt-search-row">
-            <ListSearchButton
-              alwaysOpen
-              value={q}
-              draft={qDraft}
-              onDraftChange={setQDraft}
-              onCommit={(v) => setParam("q", v)}
-              onClear={() => setParam("q", "")}
-              placeholder="職種・会社名で検索"
-              inputAriaLabel="募集を検索"
-              suggestions={suggestions.map((sg, i) => ({ key: `${i}:${sg.q}`, label: sg.label, sub: sg.sub }))}
-              onPickSuggestion={(sg) => setParam("q", suggestions.find((x, i) => `${i}:${x.q}` === sg.key)?.q ?? sg.label)}
-            />
-          </div>
 
           {/* ★折り返しは CSS（`.list-toolbar`）が持つ。スマホでは1行に並べて横にスクロール（2026-10-17）。
                 ⚠️ flexWrap をインラインに戻さないこと（CSS に勝つのでスマホで1行にできなくなる） */}

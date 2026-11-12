@@ -430,7 +430,9 @@ export function JobseekerHeader() {
        ヘッダーの横断検索は欄の形をやめて🔍のアイコンにする（同じ形の入力欄が縦に2つ並び、どちらに打つか迷わせていた）。
      ⚠️ 消さないこと。押すと今と同じ横断検索が開く（スマホではこれが横断検索の唯一の入口）。
      ⚠️ 一覧のトップだけ（/companies/xxx などの詳細は今までどおり欄の形） */
-  const isListPage = pathname === "/companies" || pathname === "/jobs" || pathname === "/people" || pathname === "/articles";
+  /* ★2026-11-12: /companies・/jobs・/people は一覧の中の検索欄を「フィルター」のパネルへ移したので、ヘッダーの検索欄の形に戻した。
+        一覧の上に検索欄が残っているのは /articles だけ */
+  const isListPage = pathname === "/articles";
   const mobileSearchAsIcon = mobileSignedIn && isListPage;
   /* ★スマホの引き出しに出す未読の数（2026-10-18）。マイページのタブ（応募・面談 など）をスマホで外したので、
         数字の置き場をここへ移した。数え方は /api/jobseeker/mypage-badges（マイページの左のメニューと同じ）。

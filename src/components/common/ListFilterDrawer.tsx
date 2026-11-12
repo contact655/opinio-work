@@ -33,7 +33,9 @@ export type FilterOpt = {
 
 export type FilterSection =
   | { key: string; title: string; kind: "multi" | "single"; options: FilterOpt[]; searchable?: boolean; hint?: string; columns?: 1 | 2 }
-  | { key: string; title: string; kind: "toggle"; label: string };
+  | { key: string; title: string; kind: "toggle"; label: string }
+  /* ★キーワード（2026-11-12 / 柴さんの指示。一覧の上の検索欄をパネルへ移した）。値は [入力した文字] か [] */
+  | { key: string; title: string; kind: "text"; placeholder: string; hint?: string };
 
 /** 項目ごとの選んでいる値。toggle は ["1"] か []。single は [値] か [] */
 export type FilterValues = Record<string, string[]>;
@@ -86,14 +88,22 @@ export function ListFilterDrawer({
           {sections.map((s) => (
             <section key={s.key} className="lfd-sec" data-state={`lfd-${s.key}`}>
               <h3 className="lfd-sec-title">{s.title}</h3>
-              {s.kind === "toggle" ? (
+              {s.kind === "text" ? (
+                <>
+                  {s.hint && <p className="lfd-note">{s.hint}</p>}
+                  <input type="search" className="lfd-search lfd-keyword" value={get(s.key)[0] ?? ""} placeholder={s.placeholder}
+                    aria-label={s.title} enterKeyHint="search"
+                    onChange={(e) => { const v = e.target.value; setDraft((d) => ({ ...d, [s.key]: v ? [v] : [] })); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); onApply(trimDraft(draft)); onClose(); } }} />
+                </>
+              ) : s.kind === "toggle" ? (
                 <label className="lfd-opt">
                   <input type="checkbox" checked={get(s.key).length > 0}
                     onChange={() => setDraft((d) => ({ ...d, [s.key]: (d[s.key] ?? []).length > 0 ? [] : ["1"] }))} />
                   <span>{s.label}</span>
                 </label>
               ) : (
-                <OptionList section={s} selected={get(s.key)} query={queries[s.key] ?? ""}
+                <OptionList section={s as Extract<FilterSection, { kind: "multi" | "single" }>} selected={get(s.key)} query={queries[s.key] ?? ""}
                   onQuery={(q) => setQueries((m) => ({ ...m, [s.key]: q }))}
                   onPick={(v) => (s.kind === "multi" ? toggleMulti(s.key, v) : toggleSingle(s.key, v))} />
               )}
@@ -102,12 +112,19 @@ export function ListFilterDrawer({
         </div>
         <div className="lfd-foot">
           <button type="button" className="lfd-btn lfd-reset" data-action="lfd-reset" onClick={() => { onReset(); onClose(); }}>リセット</button>
-          <button type="button" className="lfd-btn lfd-apply" data-action="lfd-apply" onClick={() => { onApply(draft); onClose(); }}>結果を表示</button>
+          <button type="button" className="lfd-btn lfd-apply" data-action="lfd-apply" onClick={() => { onApply(trimDraft(draft)); onClose(); }}>結果を表示</button>
         </div>
       </div>
     </div>,
     document.body,
   );
+}
+
+/** キーワードの前後の空白を落とし、空になったら外す（URL に空の q を残さない） */
+function trimDraft(d: FilterValues): FilterValues {
+  const out: FilterValues = {};
+  for (const [k, v] of Object.entries(d)) out[k] = v.map((x) => x.trim()).filter(Boolean);
+  return out;
 }
 
 function OptionList({ section, selected, query, onQuery, onPick }: {

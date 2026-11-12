@@ -1,7 +1,6 @@
 "use client";
 
 import { SearchAllLink } from "@/components/jobseeker/SearchAllLink";
-import { ListSearchButton } from "@/components/common/ListSearchButton";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -870,12 +869,15 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
       ]
     : []), [sidebar]);
   const prevSelected = useMemo(() => prevCareer?.selected ?? { role: null, industry: null, company: null }, [prevCareer]);
-  const drawerValues = useMemo(() => ({ rel, roles, ages, foreign: foreignOnly, consult: consultOnly, prev: prevSelected }), [rel, roles, ages, foreignOnly, consultOnly, prevSelected]);
+  /* ★キーワード（q）もパネルで入れる（2026-11-12）。⚠️ keyword はこの下で宣言しているので、ここでは URL から直に読む */
+  const qParam = searchParams.get("q") ?? "";
+  const drawerValues = useMemo(() => ({ q: qParam, rel, roles, ages, foreign: foreignOnly, consult: consultOnly, prev: prevSelected }), [qParam, rel, roles, ages, foreignOnly, consultOnly, prevSelected]);
   /* 選んでいる条件の数（「すべてのフィルター」に添える。⚠️ 人数ではない） */
   const prevActive = !!(prevCareer?.selected.role || prevCareer?.selected.industry || prevCareer?.selected.company);
-  const activeFilterCount = (rel ? 1 : 0) + roles.length + ages.length + (foreignOnly ? 1 : 0) + (consultOnly ? 1 : 0) + (prevActive ? 1 : 0);
+  const activeFilterCount = (qParam ? 1 : 0) + (rel ? 1 : 0) + roles.length + ages.length + (foreignOnly ? 1 : 0) + (consultOnly ? 1 : 0) + (prevActive ? 1 : 0);
   /* ★いま効いている条件（上部のチップ。2026-11-12）。✕ で1つずつ外す */
   const activeChips: { key: string; label: string; onRemove: () => void }[] = [
+    ...(qParam ? [{ key: "q", label: `「${qParam}」`, onRemove: () => setParam({ q: "" }) }] : []),
     ...(rel && relOptions.some((o) => o.value === rel) ? [{ key: `rel-${rel}`, label: relOptions.find((o) => o.value === rel)!.label, onRemove: () => setParam({ rel: "" }) }] : []),
     ...roles.map((v) => ({ key: `role-${v}`, label: ROLE_OPTIONS.find((o) => o.value === v)?.label ?? v, onRemove: () => setRoles(roles.filter((x) => x !== v)) })),
     ...ages.map((v) => ({ key: `age-${v}`, label: AGE_OPTIONS.find((o) => o.value === v)?.label ?? v, onRemove: () => setAges(ages.filter((x) => x !== v)) })),
@@ -936,9 +938,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
      ⚠️ 書き込みは `setParam` の `router.replace`（`scroll: false`）。
         **確定（Enter）のときだけ**書くので履歴は積まれない。
      ⚠️ `kwDraft` は入力中の値。URL が変わったら追従させる（戻る・共有リンクで開いたとき）。 */
-  const keyword = searchParams.get("q") ?? "";
-  const [kwDraft, setKwDraft] = useState(keyword);
-  useEffect(() => { setKwDraft(keyword); }, [keyword]);
+  const keyword = qParam;
+  /* ★2026-11-12: 一覧の上の検索欄をやめ、キーワードは「フィルター」のパネルで入れる（柴さんの指示。ヘッダーの検索と縦に2つ並んでいた） */
   /* ★「すべてのフィルター」（2026-11-12 / LinkedIn を参考に）。開閉だけをここで持ち、条件は URL のまま */
   const [drawerOpen, setDrawerOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -1086,18 +1087,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
               ⚠️★**「絞り込み」ボタンは置かない。** 条件が3つしか無く、3つとも外に出したので中身が空になる
                  （押しても何も起きないボタンになる）。条件を足して外に出しきれなくなったら /jobs と同じ形にすること
               ⚠️ 選択中の条件の行（ActiveFilterChips）も置かない。3つともチップ自身が選択状態を持つため */}
-          <div className="lt-search-row">
-            <ListSearchButton
-              alwaysOpen
-              value={keyword}
-              draft={kwDraft}
-              onDraftChange={setKwDraft}
-              onCommit={(v) => setParam({ q: v })}
-              onClear={() => setParam({ q: "" })}
-              placeholder="名前・会社名・職種で検索"
-              inputAriaLabel="ユーザーを検索"
-            />
-          </div>
 
           {/* ★いま効いている条件（2026-11-12）。条件があるときだけ、1行目（検索・フィルター・並び替え・表示切替）の下に1行で出す */}
           {activeChips.length > 0 && (
@@ -1181,8 +1170,8 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
         ageOptions={AGE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
         showConsult={!!consultantUserIds}
         prevCareer={prevCareer ? { options: prevCareer.options, selfStart: prevCareer.selfStart } : null}
-        onApply={(next: PeopleFilterValues) => setParam({ rel: next.rel, role: next.roles.join(","), age: next.ages.join(","), foreign: next.foreign ? "1" : "", [CONSULTANTS_PARAM]: next.consult ? "1" : "", ...prevParams(next.prev) })}
-        onReset={() => setParam({ rel: "", role: "", age: "", foreign: "", [CONSULTANTS_PARAM]: "", ...prevParams({ role: null, industry: null, company: null }) })}
+        onApply={(next: PeopleFilterValues) => setParam({ q: next.q, rel: next.rel, role: next.roles.join(","), age: next.ages.join(","), foreign: next.foreign ? "1" : "", [CONSULTANTS_PARAM]: next.consult ? "1" : "", ...prevParams(next.prev) })}
+        onReset={() => setParam({ q: "", rel: "", role: "", age: "", foreign: "", [CONSULTANTS_PARAM]: "", ...prevParams({ role: null, industry: null, company: null }) })}
       />
 
       {/* ── コンテンツ ── */}
