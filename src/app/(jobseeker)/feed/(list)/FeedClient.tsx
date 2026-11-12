@@ -1191,6 +1191,17 @@ function formatSalary(min: number | null, max: number | null, negotiable = false
 const HOME_LEFT_WIDTH = 225;
 const HOME_RIGHT_WIDTH = 300;
 const HOME_RIGHT_WIDTH_TWO_COLUMNS = 340;
+/* ★1280px 以上は右の列を 360px に広げ、全体の最大幅を 1400 → 1320px に詰める（2026-11-12 / 柴さんの指示「真ん中が広い・右をもう少し広く」）。
+     中央は 1440px で 795 → 655px、1280px で 675 → 615px になる。1024〜1279px は中央が狭くなりすぎるので 300px のまま */
+const HOME_RIGHT_WIDTH_XL = 360;
+const HOME_XL_MIN = 1280;
+const HOME_MAX_WIDTH = 1320;
+/** 右の列の幅（innerWidth から決める。/home と /search の両方がこれを使う） */
+function homeRightWidth(viewport: number): number {
+  if (viewport >= HOME_XL_MIN) return HOME_RIGHT_WIDTH_XL;
+  if (viewport >= 1024) return HOME_RIGHT_WIDTH;
+  return HOME_RIGHT_WIDTH_TWO_COLUMNS;
+}
 
 // ─── 左カラム: 1枚のカード ─────────────────────────────────────────────────────
 
@@ -1304,7 +1315,7 @@ function FeedSidebar({
 }: {
   /** ★「フォロー中のユーザー」のすぐ下（2026-11-04。/home の「おすすめのユーザー」） */
   suggestions?: React.ReactNode;
-  /** ★列の幅（2026-11-04）。3列のとき HOME_RIGHT_WIDTH、右だけの2列のとき HOME_RIGHT_WIDTH_TWO_COLUMNS */
+  /** ★列の幅（2026-11-04）。homeRightWidth が決める（1280px 以上 360・3列 300・右だけの2列 340。2026-11-12） */
   width: number;
   /** ★いちばん上（2026-11-04。/home の「あなたに合う会社」）。渡されたときは、その下に「フォロー中のユーザー」→ afterUsers → いつもの枠の順にする */
   top?: React.ReactNode;
@@ -2290,10 +2301,12 @@ export default function FeedClient({
   // レスポンシブ: ≥768px で右サイドバー表示、≥1024px で左カラムも表示
   const [isDesktop, setIsDesktop] = useState(false);
   const [isWide, setIsWide] = useState(false);
+  const [rightWidth, setRightWidth] = useState(HOME_RIGHT_WIDTH);
   useEffect(() => {
     const check = () => {
       setIsDesktop(window.innerWidth >= 768);
       setIsWide(window.innerWidth >= 1024);
+      setRightWidth(homeRightWidth(window.innerWidth));
     };
     check();
     window.addEventListener("resize", check);
@@ -2446,7 +2459,7 @@ export default function FeedClient({
   }, [showLoadMore, loadingMore, handleLoadMore]);
 
   return (
-    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px 64px", display: "flex", gap: 24, alignItems: "flex-start" }}>
+    <div style={{ maxWidth: HOME_MAX_WIDTH, margin: "0 auto", padding: "24px 16px 64px", display: "flex", gap: 24, alignItems: "flex-start" }}>
 
       {/* 左カラム: プロフィールと数字のカード（1024px 以上。1023px 以下は出さない） */}
       {isWide && (
@@ -2648,7 +2661,7 @@ export default function FeedClient({
       {isDesktop && (
         <div style={{ flexShrink: 0 }}>
           <FeedSidebar
-            width={isWide ? HOME_RIGHT_WIDTH : HOME_RIGHT_WIDTH_TWO_COLUMNS}
+            width={rightWidth}
             rail={railNode}
             /* ⚠️ お知らせを真ん中に出しているあいだも元の値を渡す（false にすると代わりの企業一覧の箱が出て、箱が増える） */
             hasNewCompanies={newCompanies.length > 0}
@@ -2706,10 +2719,12 @@ function FeedCompanyActions({ companyId, companyName }: { companyId: string; com
 export function HomeSideShell({ feed, children }: { feed: Props; children: React.ReactNode }) {
   const [isDesktop, setIsDesktop] = useState(false);
   const [isWide, setIsWide] = useState(false);
+  const [rightWidth, setRightWidth] = useState(HOME_RIGHT_WIDTH);
   useEffect(() => {
     const check = () => {
       setIsDesktop(window.innerWidth >= 768);
       setIsWide(window.innerWidth >= 1024);
+      setRightWidth(homeRightWidth(window.innerWidth));
     };
     check();
     window.addEventListener("resize", check);
@@ -2725,7 +2740,7 @@ export function HomeSideShell({ feed, children }: { feed: Props; children: React
     </>
   ) : null;
   return (
-    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px 64px", display: "flex", gap: 24, alignItems: "flex-start" }}>
+    <div style={{ maxWidth: HOME_MAX_WIDTH, margin: "0 auto", padding: "24px 16px 64px", display: "flex", gap: 24, alignItems: "flex-start" }}>
       {isWide && (
         <div style={{ position: "sticky", top: 80, flexShrink: 0 }}>
           <FeedLeftPanel profileCard={feed.profileCard} />
@@ -2735,7 +2750,7 @@ export function HomeSideShell({ feed, children }: { feed: Props; children: React
       {isDesktop && (
         <div style={{ flexShrink: 0 }}>
           <FeedSidebar
-            width={isWide ? HOME_RIGHT_WIDTH : HOME_RIGHT_WIDTH_TWO_COLUMNS}
+            width={rightWidth}
             rail={rail}
             hasNewCompanies={newCompanies.length > 0}
             follows={feed.sidebarFollows}
