@@ -217,6 +217,14 @@ export function PeopleCardStyles() {
             .ppl-compact-aff .ppl-company { justify-content: flex-start; margin: 2px 0 0; font-size: 13px; }
             .ppl-compact-role { font-size: 12px; color: var(--ink-mute); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+            /* ★「相談可能」の印はカードの右上（2026-11-12）。細いカードでは文字を隠してアイコンだけにする */
+            .ppl-consult-corner { position: absolute; top: 10px; right: 10px; line-height: 0; }
+            @media (min-width: 1440px), (max-width: 560px) {
+              .ppl-consult-corner .ppl-consult-label { display: none; }
+              .ppl-consult-corner .ppl-consult-badge { padding: 5px !important; }
+              .ppl-consult-corner { top: 8px; right: 8px; }
+            }
+
             /* グリッドカード */
             .ppl-grid-card {
               background: #fff;
@@ -482,14 +490,14 @@ function AffiliationBlock({ card }: { card: AmbassadorCard }) {
  */
 export function ConsultBadge() {
   return (
-    <span data-state="ppl-consult-badge" title={CONSULTANTS_NOTE}
+    <span data-state="ppl-consult-badge" className="ppl-consult-badge" title={CONSULTANTS_NOTE} aria-label={CONSULTANT_BADGE_LABEL}
       style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999,
         border: "1px solid var(--royal-100)", background: "#fff", color: "var(--royal)",
         fontSize: 11.5, fontWeight: 700, lineHeight: 1.5, whiteSpace: "nowrap" }}>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
       </svg>
-      {CONSULTANT_BADGE_LABEL}
+      <span className="ppl-consult-label" aria-hidden>{CONSULTANT_BADGE_LABEL}</span>
     </span>
   );
 }
@@ -519,6 +527,12 @@ export function GridCard({ card, myUserId, followedUserIds, followerUserIds = []
       className="ppl-grid-card"
       style={{ position: "relative" }}
     >
+      {/* ★「相談可能」はカードの右上に置く（2026-11-12 / 柴さんの指示）。
+             名前の下に置いていたときは、会社名・職種の行数で上下の位置が人ごとにずれていた。
+          ⚠️ カードが細い幅（1440px 以上の5列・560px 以下の2列）では顔と重なるので、
+             CSS（.ppl-consult-corner）で文字を隠してアイコンだけにする。 */}
+      {consultable && <div className="ppl-consult-corner"><ConsultBadge /></div>}
+
       {/* アバター */}
       <div style={{ marginBottom: 10, display: "flex", justifyContent: "center" }}>
         <Avatar card={card} size={narrow ? 64 : 88} />
@@ -537,7 +551,6 @@ export function GridCard({ card, myUserId, followedUserIds, followerUserIds = []
                2026-08-20 に「年齢」フィルタも外し、型からも落とした。 */}
         <AffiliationBlock card={card} />
         <div className="ppl-role">{role}</div>
-        {consultable && <div style={{ marginTop: 8 }}><ConsultBadge /></div>}
         {pathNote && (
           <div data-state="ppl-path-note" title={pathNote} style={{ marginTop: 6, fontSize: 11.5, color: "var(--ink-mute)", lineHeight: 1.5, overflowWrap: "anywhere" }}>{pathNote}</div>
         )}
