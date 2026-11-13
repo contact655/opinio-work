@@ -1,5 +1,7 @@
 "use client";
 
+import { privateMessageNote } from "@/lib/nextManager/constants";
+import { PrivateMessageNote } from "@/components/nextManager/PrivateMessageNote";
 import { RAIL_ACTION_STYLE } from "@/components/feed/railKit";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -60,6 +62,10 @@ type Compose = {
   maxLength: number;
   /** 下書き（転職ルートから開いたとき）。無ければ空の相談 */
   preset?: ConsultPreset | null;
+  /** ★送り手の名前（「2人だけのもの」の一行。Next Manager / 2026-11-13）。取れなければ null */
+  senderName?: string | null;
+  /** ★送り手が採用中のマネージャーなら true（「採用やスカウトに使わない」の注意を出さない） */
+  senderHiring?: boolean;
 };
 
 /**
@@ -127,6 +133,8 @@ export function DMButton({ targetUserId, targetName, label: labelProp, variant =
           selectedAbout: preset?.about ?? (data.selectedAbout as string | null) ?? fromCompany,
           maxLength: typeof data.maxLength === "number" ? data.maxLength : 500,
           preset,
+          senderName: typeof data.senderName === "string" ? data.senderName : null,
+          senderHiring: data.senderHiring === true,
         });
         return;
       }
@@ -371,7 +379,10 @@ export function NewMessageComposer({ recipientName, compose, onSendMessage, onSe
         {consulting && <ConsultDetailFields draft={draft} onChange={setDraft} disabled={busy} />}
       </div>
 
-      <ConsultPurposeNote />
+      {/* ★採用中のマネージャーは採用の話をするので、「採用やスカウトに使わない」は出さない（Next Manager / 2026-11-13） */}
+      {!compose.senderHiring && <ConsultPurposeNote />}
+      {/* ★メッセージは2人だけのもの（Next Manager / 2026-11-13）。⚠️ 文言は lib/nextManager/constants.ts の1か所 */}
+      <PrivateMessageNote text={privateMessageNote(compose.senderName ?? null, recipientName)} />
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         {!ready && !sample && (

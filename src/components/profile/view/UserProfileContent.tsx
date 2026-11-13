@@ -647,7 +647,7 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                 {!viewerIsOwner && authUser ? (
                   <DMButton targetUserId={owUser.id} targetName={owUser.name} label="メッセージ" />
                 ) : !viewerIsOwner && !authUser && !ownerTestRes.error && messageButtonVisible({
-                  isSelf: false, targetVisible: true, viewerIsTest: null, targetIsTest: ownerTestRes.data?.is_test === true, blockedByViewer: false,
+                  isSelf: false, targetVisible: true, viewerIsTest: null, targetIsTest: ownerTestRes.data?.is_test === true,
                 }) ? (
                   /* ★未ログインの案内（検証用の人には出さない。ログイン後に押せないボタンへ誘わない） */
                   <Link href={`/auth?next=/u/${owUser.id}`} style={{

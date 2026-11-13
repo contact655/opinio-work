@@ -1,5 +1,7 @@
 "use client";
 
+import { PrivateMessageNote } from "@/components/nextManager/PrivateMessageNote";
+import { ManagerMatchPanel } from "@/components/nextManager/ManagerMatchPanel";
 import { RequestReplyBox, personReplyTemplates } from "@/components/approaches/RequestReplyBox";
 import { ApproachLetter } from "@/components/approaches/ApproachLetter";
 import type { IncomingApproachView } from "@/components/approaches/incomingApproachView";
@@ -185,13 +187,13 @@ function UnrepliedDetail({ item, reported, onReply, onAction }: {
   const who = item.kind === "company" ? item.approach.companyName : `${item.request.requester.name}さん`;
   const extra = (
     <>
-      <button type="button" data-action="block" style={linkBtn}
-        onClick={() => {
-          const msg = item.kind === "company"
-            ? `${who}をブロックしますか？このメッセージは一覧から消え、以後この企業からのメッセージは届きません。企業には伝わりません。`
-            : `${who}をブロックしますか？このメッセージは一覧から消え、以後この方からのメッセージは届きません。相手には伝わりません。`;
-          if (window.confirm(msg)) void onAction(item, "block");
-        }}>ブロック</button>
+      {/* ★個人のブロックは 2026-11-13 に外した（柴さんの指示）。企業のブロック（企業からのメッセージ）だけ残す */}
+      {item.kind === "company" && (
+        <button type="button" data-action="block" style={linkBtn}
+          onClick={() => {
+            if (window.confirm(`${who}をブロックしますか？このメッセージは一覧から消え、以後この企業からのメッセージは届きません。企業には伝わりません。`)) void onAction(item, "block");
+          }}>ブロック</button>
+      )}
       {reported ? (
         <span data-state="reported" style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>運営に報告しました</span>
       ) : (
@@ -334,6 +336,7 @@ export default function ConversationsClient({
   /* 見送る・ブロック（一覧から消す）・運営に報告（一覧には残す）。⚠️ どれも相手には伝わらない */
   const actUnreplied = async (item: UnrepliedItem, action: "decline" | "block" | "report"): Promise<string | null> => {
     if (item.kind === "person") {
+      if (action === "block") return null;
       const err = await handleAction(item.request.conversationId, action);
       if (!err && action === "report") setReported((prev) => new Set(prev).add(item.key));
       if (!err && action !== "report") setOpenUnreplied(null);
@@ -370,7 +373,7 @@ export default function ConversationsClient({
     }
   };
   /* 見送る・ブロック（一覧から消す）・運営に報告（一覧には残す）。⚠️ どれも相手には伝わらない */
-  const handleAction = async (id: string, action: "decline" | "block" | "report"): Promise<string | null> => {
+  const handleAction = async (id: string, action: "decline" | "report"): Promise<string | null> => {
     try {
       const res = await fetch(`/api/dm/requests/${id}`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }),
@@ -857,6 +860,15 @@ export default function ConversationsClient({
                   )}
                 </div>
               </div>
+
+              {/* ★Next Manager（2026-11-13）。個人どうしのメッセージは2人だけのもの。
+                     面談の記録は、この会話の担当マネージャー本人にだけ出る（中でサーバーに問い合わせる） */}
+              {selectedConv?.kind === "direct_message" && selectedConvId && (
+                <>
+                  <PrivateMessageNote compact />
+                  <ManagerMatchPanel conversationId={selectedConvId} />
+                </>
+              )}
 
               {/* メッセージエリア */}
               <div ref={messagesBoxRef} data-state="messages-box" style={{ flex: 1, overflowY: "auto", padding: "16px", minHeight: 0 }}>

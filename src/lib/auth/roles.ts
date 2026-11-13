@@ -79,6 +79,12 @@ export const PERMISSIONS = {
   "materials.edit": AR,
   /* ★「採用担当」の立場で話せる（2026-11-03）。⚠️ DB の auth_company_can の 'talk_recruiter' と同じ集合（DB_LEVEL_ROLES） */
   "talk.asRecruiter": AR,
+  /* ★Next Manager（2026-11-13）。候補者管理（マネージャー経由のマッチング）を全件見る */
+  "managerMatches.viewAll": AR,
+  /* ★自分が担当の記録だけを見る（採用中のマネージャー）。役割に関係なく、記録は本人の担当分だけ出す */
+  "managerMatches.viewOwn": ALL,
+  /* ★退職などで外れた人の記録を、後任へ引き継ぐ（管理者だけ） */
+  "managerMatches.handover": A,
   // 閲覧のみ以上（見るだけ）
   "selection.view": ARV,
   "candidates.viewProfile": ARV,
@@ -133,6 +139,7 @@ const PATH_ACTIONS: [RegExp, CompanyAction[]][] = [
   [/^\/biz\/posts/, ["stories.edit"]],
   [/^\/biz\/analytics/, ["analytics.view"]],
   [/^\/biz\/members/, ["members.manage"]],
+  [/^\/biz\/manager-matches/, ["managerMatches.viewAll", "managerMatches.viewOwn"]],
 ];
 export function canOpenBizPath(role: CompanyRole | null | undefined, href: string): boolean {
   const path = href.split(/[?#]/)[0];

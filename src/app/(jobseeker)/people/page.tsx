@@ -8,6 +8,8 @@ import { getDirectoryPeople } from "@/lib/people/directory";
 import { getRoleTree, getRoleAliases } from "@/lib/supabase/queries";
 import { getPeopleSidebarData } from "@/lib/people/sidebarData";
 import { getConsultantUserIds } from "@/lib/featuredConsultants/server";
+import { getHiringBadges } from "@/lib/nextManager/server";
+import type { HiringBadge } from "@/lib/nextManager/constants";
 import { PeopleListClient, type PrevCareerProps } from "./PeopleListClient";
 import { getPathsView } from "@/lib/paths/server";
 import { PrevCareerSummary } from "@/components/people/PrevCareerSummary";
@@ -59,13 +61,15 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
   let prevCareer: PrevCareerProps | null = null;
   /* ★相談可能なユーザー全員（2026-11-12。?consult=1 の絞り込み）。読めなかったら null（チップを出さない） */
   let consultantUserIds: string[] | null = null;
+  /* ★Next Manager（2026-11-13）。採用中のマネージャー。⚠️ 一覧のキャッシュに混ぜず毎回引く（切り替えをすぐ出す） */
+  let hiringBadges: Record<string, HiringBadge> | null = null;
   if (user) {
     const admin = createAdminClient();
     const { data: me, error: meErr } = await admin.from("ow_users").select("id, is_test").eq("auth_id", user.id).maybeSingle();
     if (meErr) console.error("[people] me:", meErr.message);
     myUserId = me?.id ?? null;
     if (myUserId) {
-      const [outRes, inRes, sidebarData, pathsView, consultantIds] = await Promise.all([
+      const [outRes, inRes, sidebarData, pathsView, consultantIds, hiring] = await Promise.all([
         admin.from("ow_user_follows").select("target_user_id").eq("follower_user_id", myUserId),
         admin.from("ow_user_follows").select("follower_user_id").eq("target_user_id", myUserId),
         getPeopleSidebarData(myUserId),
@@ -76,8 +80,10 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
           { autoStart: false },
         ),
         getConsultantUserIds(),
+        getHiringBadges(me?.is_test === true, admin),
       ]);
       consultantUserIds = consultantIds;
+      hiringBadges = hiring;
       if (pathsView) {
         const start = pathsView.start;
         prevCareer = {
@@ -117,6 +123,7 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
         sidebar={sidebar}
         prevCareer={prevCareer}
         consultantUserIds={consultantUserIds}
+        hiringBadges={hiringBadges}
       />
     </div>
   );

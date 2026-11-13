@@ -1,5 +1,7 @@
 "use client";
 
+import { PrivateMessageNote } from "@/components/nextManager/PrivateMessageNote";
+import { ManagerMatchPanel } from "@/components/nextManager/ManagerMatchPanel";
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
@@ -215,6 +217,15 @@ export default function ConversationDetailClient({
             {stageLabel && <p className="text-xs text-gray-500">{stageLabel}</p>}
           </div>
         </div>
+
+        {/* ★Next Manager（2026-11-13）。個人どうしのメッセージは2人だけのもの。
+               面談の記録は、この会話の担当マネージャー本人にだけ出る（中でサーバーに問い合わせる） */}
+        {conversation.kind === "direct_message" && (
+          <div className="bg-white border-x border-card-border flex flex-col">
+            <PrivateMessageNote compact />
+            <ManagerMatchPanel conversationId={conversationId} />
+          </div>
+        )}
 
         {/* Error */}
         {error && (

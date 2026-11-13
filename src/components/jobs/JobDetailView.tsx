@@ -47,6 +47,8 @@ import { BenefitsList } from "@/components/companies/BenefitsList";
 /* ⚠️ 2026-08-30 にページから切り出した。`/dev/preview/employees` から見るため
       （ページ内のローカル関数だと preview で import できない）。 */
 import { JobEmployeesSection } from "@/components/jobs/JobEmployeesSection";
+import { JobHiringManagersSection } from "@/components/nextManager/JobHiringManagersSection";
+import { getPublicJobManagers } from "@/lib/nextManager/server";
 import { RecruitersSection } from "@/components/companies/RecruitersSection";
 import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 import ViewBeacon from "@/components/views/ViewBeacon";
@@ -325,7 +327,11 @@ export async function JobDetailView({
   const positionMembers = await getJobPositionMembers(job.dept ?? "");
 
   // 求人ロールに紐づいた現役社員・OBOG
-  const jobEmployees = await getJobEmployees(job.company_id, job.role_category_id ?? null);
+  /* ★この募集の Hiring Manager（Next Manager / 2026-11-13）も同じ段で引く（直列の await を増やさない） */
+  const [jobEmployees, hiringManagers] = await Promise.all([
+    getJobEmployees(job.company_id, job.role_category_id ?? null),
+    getPublicJobManagers(job.id, job.company_id),
+  ]);
 
   /* ★企業側の情報を求人詳細にも出す（2026-08-30）。企業詳細と同じ関数を使う。
      ⚠️ **人物は「職種一致した人を会社セクションから除く」。** そうしないと
@@ -845,6 +851,9 @@ export async function JobDetailView({
                      ⚠️★OB・OG は**0件でも枠ごと出す**（`alwaysShowAlumni`）。
                         「この求人の職種を経験して退職した人」という項目そのものを
                         見せたい、という判断（柴さん・2026-08-30）。 */}
+              {/* ★Next Manager（2026-11-13）。この募集の Hiring Manager（本人が採用中にしている人だけ。0人なら出さない） */}
+              <JobHiringManagersSection managers={hiringManagers} preview={preview} />
+
               {/* ★目次の飛び先（2026-10-23）。この職種の人は部品の中で描くので、直前に印だけ置く */}
               <div id="job-people" data-toc="この職種の人" aria-hidden style={{ scrollMarginTop: 72 }} />
               <JobEmployeesSection

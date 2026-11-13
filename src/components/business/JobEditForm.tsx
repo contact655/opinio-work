@@ -1,5 +1,6 @@
 "use client";
 
+import { JobHiringManagersPicker } from "@/components/nextManager/JobHiringManagersPicker";
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { RoleSearchSelect } from "@/components/ui/RoleSearchSelect";
 import { useRouter } from "next/navigation";
@@ -1218,6 +1219,11 @@ export function JobEditForm({
                   })}
                 </div>
               )}
+            </FormSection>
+
+            {/* ★Next Manager（2026-11-13）。募集の Hiring Manager（現場の担当マネージャー）。選んだ瞬間に保存する */}
+            <FormSection title="Hiring Manager（この募集を担当するマネージャー）">
+              <JobHiringManagersPicker jobId={currentJobId} />
             </FormSection>
 
             <FormSection title="採用の温度感">
