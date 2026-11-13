@@ -1286,6 +1286,27 @@ select c.name, c.source,
 - ⚠️ 2026-10-22 の「聞きたいこと」（`ask_topic`）は新しく付ける画面が無い。古い行の表示（`AskTag`）とサーバーの受け付けだけ残してある。
 - 見本は `/dev/preview/career-consult`。
 
+## ★★Next Manager「次の上司と、直接話そう。」（2026-11-13 / 柴さんの指示。フェーズ0の論点A〜Cは推奨案で了承）
+
+| | 実体 |
+|---|---|
+| 選択肢・文言・検証 | `lib/nextManager/constants.ts`（何も import しない・テストあり。結果の4値は migration の CHECK と同じ） |
+| 読み書きの入口 | `lib/nextManager/server.ts` だけ（採用中の設定・一覧のバッジ・マッチングの自動作成・面談の記録・候補者管理・引き継ぎ） |
+| 採用中 | `ow_company_admins.is_hiring` / `hiring_note` / `hiring_job_id`。**有効な担当者だけ・本人だけ**がオン（`/mypage/settings` の「採用中のマネージャー」→ `PUT /api/jobseeker/hiring`）。⚠️★この表は authenticated にテーブルの読み書きがあり、会社の管理者は同じ会社の行を書き換えられる。採用中の4列はトリガー `trg_guard_company_admin_hiring` がサーバー以外からの変更を止める（外さないこと） |
+| マッチング | 個人どうしのメッセージで**相手が返信した**とき（`replyToMessageRequest` の直後に `recordMatchOnReply`）。どちらかが採用中なら、その会社に1件 |
+| 記録 | `ow_manager_matches`（会社のもの）／`ow_manager_match_handovers`。**anon・authenticated に権限なし・ポリシー0本** |
+| 画面 | `/people` のバッジと `?hiring=1`／送る画面とメッセージ画面の「2人だけのもの」の一行／会話の上部の「面談の記録」（担当マネージャー本人だけ）／`/biz/manager-matches`（候補者管理）。見本 `/dev/preview/next-manager` |
+
+- ⚠️★**メッセージ本文を記録に写さない・会社に見せない。** 記録に本文の列を作らないこと。
+- ⚠️★**DM の会話（`ow_conversations`）に company_id を入れないこと。** 入れた瞬間に RLS が会社の担当者へ会話を開く。
+- ⚠️★**相互フォローで最初から始まる会話（`sendDirectToConnection`）はマッチングに数えない**（論点C）。そちらに `recordMatchOnReply` を足さない。
+- ⚠️ 採用中は `ow_company_admins` の担当者だけ（職歴の現職＝自己申告では採用中にできない。論点A）。2026-11-03〜05 に外した `ow_talk_settings`（立場＝採用担当）とは別物。あの表は使わない。
+- ⚠️ 見える範囲: 管理者・採用担当は全件、ほかの役割は自分の担当分だけ（`managerMatches.viewAll` / `viewOwn`）。引き継ぎは管理者だけ（`managerMatches.handover`）。会社を外れた担当者は面談の記録欄が出ず、保存もできない。
+- ⚠️ 採用中のマネージャーが送るときは「採用やスカウトに使わない」（`CONSULT_PURPOSE_NOTE`）を出さない。
+- ⚠️ `/people` の切り替えに人数は出さない（2026-11-04 の決まり。モックの（N）は付けていない）。
+- ⚠️★採用中のマネージャーも `contactGate` の対象（返信を含む）。所属する**すべての会社**から連絡してよい相手にしか送れない（2026-11-13 の検証で、実在の会社と検証用の会社を兼ねる担当者の返信が止まった）。意図どおりかは未決。
+- ⚠️★規約の改定文案は `docs/pending/privacy-20261113-next-manager.md`（**当てていない**）。第5-1項の「次の場合に限り」の外になるため、本番で使い始める前に決める。
+
 ## ★★求職者のナビは「ホーム・企業・募集・ユーザー・記事」の5つ（2026-11-03 / 柴さんの指示）
 
 | まとめたもの | まとめた先 | 転送（middleware） |

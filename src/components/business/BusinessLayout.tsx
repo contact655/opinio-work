@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef, createContext, useContext } from "r
 import { createClient } from "@/lib/supabase/client";
 import { CompanySwitcher } from "./CompanySwitcher";
 import type { TenantCompany } from "@/lib/business/dashboard";
-import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Search, FileText, Calendar, ExternalLink, HelpCircle, ArrowLeftRight, User, LogOut, PanelLeft, Menu, X } from "lucide-react";
+import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Search, FileText, Calendar, ClipboardList, ExternalLink, HelpCircle, ArrowLeftRight, User, LogOut, PanelLeft, Menu, X } from "lucide-react";
 import { useBizShell } from "./BizShellContext";
 import OpinioLogo from "@/components/common/OpinioLogo";
 
@@ -111,6 +111,10 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
       /* ★バッジは「未読のある会話 ∪ 返信があってまだ開いていない会話」の数（2026-10-11。`lib/business/navBadges.ts`） */
       { href: "/biz/messages", label: "メッセージ", needs: ["messages.use"], icon: <Inbox size={16} strokeWidth={2.2} />, badge: "messages" },
       { href: "/biz/meetings", label: "選考管理", needs: ["selection.view", "selection.viewAssigned"], icon: <Calendar size={16} strokeWidth={2.2} /> },
+      /* ★Next Manager（2026-11-13）。採用中のマネージャーがマッチングした人と面談の記録。
+            管理者・採用担当は全件、ほかの役割は自分が担当の記録だけ（中身は lib/nextManager/server.ts）。
+         ⚠️ メッセージ本文はこの画面に出さない（会社には共有しない） */
+      { href: "/biz/manager-matches", label: "候補者管理", needs: ["managerMatches.viewAll", "managerMatches.viewOwn"], icon: <ClipboardList size={16} strokeWidth={2.2} /> },
     ],
   },
   {

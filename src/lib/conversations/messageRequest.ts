@@ -1,5 +1,6 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
+import { recordMatchOnReply } from "@/lib/nextManager/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDmParticipants } from "@/lib/conversations/participants";
 import { notifyNewMessage } from "@/lib/notify/messageNotification";
@@ -543,6 +544,10 @@ export async function replyToMessageRequest(params: {
     return { ok: false, status: 500, error: MSG.failed };
   }
   await notifyNewMessage({ conversationId: params.conversationId, senderOwUserId: params.recipientId, source: "dm/request-reply" });
+  /* ★Next Manager（2026-11-13）。返信でやり取りが始まった＝マッチング。どちらかが採用中のマネージャーなら会社に記録を作る。
+        ⚠️ 本文は渡さない。⚠️ best-effort（失敗しても返信は成功のまま。中でログを出す）。
+        ⚠️ 相互フォローで最初から始まる会話（sendDirectToConnection）は数えない（論点C）。そちらには足さないこと */
+  await recordMatchOnReply(params.conversationId);
   return { ok: true, conversationId: data as string };
 }
 

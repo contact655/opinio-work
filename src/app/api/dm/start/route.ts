@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isHiringManager } from "@/lib/nextManager/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rateLimit";
@@ -76,6 +77,13 @@ async function senderHasExperience(meId: string): Promise<boolean | null> {
   return (count ?? 0) > 0;
 }
 
+/** 送り手の名前（送る画面の一行に出す）。取れなければ null（名前なしの文にする） */
+async function ownName(meId: string): Promise<string | null> {
+  const { data, error } = await createAdminClient().from("ow_users").select("name").eq("id", meId).maybeSingle();
+  if (error) { console.error("[dm/start] name:", error.message); return null; }
+  return (data?.name as string | null) ?? null;
+}
+
 async function targetExists(targetUserId: string): Promise<boolean> {
   const admin = createAdminClient();
   const { data } = await admin.from("ow_users").select("id, visibility").eq("id", targetUserId).maybeSingle();
@@ -124,11 +132,14 @@ export async function GET(request: NextRequest) {
   const consultOptions = await consultAboutOptions(targetUserId);
   if (!consultOptions) return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
   const expRaw = request.nextUrl.searchParams.get("aboutExperienceId");
+  /* ★Next Manager（2026-11-13）。送る画面の「2人だけのもの」の一行に送り手の名前を出す。
+       採用中のマネージャーが送るときは「採用やスカウトに使わない」の注意を出さない（採用の話をする人なので） */
+  const [senderName, senderHiring] = await Promise.all([ownName(meId), isHiringManager(meId)]);
   const selectedAbout = optionKeyForExperience(consultOptions, expRaw && UUID_RE.test(expRaw) ? expRaw : null);
 
   /* ★つながっている（相互フォロー）なら、返事待ちを挟まずにすぐ始められる（2026-10-20）。返事待ちの枠も見ない */
   if ((await isMutualFollow(meId, targetUserId)) === true) {
-    return NextResponse.json({ action: "compose", connected: true, maxLength: CONNECTION_FIRST_MESSAGE_MAX, consultOptions, selectedAbout });
+    return NextResponse.json({ action: "compose", connected: true, maxLength: CONNECTION_FIRST_MESSAGE_MAX, consultOptions, selectedAbout, senderName, senderHiring });
   }
   /* ⚠️ 2026-11-03〜11-05 は、相手の「話を聞ける」設定で書く前に止めていた。外した（柴さんの指示）。
         量の歯止めは返事待ちの上限（既定 5 人）と1日の上限 */
@@ -137,7 +148,7 @@ export async function GET(request: NextRequest) {
   const quotaMsg = quotaBlockMessage(quota);
   if (quotaMsg) return NextResponse.json({ action: "blocked", message: quotaMsg });
 
-  return NextResponse.json({ action: "compose", quota, consultOptions, selectedAbout, maxLength: GENERAL_FIRST_MESSAGE_MAX });
+  return NextResponse.json({ action: "compose", quota, consultOptions, selectedAbout, maxLength: GENERAL_FIRST_MESSAGE_MAX, senderName, senderHiring });
 }
 
 export async function POST(request: NextRequest) {

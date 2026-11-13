@@ -43,6 +43,8 @@ const ITEMS = [
     desc: "★新しく掲載された企業（横に送る）と「◯◯から次に進んだ人」（キャリアの移り変わり）。まだ本物のホームには入れていない" },
   { href: "/dev/preview/resume", label: "職務経歴書（/mypage/resume）",
     desc: "★入れた職歴から作る書類。すべて入っている・空・長い社名や期間なし" },
+  { href: "/dev/preview/next-manager", label: "Next Manager（採用中のバッジ・面談の記録・候補者管理）",
+    desc: "★実データは採用中もマッチングも0件。全件・自分の分だけ・0件・読み込み失敗・退職と引き継ぎ" },
   { href: "/dev/preview/career-consult", label: "キャリア相談（最初の1通・相談の画面・チャットの中のカード）",
     desc: "★職歴が多い相手・職歴が無い相手（キャリア全般だけ）・長い社名・共通点あり／なし・ワンタップの「今回は難しいです」" },
   { href: "/dev/preview/connections", label: "つながり（企業ページ。相互フォローで在籍中・表示を許可した人）",

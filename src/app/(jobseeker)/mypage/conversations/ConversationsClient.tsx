@@ -1,5 +1,7 @@
 "use client";
 
+import { PrivateMessageNote } from "@/components/nextManager/PrivateMessageNote";
+import { ManagerMatchPanel } from "@/components/nextManager/ManagerMatchPanel";
 import { RequestReplyBox, personReplyTemplates } from "@/components/approaches/RequestReplyBox";
 import { ApproachLetter } from "@/components/approaches/ApproachLetter";
 import type { IncomingApproachView } from "@/components/approaches/incomingApproachView";
@@ -857,6 +859,15 @@ export default function ConversationsClient({
                   )}
                 </div>
               </div>
+
+              {/* ★Next Manager（2026-11-13）。個人どうしのメッセージは2人だけのもの。
+                     面談の記録は、この会話の担当マネージャー本人にだけ出る（中でサーバーに問い合わせる） */}
+              {selectedConv?.kind === "direct_message" && selectedConvId && (
+                <>
+                  <PrivateMessageNote compact />
+                  <ManagerMatchPanel conversationId={selectedConvId} />
+                </>
+              )}
 
               {/* メッセージエリア */}
               <div ref={messagesBoxRef} data-state="messages-box" style={{ flex: 1, overflowY: "auto", padding: "16px", minHeight: 0 }}>
