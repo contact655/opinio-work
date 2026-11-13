@@ -22,7 +22,7 @@ export async function PUT(req: NextRequest) {
   if (!me) return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
   const parsed = parseHiringInput(await req.json().catch(() => null));
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
-  const r = await setHiring({ owUserId: me.id, companyId: parsed.companyId, isHiring: parsed.isHiring, note: parsed.note, jobId: parsed.jobId });
+  const r = await setHiring({ owUserId: me.id, companyId: parsed.companyId, isHiring: parsed.isHiring, note: parsed.note, jobIds: parsed.jobIds });
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   return NextResponse.json({ ok: true });
 }

@@ -37,7 +37,7 @@ export function NextManagerSamples() {
       <Variant label="ユーザー一覧の「採用中」のバッジと「チームで募集中」">
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontWeight: 800 }}>山本 健</span><HiringBadgeChip companyName="株式会社エージェント" />
-          <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>チームで募集中: {hiringForText({ note: "2名", jobTitle: "フィールドセールス" })}</span>
+          <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>チームで募集中: {hiringForText({ note: "2名", jobTitles: ["フィールドセールス", "インサイドセールス"] })}</span>
         </div>
       </Variant>
       <Variant label="送る画面の一行／メッセージ画面の上部の一行">

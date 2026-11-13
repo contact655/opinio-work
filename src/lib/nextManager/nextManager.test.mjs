@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   MATCH_RESULTS, HIRING_NOTE_MAX, MATCH_MEMO_MAX, matchResultLabel, parseMatchPatch, parseHiringInput,
-  hiringForText, privateMessageNote, isIsoDate,
+  hiringForText, privateMessageNote, isIsoDate, parseUuidList, MAX_JOBS_PER_MANAGER,
 } from "./constants.ts";
 
 const U = "11111111-2222-3333-4444-555555555555";
@@ -44,15 +44,27 @@ test("本文に当たるキーを受け取らない（記録に本文を写さ�
 
 test("採用中の入力", () => {
   assert.deepEqual(parseHiringInput({ companyId: U, isHiring: true, note: " フィールドセールス・2名 " }),
-    { ok: true, companyId: U, isHiring: true, note: "フィールドセールス・2名", jobId: null });
+    { ok: true, companyId: U, isHiring: true, note: "フィールドセールス・2名", jobIds: [] });
+  assert.deepEqual(parseHiringInput({ companyId: U, isHiring: true, jobIds: [U, U] }).jobIds, [U], "重複は落とす");
+  assert.equal(parseHiringInput({ companyId: U, isHiring: true, jobIds: ["x"] }).ok, false);
+  assert.equal(parseHiringInput({ companyId: U, isHiring: true, jobIds: U }).ok, false);
   assert.equal(parseHiringInput({ companyId: U, isHiring: "yes" }).ok, false);
   assert.equal(parseHiringInput({ companyId: "x", isHiring: true }).ok, false);
   assert.equal(parseHiringInput({ companyId: U, isHiring: true, note: "あ".repeat(HIRING_NOTE_MAX + 1) }).ok, false);
 });
 
 test("表示の文", () => {
-  assert.equal(hiringForText({ note: null, jobTitle: null }), null);
-  assert.equal(hiringForText({ note: "2名", jobTitle: "フィールドセールス" }), "フィールドセールス（2名）");
+  assert.equal(hiringForText({ note: null, jobTitles: [] }), null);
+  assert.equal(hiringForText({ note: "2名", jobTitles: ["フィールドセールス"] }), "フィールドセールス（2名）");
+  assert.equal(hiringForText({ note: null, jobTitles: ["FS", "IS"] }), "FS・IS");
+  assert.equal(hiringForText({ note: "2名", jobTitles: [] }), "2名");
   assert.equal(privateMessageNote("山本", "田中"), "メッセージは山本さんと田中さんの2人だけのものです。会社には共有されません。");
   assert.ok(isIsoDate("2026-11-13"));
+});
+
+test("uuid の配列（上限）", () => {
+  const ids = Array.from({ length: MAX_JOBS_PER_MANAGER + 1 }, (_, i) => `11111111-2222-3333-4444-${String(i).padStart(12, "0")}`);
+  assert.equal(parseUuidList(ids, MAX_JOBS_PER_MANAGER), null);
+  assert.equal(parseUuidList(ids.slice(0, MAX_JOBS_PER_MANAGER), MAX_JOBS_PER_MANAGER).length, MAX_JOBS_PER_MANAGER);
+  assert.deepEqual(parseUuidList(undefined, 3), []);
 });

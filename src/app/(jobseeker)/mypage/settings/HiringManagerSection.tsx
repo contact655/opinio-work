@@ -9,7 +9,7 @@ type Row = {
   companyName: string;
   isHiring: boolean;
   note: string | null;
-  jobId: string | null;
+  jobIds: string[];
   jobs: { id: string; title: string; status: string }[];
 };
 
@@ -46,7 +46,7 @@ export default function HiringManagerSection() {
   return (
     <div id="hiring-manager-setting">
       <FormSection title="採用中のマネージャー"
-        desc="自分のチームの仲間を探しているときにオンにします。ユーザー一覧で名前の横に「採用中」が出ます。メッセージは相手とあなたの2人だけのもので、会社には共有されません。相手が返信してやり取りが始まると、マッチングした事実だけが会社の候補者管理に残ります。">
+        desc="自分のチームの仲間を探しているときにオンにします。ユーザー一覧で名前の横に「採用中」が出て、紐づけた公開中の募集のページに「この募集の Hiring Manager」として出ます。メッセージは相手とあなたの2人だけのもので、会社には共有されません。相手が返信してやり取りが始まると、マッチングした事実だけが会社の候補者管理に残ります。">
         <div style={{ display: "grid", gap: 16 }}>
           {rows.map((r) => <HiringRow key={r.companyId} initial={r} onSaved={(next) => setRows((cur) => (cur ?? []).map((x) => (x.companyId === next.companyId ? next : x)))} />)}
         </div>
@@ -57,13 +57,15 @@ export default function HiringManagerSection() {
 
 function HiringRow({ initial, onSaved }: { initial: Row; onSaved: (r: Row) => void }) {
   const [note, setNote] = useState(initial.note ?? "");
-  const [jobId, setJobId] = useState(initial.jobId ?? "");
+  const [jobIds, setJobIds] = useState<string[]>(initial.jobIds);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const base = useId();
   const tooLong = note.trim().length > HIRING_NOTE_MAX;
-  const dirty = note.trim() !== (initial.note ?? "") || jobId !== (initial.jobId ?? "");
+  const sameJobs = jobIds.length === initial.jobIds.length && jobIds.every((j) => initial.jobIds.includes(j));
+  const dirty = note.trim() !== (initial.note ?? "") || !sameJobs;
+  const toggleJob = (id: string) => setJobIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
   async function save(isHiring: boolean) {
     if (saving || tooLong) return;
@@ -71,11 +73,11 @@ function HiringRow({ initial, onSaved }: { initial: Row; onSaved: (r: Row) => vo
     try {
       const res = await fetch("/api/jobseeker/hiring", {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyId: initial.companyId, isHiring, note: note.trim() || null, jobId: jobId || null }),
+        body: JSON.stringify({ companyId: initial.companyId, isHiring, note: note.trim() || null, jobIds }),
       });
       const d = await res.json().catch(() => null);
       if (!res.ok) throw new Error((d && d.error) || "保存できませんでした。もう一度お試しください。");
-      onSaved({ ...initial, isHiring, note: note.trim() || null, jobId: jobId || null });
+      onSaved({ ...initial, isHiring, note: note.trim() || null, jobIds });
       setDone(isHiring === initial.isHiring ? "保存しました" : isHiring ? "採用中にしました" : "採用中をやめました");
     } catch (e) {
       setError(e instanceof Error ? e.message : "保存できませんでした。もう一度お試しください。");
@@ -98,15 +100,16 @@ function HiringRow({ initial, onSaved }: { initial: Row; onSaved: (r: Row) => vo
           <span style={{ fontSize: 11.5, color: tooLong ? "var(--error)" : "var(--ink-mute)" }}>{note.trim().length} / {HIRING_NOTE_MAX}</span>
         </div>
         {initial.jobs.length > 0 && (
-          <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
-            <label htmlFor={`${base}-job`} style={{ fontSize: 12.5, fontWeight: 700 }}>募集との紐付け（任意）</label>
-            <select id={`${base}-job`} value={jobId} onChange={(e) => setJobId(e.target.value)} disabled={saving}
-              style={{ border: "1px solid var(--line)", borderRadius: 8, padding: "8px 10px", fontSize: 14, fontFamily: "inherit", background: "#fff", minWidth: 0 }}>
-              <option value="">紐付けない</option>
-              {initial.jobs.map((j) => <option key={j.id} value={j.id}>{j.title}{j.status !== "published" ? "（下書き）" : ""}</option>)}
-            </select>
-            <span style={{ fontSize: 11.5, color: "var(--ink-mute)" }}>一覧に出るのは公開中の募集の名前だけです。</span>
-          </div>
+          <fieldset style={{ display: "grid", gap: 6, minWidth: 0, border: 0, padding: 0, margin: 0 }} data-state="hiring-jobs">
+            <legend style={{ fontSize: 12.5, fontWeight: 700, padding: 0, marginBottom: 4 }}>担当する募集（任意・複数選べます）</legend>
+            {initial.jobs.map((j) => (
+              <label key={j.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, minWidth: 0, cursor: saving ? "default" : "pointer" }}>
+                <input type="checkbox" checked={jobIds.includes(j.id)} onChange={() => toggleJob(j.id)} disabled={saving} />
+                <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{j.title}{j.status !== "published" ? "（下書き）" : ""}</span>
+              </label>
+            ))}
+            <span style={{ fontSize: 11.5, color: "var(--ink-mute)" }}>一覧と求人ページに出るのは公開中の募集だけです。会社の求人編集の画面からも紐づけられます。</span>
+          </fieldset>
         )}
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>

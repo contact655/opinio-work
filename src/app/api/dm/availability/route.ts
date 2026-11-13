@@ -11,9 +11,8 @@ const MAX_IDS = 50;
 /**
  * ★「メッセージ」ボタンを出すか（2026-11-05。2026-11-03〜11-05 は /api/talk/availability だった）。
  *   GET ?ids=a,b,…（50件まで）→ { availability: { [id]: { show, connected } } }
- *   判定は lib/constants/messageButton.ts の messageButtonVisible（自分・非公開・検証用との組み合わせ・自分がブロックした相手は出さない）。
+ *   判定は lib/constants/messageButton.ts の messageButtonVisible（自分・非公開・検証用との組み合わせには出さない。個人のブロックは 2026-11-13 に外した）。
  *   connected = 相互フォローでつながっている（書く画面の案内が変わる）
- * ⚠️ 相手が自分をブロックしているかは返さない（ボタンの有無で分かってしまう。送る段で止める）
  * ⚠️ 未ログインでも答える（ボタンの有無は公開の画面に出るものなので）。押すとログインへ進む。
  */
 export async function GET(req: NextRequest) {
@@ -46,14 +45,12 @@ export async function GET(req: NextRequest) {
   const visible = new Set((users ?? []).filter((u) => u.visibility !== "private").map((u) => u.id as string));
   const testIds = new Set((users ?? []).filter((u) => u.is_test === true).map((u) => u.id as string));
 
-  /* 相互フォロー・自分がブロックした相手（見ている本人とのあいだだけ） */
+  /* 相互フォロー（見ている本人とのあいだだけ） */
   const connected = new Set<string>();
-  const blockedByMe = new Set<string>();
   if (meId) {
-    const [out, inc, blocks] = await Promise.all([
+    const [out, inc] = await Promise.all([
       admin.from("ow_user_follows").select("target_user_id").eq("follower_user_id", meId).in("target_user_id", ids),
       admin.from("ow_user_follows").select("follower_user_id").eq("target_user_id", meId).in("follower_user_id", ids),
-      admin.from("ow_user_blocks").select("blocked_user_id").eq("blocker_user_id", meId).in("blocked_user_id", ids),
     ]);
     if (out.error || inc.error) {
       console.error("[dm/availability] follows:", out.error?.message ?? inc.error?.message);
@@ -61,12 +58,6 @@ export async function GET(req: NextRequest) {
       const following = new Set((out.data ?? []).map((r) => r.target_user_id as string));
       for (const r of inc.data ?? []) if (following.has(r.follower_user_id as string)) connected.add(r.follower_user_id as string);
     }
-    if (blocks.error) {
-      /* ⚠️ 分からなければ出さない向きに倒す（ブロックした相手にボタンを出さない） */
-      console.error("[dm/availability] blocks:", blocks.error.message);
-      return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
-    }
-    for (const b of blocks.data ?? []) blockedByMe.add(b.blocked_user_id as string);
   }
 
   const availability: Record<string, { show: boolean; connected: boolean }> = {};
@@ -76,7 +67,6 @@ export async function GET(req: NextRequest) {
       targetVisible: visible.has(id),
       viewerIsTest: meIsTest,
       targetIsTest: testIds.has(id),
-      blockedByViewer: blockedByMe.has(id),
     });
     availability[id] = { show, connected: show && connected.has(id) };
   }

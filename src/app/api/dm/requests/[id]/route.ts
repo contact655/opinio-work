@@ -4,11 +4,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { replyToMessageRequest, respondToMessageRequest, type RespondAction } from "@/lib/conversations/messageRequest";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const ACTIONS: readonly (RespondAction | "reply")[] = ["reply", "decline", "block", "report"];
+const ACTIONS: readonly (RespondAction | "reply")[] = ["reply", "decline", "report"];
 
 /**
  * ★届いたメッセージリクエストに答える（2026-10-09 / 段階3。2026-10-11 に「承認」をやめ、返信・ブロック・報告を足した）。
- * body: { action: "reply", body } | { action: "decline" } | { action: "block" } | { action: "report", note? }
+ * body: { action: "reply", body } | { action: "decline" } | { action: "report", note? }
+ * ⚠️ 個人のブロック（action: "block"）は 2026-11-13 に外した（柴さんの指示）。400 を返す
  * ⚠️ reply は DB 関数 `reply_to_message_request` の1トランザクション（`replyToMessageRequest`）。
  *
  * ⚠️ 判定と書き込みは `lib/conversations/messageRequest.ts` の1か所。ここに条件を書かない。

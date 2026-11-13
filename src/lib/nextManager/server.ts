@@ -26,7 +26,8 @@ export type MyHiringRow = {
   companyName: string;
   isHiring: boolean;
   note: string | null;
-  jobId: string | null;
+  /** 本人に紐づいている募集（ow_job_hiring_managers） */
+  jobIds: string[];
   /** その会社の募集（紐付けの選択肢）。公開中と下書き */
   jobs: { id: string; title: string; status: string }[];
 };
@@ -34,62 +35,185 @@ export type MyHiringRow = {
 /** 本人が有効な担当者になっている会社と、その採用中の設定。⚠️ 取れなければ null */
 export async function getMyHiringRows(owUserId: string, db: Db = createAdminClient()): Promise<MyHiringRow[] | null> {
   const { data: rows, error } = await db.from("ow_company_admins")
-    .select("company_id, is_hiring, hiring_note, hiring_job_id")
+    .select("company_id, is_hiring, hiring_note")
     .eq("user_id", owUserId).eq("is_active", true);
   if (error) { console.error("[nextManager] my rows:", error.message); return null; }
   const ids = Array.from(new Set((rows ?? []).map((r) => r.company_id as string)));
   if (ids.length === 0) return [];
-  const [{ data: cos, error: cErr }, { data: jobs, error: jErr }] = await Promise.all([
+  const [{ data: cos, error: cErr }, { data: jobs, error: jErr }, { data: links, error: lErr }] = await Promise.all([
     db.from("ow_companies").select("id, name, name_en").in("id", ids),
     db.from("ow_jobs").select("id, company_id, title, status").in("company_id", ids)
       .in("status", ["published", "draft"]).order("created_at", { ascending: false }),
+    db.from("ow_job_hiring_managers").select("job_id").eq("user_id", owUserId),
   ]);
-  if (cErr || jErr) { console.error("[nextManager] my rows:", cErr?.message ?? jErr?.message); return null; }
+  if (cErr || jErr || lErr) { console.error("[nextManager] my rows:", cErr?.message ?? jErr?.message ?? lErr?.message); return null; }
   const nameOf = new Map((cos ?? []).map((c) => [c.id as string, companyDisplayName(c.name as string, (c.name_en as string | null) ?? null).displayName]));
+  const linked = new Set((links ?? []).map((l) => l.job_id as string));
   const seen = new Set<string>();
   const out: MyHiringRow[] = [];
   for (const r of rows ?? []) {
     const cid = r.company_id as string;
     if (seen.has(cid)) continue;
     seen.add(cid);
+    const coJobs = (jobs ?? []).filter((j) => j.company_id === cid).map((j) => ({ id: j.id as string, title: j.title as string, status: j.status as string }));
     out.push({
       companyId: cid,
       companyName: nameOf.get(cid) ?? "（会社名を取得できません）",
       isHiring: r.is_hiring === true,
       note: (r.hiring_note as string | null) ?? null,
-      jobId: (r.hiring_job_id as string | null) ?? null,
-      jobs: (jobs ?? []).filter((j) => j.company_id === cid).map((j) => ({ id: j.id as string, title: j.title as string, status: j.status as string })),
+      jobIds: coJobs.filter((j) => linked.has(j.id)).map((j) => j.id),
+      jobs: coJobs,
     });
   }
   return out;
 }
 
-/** ★採用中を切り替える（本人だけ）。⚠️ 本人がその会社の有効な担当者であることをここで確かめる */
-export async function setHiring(params: { owUserId: string; companyId: string; isHiring: boolean; note: string | null; jobId: string | null }):
+/**
+ * ★採用中を切り替える（本人だけ）。⚠️ 本人がその会社の有効な担当者であることをここで確かめる。
+ *   jobIds はその会社の募集のうち本人に紐づけるもの（入れ替え）。⚠️ 他の会社の募集の紐付けは触らない。
+ */
+export async function setHiring(params: { owUserId: string; companyId: string; isHiring: boolean; note: string | null; jobIds: string[] }):
   Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   const db = createAdminClient();
+  const failed = { ok: false as const, status: 500, error: "保存できませんでした" };
   const { data: row, error } = await db.from("ow_company_admins")
     .select("id").eq("user_id", params.owUserId).eq("company_id", params.companyId).eq("is_active", true)
     .order("created_at", { ascending: true }).limit(1).maybeSingle();
-  if (error) { console.error("[nextManager] setHiring load:", error.message); return { ok: false, status: 500, error: "保存できませんでした" }; }
+  if (error) { console.error("[nextManager] setHiring load:", error.message); return failed; }
   if (!row) return { ok: false, status: 403, error: "この会社の担当者ではありません" };
-  if (params.jobId) {
-    const { data: job, error: jErr } = await db.from("ow_jobs").select("id").eq("id", params.jobId).eq("company_id", params.companyId).maybeSingle();
-    if (jErr) { console.error("[nextManager] setHiring job:", jErr.message); return { ok: false, status: 500, error: "保存できませんでした" }; }
-    if (!job) return { ok: false, status: 400, error: "この会社の募集ではありません" };
-  }
+  const { data: coJobs, error: jErr } = await db.from("ow_jobs").select("id").eq("company_id", params.companyId);
+  if (jErr) { console.error("[nextManager] setHiring jobs:", jErr.message); return failed; }
+  const coJobIds = new Set((coJobs ?? []).map((j) => j.id as string));
+  if (params.jobIds.some((id) => !coJobIds.has(id))) return { ok: false, status: 400, error: "この会社の募集ではありません" };
+
   /* ⚠️ 同じ会社に有効な行が2つある場合（実データでは起きないはず）も、本人の有効な行はすべて揃える */
   const r = await mutateMany(
     db.from("ow_company_admins").update({
       is_hiring: params.isHiring,
       hiring_note: params.note,
-      hiring_job_id: params.jobId,
       hiring_updated_at: new Date().toISOString(),
     }).eq("user_id", params.owUserId).eq("company_id", params.companyId).eq("is_active", true),
     "nextManager setHiring",
   );
-  if (!r.ok) return { ok: false, status: 500, error: "保存できませんでした" };
+  if (!r.ok) return failed;
+
+  /* 紐付けの入れ替え（この会社の募集の範囲だけ）。⚠️ 先に本体を保存してから */
+  const linkErr = await replaceLinks(db, {
+    scopeJobIds: Array.from(coJobIds), userIds: [params.owUserId], want: params.jobIds.map((j) => ({ jobId: j, userId: params.owUserId })),
+    createdBy: params.owUserId,
+  });
+  if (linkErr) return failed;
   return { ok: true };
+}
+
+/**
+ * 紐付けの入れ替え。scopeJobIds × userIds の範囲にある行を want に揃える（足りないものを入れ、余分を消す）。
+ * ⚠️ 失敗したら true を返す（ログは出す）
+ */
+async function replaceLinks(db: Db, p: { scopeJobIds: string[]; userIds: string[]; want: { jobId: string; userId: string }[]; createdBy: string }): Promise<boolean> {
+  if (p.scopeJobIds.length === 0 || p.userIds.length === 0) return false;
+  const { data: cur, error } = await db.from("ow_job_hiring_managers").select("job_id, user_id")
+    .in("job_id", p.scopeJobIds).in("user_id", p.userIds);
+  if (error) { console.error("[nextManager] links load:", error.message); return true; }
+  const key = (j: string, u: string) => `${j}|${u}`;
+  const wantKeys = new Set(p.want.map((w) => key(w.jobId, w.userId)));
+  const curKeys = new Set((cur ?? []).map((c) => key(c.job_id as string, c.user_id as string)));
+  const toAdd = p.want.filter((w) => !curKeys.has(key(w.jobId, w.userId)));
+  const toDel = (cur ?? []).filter((c) => !wantKeys.has(key(c.job_id as string, c.user_id as string)));
+  if (toAdd.length) {
+    const { error: iErr } = await db.from("ow_job_hiring_managers").upsert(
+      toAdd.map((w) => ({ job_id: w.jobId, user_id: w.userId, created_by: p.createdBy })),
+      { onConflict: "job_id,user_id", ignoreDuplicates: true },
+    );
+    if (iErr) { console.error("[nextManager] links insert:", iErr.message); return true; }
+  }
+  for (const d of toDel) {
+    const { error: dErr } = await db.from("ow_job_hiring_managers").delete().eq("job_id", d.job_id as string).eq("user_id", d.user_id as string);
+    if (dErr) { console.error("[nextManager] links delete:", dErr.message); return true; }
+  }
+  return false;
+}
+
+// ─── 募集の Hiring Manager（/biz の求人編集） ─────────────────────────────
+
+export type JobManagerOption = { userId: string; name: string; isHiring: boolean; selected: boolean };
+
+/** 求人編集で選べる人（その会社の有効な担当者）と、いま紐づいている人。⚠️ 取れなければ null */
+export async function getJobManagerOptions(companyId: string, jobId: string, db: Db = createAdminClient()): Promise<JobManagerOption[] | null> {
+  const [{ data: admins, error: aErr }, { data: links, error: lErr }] = await Promise.all([
+    db.from("ow_company_admins").select("user_id, is_hiring, ow_users!user_id(name)")
+      .eq("company_id", companyId).eq("is_active", true).not("user_id", "is", null),
+    db.from("ow_job_hiring_managers").select("user_id").eq("job_id", jobId),
+  ]);
+  if (aErr || lErr) { console.error("[nextManager] job options:", aErr?.message ?? lErr?.message); return null; }
+  const linked = new Set((links ?? []).map((l) => l.user_id as string));
+  const byUser = new Map<string, JobManagerOption>();
+  for (const a of admins ?? []) {
+    const uid = a.user_id as string;
+    const u = a.ow_users as unknown as { name: string | null } | null;
+    const prev = byUser.get(uid);
+    byUser.set(uid, { userId: uid, name: u?.name?.trim() || "（名前未設定）", isHiring: (prev?.isHiring ?? false) || a.is_hiring === true, selected: linked.has(uid) });
+  }
+  return Array.from(byUser.values()).sort((x, y) => Number(y.isHiring) - Number(x.isHiring) || x.name.localeCompare(y.name, "ja"));
+}
+
+/**
+ * ★募集の Hiring Manager を入れ替える（/biz・jobs.edit の権限は呼び出し側の requireBizAction）。
+ *   ⚠️ 募集がその会社のものか・選んだ人がその会社の有効な担当者かをここで確かめる。
+ *   ⚠️ いまその会社の担当者でない人の古い行は、この操作では触らない（範囲は有効な担当者だけ）。
+ */
+export async function setJobHiringManagers(params: { companyId: string; jobId: string; userIds: string[]; actorOwUserId: string }):
+  Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const db = createAdminClient();
+  const failed = { ok: false as const, status: 500, error: "保存できませんでした" };
+  const { data: job, error: jErr } = await db.from("ow_jobs").select("id").eq("id", params.jobId).eq("company_id", params.companyId).maybeSingle();
+  if (jErr) { console.error("[nextManager] setJobManagers job:", jErr.message); return failed; }
+  if (!job) return { ok: false, status: 404, error: "募集が見つかりません" };
+  const { data: admins, error: aErr } = await db.from("ow_company_admins").select("user_id")
+    .eq("company_id", params.companyId).eq("is_active", true).not("user_id", "is", null);
+  if (aErr) { console.error("[nextManager] setJobManagers admins:", aErr.message); return failed; }
+  const active = Array.from(new Set((admins ?? []).map((a) => a.user_id as string)));
+  if (params.userIds.some((u) => !active.includes(u))) return { ok: false, status: 400, error: "この会社の担当者ではない人が含まれています" };
+  const linkErr = await replaceLinks(db, {
+    scopeJobIds: [params.jobId], userIds: active, want: params.userIds.map((u) => ({ jobId: params.jobId, userId: u })),
+    createdBy: params.actorOwUserId,
+  });
+  return linkErr ? failed : { ok: true };
+}
+
+// ─── 求人ページの Hiring Manager（公開） ──────────────────────────────────
+
+export type PublicJobManager = { userId: string; name: string; avatarUrl: string | null; headline: string | null; note: string | null };
+
+/**
+ * ★求人ページに出す Hiring Manager。**本人が採用中にしている有効な担当者だけ**（会社が紐づけただけでは出さない）。
+ *   ⚠️ 本人が登録していない・システム・非公開の人は出さない。検証用と実在は混ぜない。⚠️ 取れなければ []（ページは出す）
+ */
+export async function getPublicJobManagers(jobId: string, companyId: string, db: Db = createAdminClient()): Promise<PublicJobManager[]> {
+  const { data: links, error } = await db.from("ow_job_hiring_managers").select("user_id").eq("job_id", jobId);
+  if (error) { console.error("[nextManager] public managers:", error.message); return []; }
+  const uids = Array.from(new Set((links ?? []).map((l) => l.user_id as string)));
+  if (uids.length === 0) return [];
+  const [{ data: admins, error: aErr }, { data: users, error: uErr }, { data: co, error: cErr }] = await Promise.all([
+    db.from("ow_company_admins").select("user_id, hiring_note").eq("company_id", companyId)
+      .eq("is_active", true).eq("is_hiring", true).in("user_id", uids),
+    db.from("ow_users").select("id, name, avatar_url, headline, auth_id, is_test, is_system, visibility").in("id", uids),
+    db.from("ow_companies").select("is_test").eq("id", companyId).maybeSingle(),
+  ]);
+  if (aErr || uErr || cErr) { console.error("[nextManager] public managers:", aErr?.message ?? uErr?.message ?? cErr?.message); return []; }
+  const noteOf = new Map((admins ?? []).map((a) => [a.user_id as string, (a.hiring_note as string | null) ?? null]));
+  /* ⚠️ 検証用と実在は混ぜない（実在の会社の求人に検証用アカウントを出さない。検証用の会社の求人には検証用の人だけ） */
+  const companyIsTest = co?.is_test === true;
+  return (users ?? [])
+    .filter((u) => noteOf.has(u.id as string) && !!u.auth_id && (u.is_test === true) === companyIsTest && u.is_system !== true && u.visibility !== "private")
+    .map((u) => ({
+      userId: u.id as string,
+      name: (u.name as string | null)?.trim() || "",
+      avatarUrl: (u.avatar_url as string | null) ?? null,
+      headline: (u.headline as string | null) ?? null,
+      note: noteOf.get(u.id as string) ?? null,
+    }))
+    .filter((u) => u.name);
 }
 
 // ─── ユーザー一覧のバッジ ─────────────────────────────────────────────────
@@ -101,20 +225,26 @@ export async function setHiring(params: { owUserId: string; companyId: string; i
  */
 export async function getHiringBadges(viewerIsTest: boolean, db: Db = createAdminClient()): Promise<Record<string, HiringBadge> | null> {
   const { data: rows, error } = await db.from("ow_company_admins")
-    .select("user_id, company_id, hiring_note, hiring_job_id")
+    .select("user_id, company_id, hiring_note")
     .eq("is_active", true).eq("is_hiring", true).not("user_id", "is", null);
   if (error) { console.error("[nextManager] badges:", error.message); return null; }
   if (!rows || rows.length === 0) return {};
   const cids = Array.from(new Set(rows.map((r) => r.company_id as string)));
-  const jids = Array.from(new Set(rows.map((r) => r.hiring_job_id as string | null).filter((x): x is string => !!x)));
-  const [{ data: cos, error: cErr }, jobsRes] = await Promise.all([
+  const uids = Array.from(new Set(rows.map((r) => r.user_id as string)));
+  const [{ data: cos, error: cErr }, { data: links, error: lErr }] = await Promise.all([
     db.from("ow_companies").select("id, name, name_en, is_test, suspended_at").in("id", cids),
-    jids.length ? db.from("ow_jobs").select("id, title, status").in("id", jids) : Promise.resolve({ data: [], error: null }),
+    db.from("ow_job_hiring_managers").select("user_id, ow_jobs!job_id(company_id, title, status, is_test)").in("user_id", uids),
   ]);
-  if (cErr || jobsRes.error) { console.error("[nextManager] badges:", cErr?.message ?? jobsRes.error?.message); return null; }
+  if (cErr || lErr) { console.error("[nextManager] badges:", cErr?.message ?? lErr?.message); return null; }
   const coOf = new Map((cos ?? []).map((c) => [c.id as string, c]));
   /* ⚠️ 公開中の募集だけ名前を出す（下書きの題名を一覧に出さない） */
-  const jobOf = new Map((jobsRes.data ?? []).filter((j) => j.status === "published").map((j) => [j.id as string, j.title as string]));
+  const titlesOf = new Map<string, string[]>();
+  for (const l of links ?? []) {
+    const j = l.ow_jobs as unknown as { company_id: string; title: string; status: string; is_test: boolean } | null;
+    if (!j || j.status !== "published") continue;
+    const k = `${l.user_id as string}|${j.company_id}`;
+    titlesOf.set(k, [...(titlesOf.get(k) ?? []), j.title]);
+  }
   const out: Record<string, HiringBadge> = {};
   for (const r of rows) {
     const co = coOf.get(r.company_id as string);
@@ -126,7 +256,7 @@ export async function getHiringBadges(viewerIsTest: boolean, db: Db = createAdmi
     out[uid] = {
       companyName: companyDisplayName(co.name as string, (co.name_en as string | null) ?? null).displayName,
       note: (r.hiring_note as string | null) ?? null,
-      jobTitle: r.hiring_job_id ? jobOf.get(r.hiring_job_id as string) ?? null : null,
+      jobTitles: titlesOf.get(`${uid}|${r.company_id as string}`) ?? [],
     };
   }
   return out;

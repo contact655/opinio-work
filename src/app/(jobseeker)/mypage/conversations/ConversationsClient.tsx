@@ -187,13 +187,13 @@ function UnrepliedDetail({ item, reported, onReply, onAction }: {
   const who = item.kind === "company" ? item.approach.companyName : `${item.request.requester.name}さん`;
   const extra = (
     <>
-      <button type="button" data-action="block" style={linkBtn}
-        onClick={() => {
-          const msg = item.kind === "company"
-            ? `${who}をブロックしますか？このメッセージは一覧から消え、以後この企業からのメッセージは届きません。企業には伝わりません。`
-            : `${who}をブロックしますか？このメッセージは一覧から消え、以後この方からのメッセージは届きません。相手には伝わりません。`;
-          if (window.confirm(msg)) void onAction(item, "block");
-        }}>ブロック</button>
+      {/* ★個人のブロックは 2026-11-13 に外した（柴さんの指示）。企業のブロック（企業からのメッセージ）だけ残す */}
+      {item.kind === "company" && (
+        <button type="button" data-action="block" style={linkBtn}
+          onClick={() => {
+            if (window.confirm(`${who}をブロックしますか？このメッセージは一覧から消え、以後この企業からのメッセージは届きません。企業には伝わりません。`)) void onAction(item, "block");
+          }}>ブロック</button>
+      )}
       {reported ? (
         <span data-state="reported" style={{ fontSize: 12.5, color: "var(--ink-mute)" }}>運営に報告しました</span>
       ) : (
@@ -336,6 +336,7 @@ export default function ConversationsClient({
   /* 見送る・ブロック（一覧から消す）・運営に報告（一覧には残す）。⚠️ どれも相手には伝わらない */
   const actUnreplied = async (item: UnrepliedItem, action: "decline" | "block" | "report"): Promise<string | null> => {
     if (item.kind === "person") {
+      if (action === "block") return null;
       const err = await handleAction(item.request.conversationId, action);
       if (!err && action === "report") setReported((prev) => new Set(prev).add(item.key));
       if (!err && action !== "report") setOpenUnreplied(null);
@@ -372,7 +373,7 @@ export default function ConversationsClient({
     }
   };
   /* 見送る・ブロック（一覧から消す）・運営に報告（一覧には残す）。⚠️ どれも相手には伝わらない */
-  const handleAction = async (id: string, action: "decline" | "block" | "report"): Promise<string | null> => {
+  const handleAction = async (id: string, action: "decline" | "report"): Promise<string | null> => {
     try {
       const res = await fetch(`/api/dm/requests/${id}`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }),

@@ -8,7 +8,23 @@
  */
 
 /** 一覧のバッジに渡すもの（採用中のマネージャー1人ぶん） */
-export type HiringBadge = { companyName: string; note: string | null; jobTitle: string | null };
+export type HiringBadge = { companyName: string; note: string | null; jobTitles: string[] };
+
+/** 1人のマネージャーに紐づけられる募集の上限・1つの募集に紐づけられる Hiring Manager の上限（API で見る） */
+export const MAX_JOBS_PER_MANAGER = 20;
+export const MAX_MANAGERS_PER_JOB = 10;
+
+/** uuid の配列を読む（重複は落とす）。上限を超えたら null */
+export function parseUuidList(raw: unknown, max: number): string[] | null {
+  if (raw == null) return [];
+  if (!Array.isArray(raw)) return null;
+  const out: string[] = [];
+  for (const v of raw) {
+    if (!isUuid(v)) return null;
+    if (!out.includes(v)) out.push(v);
+  }
+  return out.length > max ? null : out;
+}
 
 /** 「チームで募集中」の短いテキストの上限（DB の CHECK と同じ） */
 export const HIRING_NOTE_MAX = 40;
@@ -108,7 +124,7 @@ export function parseMatchPatch(raw: unknown): { ok: true; patch: MatchPatch } |
 
 /** 採用中の設定の入力を読む */
 export function parseHiringInput(raw: unknown):
-  | { ok: true; companyId: string; isHiring: boolean; note: string | null; jobId: string | null }
+  | { ok: true; companyId: string; isHiring: boolean; note: string | null; jobIds: string[] }
   | { ok: false; error: string } {
   if (!raw || typeof raw !== "object") return { ok: false, error: "入力が読み取れません" };
   const r = raw as Record<string, unknown>;
@@ -121,16 +137,14 @@ export function parseHiringInput(raw: unknown):
     if (n.length > HIRING_NOTE_MAX) return { ok: false, error: `募集の内容は${HIRING_NOTE_MAX}文字以内で入力してください` };
     note = n || null;
   }
-  let jobId: string | null = null;
-  if (r.jobId != null && r.jobId !== "") {
-    if (!isUuid(r.jobId)) return { ok: false, error: "募集が正しくありません" };
-    jobId = r.jobId;
-  }
-  return { ok: true, companyId: r.companyId, isHiring: r.isHiring, note, jobId };
+  const jobIds = parseUuidList(r.jobIds, MAX_JOBS_PER_MANAGER);
+  if (!jobIds) return { ok: false, error: `募集が正しくありません（${MAX_JOBS_PER_MANAGER}件まで）` };
+  return { ok: true, companyId: r.companyId, isHiring: r.isHiring, note, jobIds };
 }
 
-/** 一覧のカードに出す「チームで募集中」の中身。募集の名前を先に、無ければテキスト */
-export function hiringForText(h: { note: string | null; jobTitle: string | null }): string | null {
-  if (h.jobTitle && h.note) return `${h.jobTitle}（${h.note}）`;
-  return h.jobTitle ?? h.note ?? null;
+/** 一覧のカードに出す「チームで募集中」の中身。募集の名前（「・」でつなぐ）を先に、テキストは括弧で添える */
+export function hiringForText(h: { note: string | null; jobTitles: string[] }): string | null {
+  const titles = h.jobTitles.join("・");
+  if (titles && h.note) return `${titles}（${h.note}）`;
+  return titles || h.note || null;
 }

@@ -177,7 +177,7 @@ export const CONNECTION_FIRST_MESSAGE_MAX = 2000;
  *
  * - 会話は最初から `request_status='accepted'`。両者を参加者に入れ、通知はふつうのメッセージ（`message`）
  * - 「聞きたいこと」（テーマ）は聞かない。知っている相手に送るふつうのメッセージなので
- * - ⚠️★**止める規則はそのまま**（`isMessagingBlocked`: ブロック・検証用と実在の組・企業の担当者の規則）。
+ * - ⚠️★**止める規則はそのまま**（`isMessagingBlocked`: 検証用と実在の組・本人が登録していない相手。2026-11-13 にブロックと企業の担当者の規則は外した）。
  *   つながっていても、その規則で止まる相手には送れない
  * - ⚠️ 返事待ちの枠（1日10件・20件）は数えない。返事待ちを作らないので。
  *   ⚠️ ただし `requested_at` は入る（DM は必須の列）ので、**その日の「新しい方へ」の件数には数えられる**（1日10件のほうだけ）
@@ -429,13 +429,12 @@ export async function sendMessageRequest(params: {
   return { ok: true, conversationId };
 }
 
-export type RespondAction = "decline" | "block" | "report";
+export type RespondAction = "decline" | "report";
 
 /**
- * 受け手が「今回は見送る」「ブロック」「運営に報告」を押す（2026-10-11 に「承認」を外した。返信は `replyToMessageRequest`）。
- * ⚠️★見送り・ブロックは送り手に何も伝えない（通知も出さない・会話の行も変えない。送り手には「返事待ち」のまま見える）。
- * ⚠️ ブロックは ow_user_blocks に記録し、このリクエストを一覧から消す（見送りと同じ ow_message_request_declines）。
- *    以後はどちらからも送れない（`contactGate.isMessagingBlocked`）。
+ * 受け手が「今回は見送る」「運営に報告」を押す（2026-10-11 に「承認」を外した。返信は `replyToMessageRequest`）。
+ * ⚠️★見送りは送り手に何も伝えない（通知も出さない・会話の行も変えない。送り手には「返事待ち」のまま見える）。
+ * ⚠️★個人のブロックは 2026-11-13 に外した（柴さんの指示）。ow_user_blocks の表と行は残してあるが、読まない・書かない。
  * ⚠️ 報告は ow_message_reports に1件（1通目の本文を控える）。一覧からは消さない。運営は /admin/message-reports で見る。
  */
 export async function respondToMessageRequest(params: {
@@ -482,15 +481,7 @@ export async function respondToMessageRequest(params: {
     return { ok: true };
   }
 
-  if (action === "block") {
-    const { error: bErr } = await db.from("ow_user_blocks").insert({ blocker_user_id: recipientId, blocked_user_id: senderId });
-    if (bErr && bErr.code !== "23505") {
-      console.error("[messageRequest] block:", bErr.message);
-      return { ok: false, status: 500, error: MSG.failed };
-    }
-  }
-
-  /* 見送り（ブロックも一覧から消す）。⚠️★送り手には何も伝えない */
+  /* 見送り（一覧から消す）。⚠️★送り手には何も伝えない */
   const { error: dErr } = await db.from("ow_message_request_declines").insert({ conversation_id: conversationId });
   if (dErr && dErr.code !== "23505") {
     console.error("[messageRequest] decline:", dErr.message);
@@ -525,7 +516,7 @@ export async function replyToMessageRequest(params: {
     return { ok: false, status: 500, error: MSG.failed };
   }
   if (!conv) return { ok: false, status: 404, error: "このメッセージは見つかりません" };
-  /* ⚠️ いまこの2人のあいだで送れるか（ブロック・検証用と実在の組・企業の担当者の規則）。理由は返さない */
+  /* ⚠️ いまこの2人のあいだで送れるか（検証用と実在の組など。contactGate）。理由は返さない */
   if (await isMessagingBlocked(params.recipientId, conv.candidate_user_id as string)) {
     return { ok: false, status: 403, error: CONTACT_BLOCKED_MESSAGE };
   }
