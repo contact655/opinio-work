@@ -54,7 +54,7 @@ import { MEETING_CTA_BG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingC
 import ViewBeacon from "@/components/views/ViewBeacon";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 import { OwnCompanyNote } from "@/components/companies/OwnCompanyNote";
-import { shortAddress, annualHolidays, postedAgo } from "@/lib/jobs/heroFacts";
+import { shortAddress, annualHolidays, postedAgo, jobDateRows } from "@/lib/jobs/heroFacts";
 
 // 5分間ページキャッシュ（ISR）
 type RelatedJob = {
@@ -1683,6 +1683,8 @@ export async function JobDetailView({
                   { key: "勤務地", value: job.location },
                   { key: "働き方", value: job.work_style },
                   { key: "経験", value: job.experience },
+                  /* ★掲載日・更新日（2026-11-19 / 柴さんの指示）。規則は jobDateRows（heroFacts.ts）の1か所 */
+                  ...jobDateRows(job.published_at, job.updated_at),
                 ].filter(({ value }) => !!value).map(({ key, value }) => (
                   <div key={key} style={{
                     display: "flex", justifyContent: "space-between", alignItems: "flex-start",

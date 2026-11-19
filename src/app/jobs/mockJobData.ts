@@ -77,6 +77,9 @@ export type Job = {
   related_article_excerpt: string;
   // SEO / structured data
   published_at?: string | null;
+  /* ★求人詳細の「更新日」（2026-11-19）。ow_jobs.updated_at。
+     ⚠️ 保存のたびに動く（中身を変えていない保存・運営の操作でも新しくなる） */
+  updated_at?: string | null;
   expires_at?: string | null;
   // enrichment fields (Migration 147)
   why_hire?: string | null;
