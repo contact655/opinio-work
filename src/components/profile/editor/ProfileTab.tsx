@@ -104,6 +104,7 @@ export type SettingsState = {
   visibility: "public" | "login_only" | "private";
 };
 import { USERNAME_MIN, USERNAME_MAX, USERNAME_HINT } from "@/lib/constants/username";
+import { HiringEntryCard } from "@/components/nextManager/HiringEntryCard";
 
 /** JSONB キー名は "x"。値は URL 文字列。空文字列 = 未設定。 */
 type SocialLinks = Partial<Record<SocialPlatform, string>>;
@@ -2140,6 +2141,8 @@ export default function ProfileTab({
                   <span style={{ display: "block", fontSize: 12, color: "var(--ink-soft)", marginTop: 2, lineHeight: 1.6 }}>この職歴から作ります。PDF で保存できます →</span>
                 </a>
               )}
+              {/* ★採用中のマネージャーへの入口（スマホだけ。2026-11-19）。パソコンは右の列（MypageClient） */}
+              {careerStints.length > 0 && <HiringEntryCard variant="inline" className="mypage-mobile-only" />}
             </ProfileTimelineSection>
             {/* ★モーダルと削除確認だけ。一覧は上の `MergedTimeline` が持つ（2-6）。
                    ⚠️ **セクションの外に出して常にマウントする**（2026-08-17）。
