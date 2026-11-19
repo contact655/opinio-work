@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { shortAddress, listAddress, annualHolidays, postedAgo } from "./heroFacts.ts";
+import { shortAddress, listAddress, annualHolidays, postedAgo, jobDateRows, jpDate } from "./heroFacts.ts";
 
 test("住所を都道府県＋市区町村までに縮める", () => {
   assert.equal(shortAddress("大阪府大阪市北区堂島2-3-5 JPR堂島ウエスト2階"), "大阪府大阪市北区");
@@ -42,4 +42,19 @@ test("一覧の勤務地は都道府県＋市区町村まで（政令市は市�
   assert.equal(listAddress("リモート"), "リモート");
   assert.equal(listAddress(""), null);
   assert.equal(listAddress(null), null);
+});
+
+test("掲載日・更新日（日本時間の日付。同じ日なら更新日は出さない）", () => {
+  assert.equal(jpDate("2026-10-28T04:47:00.691+00:00"), "2026年10月28日");
+  assert.equal(jpDate("2026-10-27T16:00:00Z"), "2026年10月28日"); // 日本時間では翌日
+  assert.equal(jpDate(null), null);
+  assert.equal(jpDate("x"), null);
+  assert.deepEqual(jobDateRows("2026-10-28T04:47:00Z", "2026-10-28T04:47:00Z"), [{ key: "掲載日", value: "2026年10月28日" }]);
+  assert.deepEqual(jobDateRows("2026-10-28T04:47:00Z", "2026-10-28T10:00:00Z"), [{ key: "掲載日", value: "2026年10月28日" }]);
+  assert.deepEqual(jobDateRows("2026-10-28T04:47:00Z", "2026-11-05T01:00:00Z"), [
+    { key: "掲載日", value: "2026年10月28日" },
+    { key: "更新日", value: "2026年11月5日" },
+  ]);
+  assert.deepEqual(jobDateRows("2026-10-28T04:47:00Z", "2026-10-01T00:00:00Z"), [{ key: "掲載日", value: "2026年10月28日" }]);
+  assert.deepEqual(jobDateRows(null, "2026-11-05T01:00:00Z"), []);
 });

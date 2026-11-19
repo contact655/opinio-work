@@ -264,6 +264,7 @@ function mapJob(row: Record<string, any>): Job {
     // 技術スタック (Migration 245)
     tech_stack: Array.isArray(row.tech_stack) ? (row.tech_stack as string[]) : [],
     published_at: (row.published_at as string) ?? null,
+    updated_at: (row.updated_at as string | null) ?? null,
     expires_at: (row.expires_at as string) ?? null,
   };
 }

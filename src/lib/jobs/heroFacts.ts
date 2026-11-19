@@ -68,3 +68,32 @@ export function postedAgo(publishedAt: string | null | undefined, now: Date = ne
   if (months < 12) return `${months}か月前`;
   return `${Math.floor(months / 12)}年前`;
 }
+
+/** 日時を日本時間の「2026年10月28日」にする。読めなければ null */
+export function jpDate(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return null;
+  const d = new Date(t + 9 * 3_600_000); // 日本時間に寄せてから UTC の年月日を読む
+  return `${d.getUTCFullYear()}年${d.getUTCMonth() + 1}月${d.getUTCDate()}日`;
+}
+
+/**
+ * 募集サマリーに出す「掲載日」「更新日」（2026-11-19）。
+ * ⚠️ 掲載日が無い求人には何も出さない（下書きから直接来た値を「掲載」と言わない）。
+ * ⚠️ 更新日は、日本時間で掲載日より後の日付のときだけ出す（同じ日なら2行並べても情報が増えない）。
+ * ⚠️ 更新日は ow_jobs.updated_at。中身を変えない保存でも新しくなる。
+ */
+export function jobDateRows(
+  publishedAt: string | null | undefined,
+  updatedAt: string | null | undefined,
+): { key: "掲載日" | "更新日"; value: string }[] {
+  const posted = jpDate(publishedAt);
+  if (!posted) return [];
+  const rows: { key: "掲載日" | "更新日"; value: string }[] = [{ key: "掲載日", value: posted }];
+  const updated = jpDate(updatedAt);
+  if (updated && updated !== posted && new Date(updatedAt as string) > new Date(publishedAt as string)) {
+    rows.push({ key: "更新日", value: updated });
+  }
+  return rows;
+}
