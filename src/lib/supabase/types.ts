@@ -1713,6 +1713,8 @@ export type Database = {
           created_at: string
           created_via: string | null
           department: string | null
+          hiring_note: string | null
+          hiring_updated_at: string | null
           id: string
           invitation_token: string | null
           invited_at: string | null
@@ -1721,6 +1723,7 @@ export type Database = {
           is_active: boolean
           is_ambassador: boolean
           is_default: boolean
+          is_hiring: boolean
           joined_at: string | null
           permission: string
           role_title: string | null
@@ -1737,6 +1740,8 @@ export type Database = {
           created_at?: string
           created_via?: string | null
           department?: string | null
+          hiring_note?: string | null
+          hiring_updated_at?: string | null
           id?: string
           invitation_token?: string | null
           invited_at?: string | null
@@ -1745,6 +1750,7 @@ export type Database = {
           is_active?: boolean
           is_ambassador?: boolean
           is_default?: boolean
+          is_hiring?: boolean
           joined_at?: string | null
           permission?: string
           role_title?: string | null
@@ -1761,6 +1767,8 @@ export type Database = {
           created_at?: string
           created_via?: string | null
           department?: string | null
+          hiring_note?: string | null
+          hiring_updated_at?: string | null
           id?: string
           invitation_token?: string | null
           invited_at?: string | null
@@ -1769,6 +1777,7 @@ export type Database = {
           is_active?: boolean
           is_ambassador?: boolean
           is_default?: boolean
+          is_hiring?: boolean
           joined_at?: string | null
           permission?: string
           role_title?: string | null
@@ -4836,6 +4845,49 @@ export type Database = {
           },
         ]
       }
+      ow_job_hiring_managers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          job_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          job_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          job_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_job_hiring_managers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_job_hiring_managers_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "ow_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_job_hiring_managers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_job_internal_notes: {
         Row: {
           body: string
@@ -5380,6 +5432,166 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      ow_manager_match_handovers: {
+        Row: {
+          from_user_id: string | null
+          handed_over_at: string
+          handed_over_by: string | null
+          id: string
+          match_id: string
+          to_user_id: string | null
+        }
+        Insert: {
+          from_user_id?: string | null
+          handed_over_at?: string
+          handed_over_by?: string | null
+          id?: string
+          match_id: string
+          to_user_id?: string | null
+        }
+        Update: {
+          from_user_id?: string | null
+          handed_over_at?: string
+          handed_over_by?: string | null
+          id?: string
+          match_id?: string
+          to_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_manager_match_handovers_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_manager_match_handovers_handed_over_by_fkey"
+            columns: ["handed_over_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_manager_match_handovers_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "ow_manager_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_manager_match_handovers_to_user_id_fkey"
+            columns: ["to_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_manager_matches: {
+        Row: {
+          candidate_user_id: string
+          company_id: string
+          conversation_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          job_id: string | null
+          manager_user_id: string | null
+          matched_at: string
+          memo: string | null
+          met_on: string | null
+          result: string | null
+          self_declared: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          candidate_user_id: string
+          company_id: string
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_id?: string | null
+          manager_user_id?: string | null
+          matched_at?: string
+          memo?: string | null
+          met_on?: string | null
+          result?: string | null
+          self_declared?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          candidate_user_id?: string
+          company_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_id?: string | null
+          manager_user_id?: string | null
+          matched_at?: string
+          memo?: string | null
+          met_on?: string | null
+          result?: string | null
+          self_declared?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_manager_matches_candidate_user_id_fkey"
+            columns: ["candidate_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_manager_matches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_manager_matches_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ow_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_manager_matches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_manager_matches_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "ow_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_manager_matches_manager_user_id_fkey"
+            columns: ["manager_user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_manager_matches_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ow_match_scores: {
         Row: {
@@ -7300,6 +7512,64 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ow_search_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_self_hiring: {
+        Row: {
+          company_id: string
+          created_at: string
+          is_hiring: boolean
+          note: string | null
+          removed_at: string | null
+          removed_by: string | null
+          removed_by_role: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          is_hiring?: boolean
+          note?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          removed_by_role?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          is_hiring?: boolean
+          note?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          removed_by_role?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_self_hiring_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_self_hiring_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_self_hiring_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "ow_users"

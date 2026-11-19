@@ -40,6 +40,12 @@ export function NextManagerSamples() {
           <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>チームで募集中: {hiringForText({ note: "2名", jobTitles: ["フィールドセールス", "インサイドセールス"] })}</span>
         </div>
       </Variant>
+      <Variant label="会社の担当者でない人の申告（「本人の申告」を添える。2026-11-19）">
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ fontWeight: 800 }}>安齋 亮太</span><HiringBadgeChip companyName="Salesforce" selfDeclared />
+          <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>チームで募集中: {hiringForText({ note: "フィールドセールス・2名", jobTitles: [] })}</span>
+        </div>
+      </Variant>
       <Variant label="送る画面の一行／メッセージ画面の上部の一行">
         <div style={{ display: "grid", gap: 12, maxWidth: 560 }}>
           <PrivateMessageNote text={privateMessageNote("山本 健", "田中 美咲")} />

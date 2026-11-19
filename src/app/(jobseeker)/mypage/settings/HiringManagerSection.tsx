@@ -2,9 +2,11 @@
 
 import { useEffect, useId, useState } from "react";
 import { FormSection } from "@/components/profile/editor/formKit";
-import { HIRING_NOTE_MAX } from "@/lib/nextManager/constants";
+import { HIRING_NOTE_MAX, SELF_DECLARED_LABEL } from "@/lib/nextManager/constants";
 
 type Row = {
+  kind: "admin" | "self";
+  removed: boolean;
   companyId: string;
   companyName: string;
   isHiring: boolean;
@@ -14,7 +16,9 @@ type Row = {
 };
 
 /**
- * ★Next Manager「採用中」（2026-11-13）。会社の担当者になっている人だけに出す（担当者でなければ何も描かない）。
+ * ★Next Manager「採用中」（2026-11-13）。
+ *   ★2026-11-19 から、会社の担当者でない人も「職歴で在籍中の会社」で採用中を申告できる（kind: "self"）。
+ *   会社の担当者でも在籍中の会社も無い人には何も描かない。
  *   オンにすると、ユーザー一覧の名前の横に「採用中」が出て、「採用中のマネージャー」で絞り込める。
  *   採用中のあいだに個人どうしのメッセージで相手が返信すると、会社の候補者管理にマッチングの記録が1件残る。
  * ⚠️ オンにできるのは本人だけ（API が本人の有効な担当者の行かを確かめる）。
@@ -40,13 +44,13 @@ export default function HiringManagerSection() {
       </FormSection>
     );
   }
-  /* ⚠️ 担当者でない人（0件）には欄ごと出さない */
+  /* ⚠️ 採用中にできる会社が無い人（0件）には欄ごと出さない */
   if (!rows || rows.length === 0) return null;
 
   return (
     <div id="hiring-manager-setting">
       <FormSection title="採用中のマネージャー"
-        desc="自分のチームの仲間を探しているときにオンにします。ユーザー一覧で名前の横に「採用中」が出て、紐づけた公開中の募集のページに「この募集の Hiring Manager」として出ます。メッセージは相手とあなたの2人だけのもので、会社には共有されません。相手が返信してやり取りが始まると、マッチングした事実だけが会社の候補者管理に残ります。">
+        desc="自分のチームの仲間を探しているときにオンにします。ユーザー一覧で名前の横に「採用中」が出て、「採用中のマネージャー」で探す人に見つかります。メッセージは相手とあなたの2人だけのもので、会社には共有されません。">
         <div style={{ display: "grid", gap: 16 }}>
           {rows.map((r) => <HiringRow key={r.companyId} initial={r} onSaved={(next) => setRows((cur) => (cur ?? []).map((x) => (x.companyId === next.companyId ? next : x)))} />)}
         </div>
@@ -90,8 +94,25 @@ function HiringRow({ initial, onSaved }: { initial: Row; onSaved: (r: Row) => vo
     <div data-state={initial.isHiring ? "hiring-on" : "hiring-off"} style={{ display: "grid", gap: 10, padding: "12px 14px", border: "1px solid var(--line)", borderRadius: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{initial.companyName}</span>
+        {initial.kind === "self" && (
+          <span data-state="hiring-self-label" style={{ fontSize: 11.5, fontWeight: 700, color: "var(--ink-soft)", border: "1px solid var(--line)", borderRadius: 999, padding: "1px 8px" }}>{SELF_DECLARED_LABEL}</span>
+        )}
         <span style={{ fontSize: 13, fontWeight: 700, color: initial.isHiring ? "#17633F" : "var(--ink-mute)" }}>いま：{initial.isHiring ? "採用中" : "採用中ではありません"}</span>
       </div>
+      {/* ★申告（会社の担当者でない人）の説明。⚠️ 何が誰に見えるかを書く */}
+      {initial.kind === "self" ? (
+        <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.7, color: "var(--ink-soft)" }}>
+          職歴で在籍中の会社として、あなたの申告で採用中にできます。一覧には「{SELF_DECLARED_LABEL}」と添えて出ます。
+          メッセージで相手が返信したときの記録は、あなただけが見られます（会社には共有されません）。
+          {initial.companyName}の担当者と運営は、この表示を外せます。
+        </p>
+      ) : (
+        <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.7, color: "var(--ink-soft)" }}>
+          会社の担当者として採用中にします。紐づけた公開中の募集のページに「この募集の Hiring Manager」として出ます。
+          相手が返信してやり取りが始まると、マッチングした事実が会社の候補者管理に残ります。
+        </p>
+      )}
+      {!initial.removed && (
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
         <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
           <label htmlFor={`${base}-note`} style={{ fontSize: 12.5, fontWeight: 700 }}>チームで募集している内容（任意）</label>
@@ -112,6 +133,12 @@ function HiringRow({ initial, onSaved }: { initial: Row; onSaved: (r: Row) => vo
           </fieldset>
         )}
       </div>
+      )}
+      {initial.removed ? (
+        <p data-state="hiring-removed" style={{ margin: 0, fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
+          この会社での採用中の表示は、会社の担当者か運営が外しました。この会社ではもう一度オンにできません。
+        </p>
+      ) : (
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         {initial.isHiring ? (
           <>
@@ -133,6 +160,7 @@ function HiringRow({ initial, onSaved }: { initial: Row; onSaved: (r: Row) => vo
         {done && <span role="status" style={{ fontSize: 12.5, fontWeight: 600, color: "#17633F" }}>{done}</span>}
         {error && <span role="alert" style={{ fontSize: 12.5, fontWeight: 600, color: "var(--error)" }}>{error}</span>}
       </div>
+      )}
     </div>
   );
 }
