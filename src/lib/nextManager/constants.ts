@@ -64,6 +64,8 @@ export const HIRING_BADGE_LABEL = "採用中";
 /** ユーザー一覧の切り替え（?hiring=1） */
 export const HIRING_PARAM = "hiring";
 export const HIRING_FILTER_LABEL = "採用中のマネージャー";
+/** 採用中の設定（/mypage/settings の欄）。マイページの入口が送る先（2026-11-19） */
+export const HIRING_SETTING_HREF = "/mypage/settings#hiring-manager-setting";
 
 /** 送る画面の下に出す一行（★相手と自分の名前が分かるとき） */
 export function privateMessageNote(senderName: string | null, recipientName: string | null): string {

@@ -37,6 +37,14 @@ export default function HiringManagerSection() {
     return () => { alive = false; };
   }, []);
 
+  /* ★マイページの入口（#hiring-manager-setting）から来たとき、読み込みのあとで欄まで送る。
+     ⚠️ 欄は読み込み後に描くので、ブラウザのハッシュの移動が効かない。rAF に載せない（ui-debugging ⑪） */
+  useEffect(() => {
+    if (!rows || rows.length === 0 || window.location.hash !== "#hiring-manager-setting") return;
+    const t = setTimeout(() => document.getElementById("hiring-manager-setting")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+    return () => clearTimeout(t);
+  }, [rows]);
+
   if (loadError) {
     return (
       <FormSection title="採用中のマネージャー">

@@ -19,6 +19,7 @@ import { type CareerEntry } from "@/components/profile/MergedTimeline";
 import { PostComposer } from "@/components/profile/PostComposer";
 /* ★「◯◯の経験が活きる会社」（2026-09-04）。⚠️ ブロックが0件なら何も描かない部品。 */
 import { IndustryMatchSection } from "@/components/mypage/IndustryMatchSection";
+import { HiringEntryCard } from "@/components/nextManager/HiringEntryCard";
 import type { IndustryMatchBlock } from "@/lib/companies/industryMatchText";
 
 /* ⚠️ **`ProfileEditor` の OwUser と同じ形にすること**（2026-08-16）。
@@ -410,6 +411,9 @@ export default function MypageClient({
           入れた職歴から職務経歴書を作ります。PDF で保存できます →
         </span>
       </a>
+
+      {/* ★採用中のマネージャーへの入口（2026-11-19）。本体は /mypage/settings。⚠️ スマホは職歴の欄の下（ProfileTab）に置く */}
+      <HiringEntryCard variant="rail" className="mypage-hide-mobile" />
 
       <IndustryMatchSection blocks={industryMatchBlocks} />
 
