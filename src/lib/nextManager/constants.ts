@@ -8,7 +8,15 @@
  */
 
 /** 一覧のバッジに渡すもの（採用中のマネージャー1人ぶん） */
-export type HiringBadge = { companyName: string; note: string | null; jobTitles: string[] };
+export type HiringBadge = {
+  companyName: string; note: string | null; jobTitles: string[];
+  /** ★会社の担当者でない人の申告（2026-11-19）。一覧に「本人の申告」と出す */
+  selfDeclared: boolean;
+};
+
+/** 申告の採用中に添える一言（一覧のバッジ・設定画面） */
+export const SELF_DECLARED_LABEL = "本人の申告";
+export const SELF_DECLARED_NOTE = "本人の申告です。OPINIO は在籍や採用の担当を確認していません。";
 
 /** 1人のマネージャーに紐づけられる募集の上限・1つの募集に紐づけられる Hiring Manager の上限（API で見る） */
 export const MAX_JOBS_PER_MANAGER = 20;

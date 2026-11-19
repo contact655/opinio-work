@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { CompanyMatchesView, CompanyManagerRow } from "@/lib/nextManager/server";
-import { COMPANY_RECORD_NOTE, matchResultLabel } from "@/lib/nextManager/constants";
+import type { CompanyMatchesView, CompanyManagerRow, SelfHiringRow } from "@/lib/nextManager/server";
+import { COMPANY_RECORD_NOTE, SELF_DECLARED_NOTE, matchResultLabel } from "@/lib/nextManager/constants";
 
 /* 結果ごとの色（モック）。⚠️ 色だけで区別しない（文字も必ず出す） */
 const TONE: Record<string, React.CSSProperties> = {
@@ -26,10 +26,12 @@ function fmt(iso: string | null): string {
  * ★候補者管理（Next Manager / 2026-11-13）。⚠️ メッセージ本文は出さない。
  *   退職などで会社を外れたマネージャーの記録には「退職済み」、引き継ぎ後は「退職済み → ◯◯が引き継ぎ」。
  */
-export default function ManagerMatchesClient({ view, viewAll, canHandover }: {
+export default function ManagerMatchesClient({ view, viewAll, canHandover, selfHiring }: {
   view: CompanyMatchesView | null;
   viewAll: boolean;
   canHandover: boolean;
+  /** 自社で採用中を申告している人（管理者だけ。undefined なら欄を出さない・null は読み込み失敗） */
+  selfHiring?: SelfHiringRow[] | null;
 }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 20, minWidth: 0 }}>
@@ -112,6 +114,7 @@ export default function ManagerMatchesClient({ view, viewAll, canHandover }: {
 
           <aside style={{ flex: "1 1 260px", minWidth: 0, display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 16 }}>
             <ManagersCard managers={view.managers} successors={view.successors} canHandover={canHandover} />
+            {selfHiring !== undefined && <SelfHiringCard rows={selfHiring} />}
             <section aria-label="会社に残らないもの" style={{ background: "var(--bg-tint, #F1F3F6)", borderRadius: 12, padding: 18 }}>
               <h2 style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 700 }}>会社に残らないもの</h2>
               <p style={{ margin: 0, fontSize: 13, lineHeight: 1.8, color: "var(--ink-soft)" }}>{COMPANY_RECORD_NOTE}</p>
@@ -196,5 +199,62 @@ function HandoverForm({ fromUserId, successors }: { fromUserId: string; successo
       </button>
       {error && <span role="alert" style={{ width: "100%", fontSize: 12, color: "var(--error)" }}>{error}</span>}
     </div>
+  );
+}
+
+/**
+ * ★自社で採用中を申告している人（2026-11-19）。職歴で御社に在籍中と登録している、担当者でない人。
+ *   ⚠️ この人たちのマッチングの記録は本人だけのもので、ここ（候補者管理）には出ない。
+ *   外すと、その人はこの会社でもう一度オンにできない。
+ */
+function SelfHiringCard({ rows }: { rows: SelfHiringRow[] | null }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  async function remove(r: SelfHiringRow) {
+    if (busy) return;
+    if (!window.confirm(`${r.userName}さんの「採用中」の表示を外しますか？外すと、この会社ではもう一度オンにできません。`)) return;
+    setBusy(r.userId); setError(null);
+    try {
+      const res = await fetch("/api/biz/manager-matches/self-hiring", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: r.userId }),
+      });
+      const d = await res.json().catch(() => null);
+      if (!res.ok) throw new Error((d && d.error) || "外せませんでした");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "外せませんでした");
+    } finally {
+      setBusy(null);
+    }
+  }
+  return (
+    <section aria-label="御社で採用中を申告している人" data-state="self-hiring-card"
+      style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 12, padding: "14px 16px", display: "grid", gap: 10 }}>
+      <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>御社で採用中を申告している人</h2>
+      <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.7, color: "var(--ink-soft)" }}>
+        職歴で御社に在籍中と登録し、本人の申告で「採用中」にしている人です。{SELF_DECLARED_NOTE}
+        この人たちのメッセージの記録は本人だけのもので、候補者管理には出ません。心当たりの無い人は外せます。
+      </p>
+      {rows === null ? (
+        <p role="alert" style={{ margin: 0, fontSize: 13, color: "var(--error)" }}>読み込めませんでした（0人という意味ではありません）。</p>
+      ) : rows.length === 0 ? (
+        <p data-state="self-hiring-empty" style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>いまはいません。</p>
+      ) : (
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
+          {rows.map((r) => (
+            <li key={r.userId} data-state="self-hiring-row" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <Link href={`/u/${r.userId}`} style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", minWidth: 0, overflowWrap: "anywhere" }}>{r.userName}</Link>
+              {r.note && <span style={{ fontSize: 12.5, color: "var(--ink-soft)", minWidth: 0, overflowWrap: "anywhere" }}>{r.note}</span>}
+              <button type="button" onClick={() => void remove(r)} disabled={busy !== null} data-action="self-hiring-remove" className="tap-min-h"
+                style={{ marginLeft: "auto", padding: "6px 12px", borderRadius: 8, border: "1px solid var(--line)", background: "#fff", fontSize: 12.5, fontWeight: 600, fontFamily: "inherit", color: "var(--ink-soft)", cursor: busy ? "default" : "pointer" }}>
+                {busy === r.userId ? "外しています…" : "外す"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {error && <p role="alert" style={{ margin: 0, fontSize: 12.5, color: "var(--error)" }}>{error}</p>}
+    </section>
   );
 }

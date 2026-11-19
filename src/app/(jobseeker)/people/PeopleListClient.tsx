@@ -20,7 +20,7 @@ import { showFollowOnCard } from "@/lib/people/followButton";
 import { prevParams, type PrevSelection } from "@/lib/people/prevCareer";
 import type { PathsOption, PathsStartView } from "@/lib/paths/server";
 import type { HiringBadge } from "@/lib/nextManager/constants";
-import { HIRING_BADGE_LABEL, HIRING_FILTER_LABEL, HIRING_PARAM, hiringForText } from "@/lib/nextManager/constants";
+import { HIRING_BADGE_LABEL, HIRING_FILTER_LABEL, HIRING_PARAM, SELF_DECLARED_LABEL, SELF_DECLARED_NOTE, hiringForText } from "@/lib/nextManager/constants";
 
 /**
  * カード1枚のデータ。取得は src/lib/people/directory.ts。
@@ -510,9 +510,11 @@ export function ConsultBadge() {
  * ★「採用中」のバッジ（Next Manager / 2026-11-13）。いま自分のチームの仲間を探しているマネージャー。
  *   ⚠️ 出す人は lib/nextManager/server.ts の getHiringBadges（会社の有効な担当者で、本人が採用中にした人）。
  *   ⚠️ 色は緑の薄い塗り（モック）。「相談可能」（濃紺の線）と見分けられるように。
+ *   ★会社の担当者でない人の申告（2026-11-19）には「本人の申告」を添える。⚠️ 外さないこと（なりすましへの備えの1つ）
  */
-export function HiringBadgeChip({ companyName }: { companyName: string }) {
+export function HiringBadgeChip({ companyName, selfDeclared = false }: { companyName: string; selfDeclared?: boolean }) {
   return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap", verticalAlign: "middle" }}>
     <span data-state="ppl-hiring-badge" title={`${companyName}で、自分のチームの仲間を探しています`}
       style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999,
         background: "#E3F3EA", color: "#17633F", fontSize: 11.5, fontWeight: 700, lineHeight: 1.5, whiteSpace: "nowrap", verticalAlign: "middle" }}>
@@ -520,6 +522,13 @@ export function HiringBadgeChip({ companyName }: { companyName: string }) {
         <circle cx="9" cy="8" r="4" /><path d="M2 20c0-3.5 3-6 7-6s7 2.5 7 6" /><path d="M19 8v6M16 11h6" />
       </svg>
       {HIRING_BADGE_LABEL}
+    </span>
+    {selfDeclared && (
+      <span data-state="ppl-hiring-self" title={SELF_DECLARED_NOTE}
+        style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-mute)", whiteSpace: "nowrap" }}>
+        {SELF_DECLARED_LABEL}
+      </span>
+    )}
     </span>
   );
 }
@@ -578,7 +587,7 @@ export function GridCard({ card, myUserId, followedUserIds, followerUserIds = []
       <div style={{ textAlign: "center", marginBottom: 12, marginTop: 6, width: "100%" }}>
         <div className="ppl-grid-name" style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", marginBottom: 3, lineHeight: 1.3, overflowWrap: "anywhere" }}>
           {card.name}
-          {hiring && <> <HiringBadgeChip companyName={hiring.companyName} /></>}
+          {hiring && <> <HiringBadgeChip companyName={hiring.companyName} selfDeclared={hiring.selfDeclared} /></>}
         </div>
         {/* ★並びは **名前 → 会社 → 職種**（2026-08-18）。
                どこの人かが先に読めるほうが、一覧をなぞるときに探しやすい。
@@ -765,7 +774,7 @@ export function ListRow({ card, myUserId, followedUserIds, followerUserIds = [],
           <span className="ppl-row-name" style={{ fontSize: 16, fontWeight: 800, color: "var(--ink)", transition: "color 0.15s" }}>{card.name}</span>
           {/* ⚠️ 名前の右の「面談OK」バッジは 2026-10-16 に撤去した。2026-11-12 から「相談可能」の印を出す（別の仕組み） */}
           {consultable && <ConsultBadge />}
-          {hiring && <HiringBadgeChip companyName={hiring.companyName} />}
+          {hiring && <HiringBadgeChip companyName={hiring.companyName} selfDeclared={hiring.selfDeclared} />}
         </div>
         {hiring && hiringForText(hiring) && (
           <div data-state="ppl-hiring-for" style={{ marginTop: 4, fontSize: 12.5, color: "var(--ink-soft)", overflowWrap: "anywhere" }}>チームで募集中: {hiringForText(hiring)}</div>

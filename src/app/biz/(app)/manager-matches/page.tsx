@@ -3,7 +3,7 @@ import { guardBizPage } from "@/lib/auth/companyAccess";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { BizNoTenantPage } from "@/components/business/BizNoTenantPage";
 import { getTenantContext } from "@/lib/business/dashboard";
-import { listCompanyMatches } from "@/lib/nextManager/server";
+import { listCompanyMatches, listSelfHiringForCompany } from "@/lib/nextManager/server";
 import ManagerMatchesClient from "./ManagerMatchesClient";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +29,12 @@ export default async function ManagerMatchesPage() {
   guardBizPage(ctx.currentPermission, "managerMatches.viewAll", "managerMatches.viewOwn");
 
   const viewAll = can(ctx.currentPermission, "managerMatches.viewAll");
-  const view = await listCompanyMatches(ctx.tenantId, viewAll ? null : ctx.currentOwnId);
+  const canHandover = can(ctx.currentPermission, "managerMatches.handover");
+  /* ★自社で採用中を申告している人（2026-11-19）。外せる管理者にだけ出す */
+  const [view, selfHiring] = await Promise.all([
+    listCompanyMatches(ctx.tenantId, viewAll ? null : ctx.currentOwnId),
+    canHandover ? listSelfHiringForCompany(ctx.tenantId) : Promise.resolve(null),
+  ]);
 
   return (
     <BusinessLayout
@@ -43,7 +48,8 @@ export default async function ManagerMatchesPage() {
       <ManagerMatchesClient
         view={view}
         viewAll={viewAll}
-        canHandover={can(ctx.currentPermission, "managerMatches.handover")}
+        canHandover={canHandover}
+        selfHiring={canHandover ? selfHiring : undefined}
       />
     </BusinessLayout>
   );

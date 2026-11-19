@@ -1293,6 +1293,7 @@ select c.name, c.source,
 | 選択肢・文言・検証 | `lib/nextManager/constants.ts`（何も import しない・テストあり。結果の4値は migration の CHECK と同じ） |
 | 読み書きの入口 | `lib/nextManager/server.ts` だけ（採用中の設定・一覧のバッジ・マッチングの自動作成・面談の記録・候補者管理・引き継ぎ） |
 | 採用中 | `ow_company_admins.is_hiring` / `hiring_note`（募集の紐付けは `ow_job_hiring_managers`）。**有効な担当者だけ・本人だけ**がオン（`/mypage/settings` の「採用中のマネージャー」→ `PUT /api/jobseeker/hiring`）。⚠️★この表は authenticated にテーブルの読み書きがあり、会社の管理者は同じ会社の行を書き換えられる。採用中の4列はトリガー `trg_guard_company_admin_hiring` がサーバー以外からの変更を止める（外さないこと） |
+| ★申告の採用中（2026-11-19） | 会社の担当者でない人は **職歴で在籍中の会社だけ** で採用中にできる（`ow_self_hiring`。anon・authenticated に権限なし・ポリシー0本）。判定は `server.ts` の `loadValidSelfHiring` の1か所。一覧に「本人の申告」。記録は `ow_manager_matches.self_declared = true` で**本人だけ**（会社の候補者管理に出さない・引き継がない）。募集には紐づけない。会社の管理者（`/biz/manager-matches`）と運営（`/admin/self-hiring`）が外せ、外されたらその会社では戻せない |
 | マッチング | 個人どうしのメッセージで**相手が返信した**とき（`replyToMessageRequest` の直後に `recordMatchOnReply`）。どちらかが採用中なら、その会社に1件 |
 | 記録 | `ow_manager_matches`（会社のもの）／`ow_manager_match_handovers`。**anon・authenticated に権限なし・ポリシー0本** |
 | 画面 | `/people` のバッジと `?hiring=1`／送る画面とメッセージ画面の「2人だけのもの」の一行／会話の上部の「面談の記録」（担当マネージャー本人だけ）／`/biz/manager-matches`（候補者管理）。見本 `/dev/preview/next-manager` |
@@ -1300,7 +1301,7 @@ select c.name, c.source,
 - ⚠️★**メッセージ本文を記録に写さない・会社に見せない。** 記録に本文の列を作らないこと。
 - ⚠️★**DM の会話（`ow_conversations`）に company_id を入れないこと。** 入れた瞬間に RLS が会社の担当者へ会話を開く。
 - ⚠️★**相互フォローで最初から始まる会話（`sendDirectToConnection`）はマッチングに数えない**（論点C）。そちらに `recordMatchOnReply` を足さない。
-- ⚠️ 採用中は `ow_company_admins` の担当者だけ（職歴の現職＝自己申告では採用中にできない。論点A）。2026-11-03〜05 に外した `ow_talk_settings`（立場＝採用担当）とは別物。あの表は使わない。
+- ⚠️★論点A（採用中は担当者だけ）は **2026-11-19 に変えた**（柴さんの指示。個人が自由になれるほうがいい）。担当者は従来どおり `ow_company_admins.is_hiring`、担当者でない人は上の「申告の採用中」。2026-11-03〜05 に外した `ow_talk_settings`（立場＝採用担当）とは別物。あの表は使わない。
 - ⚠️ 見える範囲: 管理者・採用担当は全件、ほかの役割は自分の担当分だけ（`managerMatches.viewAll` / `viewOwn`）。引き継ぎは管理者だけ（`managerMatches.handover`）。会社を外れた担当者は面談の記録欄が出ず、保存もできない。
 - ⚠️ 採用中のマネージャーが送るときは「採用やスカウトに使わない」（`CONSULT_PURPOSE_NOTE`）を出さない。
 - ⚠️ `/people` の切り替えに人数は出さない（2026-11-04 の決まり。モックの（N）は付けていない）。

@@ -15,6 +15,8 @@ type Panel = {
   result: MatchResult | null;
   memo: string | null;
   jobs: { id: string; title: string; status: string }[];
+  /** 申告した人の記録（本人だけのもの・募集は選べない。2026-11-19） */
+  selfDeclared?: boolean;
 };
 
 type Draft = { jobId: string; metOn: string; result: string; memo: string };
@@ -32,6 +34,7 @@ function fmtDate(iso: string): string {
  *   出すのは、この会話にマッチングの記録があり、見ている人がその担当マネージャー（いまも会社の有効な担当者）のときだけ。
  *   判定はサーバー（GET /api/manager-matches → lib/nextManager/server.ts の getPanelForConversation）。
  *   それ以外（求職者・会社を外れたマネージャー）には何も描かない。
+ *   ★申告した人（会社の担当者でない人。2026-11-19）の記録は本人だけのもの。募集の欄を出さない。
  *
  * ⚠️★メッセージ本文をこの欄に写さない・送らない。保存するのは募集・面談日・結果・メモだけ。
  * ⚠️ 変更あり（dirty）は「いま保存されている値」と比べる（ui-debugging ⑦）。開いた直後は「記録する」を押せない。
@@ -104,7 +107,9 @@ export function ManagerMatchPanel({ conversationId, sample = null }: {
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", border: 0, background: "transparent", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>面談の記録</span>
         <span style={{ fontSize: 12, color: "var(--ink-mute)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-          {panel.companyName ? `${panel.companyName}の候補者管理に残ります` : "候補者管理に残ります"}
+          {panel.selfDeclared
+            ? "あなただけが見られる記録です（会社には共有されません）"
+            : panel.companyName ? `${panel.companyName}の候補者管理に残ります` : "候補者管理に残ります"}
         </span>
         <span aria-hidden style={{ fontSize: 12, color: "var(--ink-mute)" }}>{open ? "▲" : "▼"}</span>
       </button>
@@ -121,6 +126,7 @@ export function ManagerMatchPanel({ conversationId, sample = null }: {
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+            {!panel.selfDeclared && (
             <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
               <label htmlFor={`${base}-job`} style={label}>募集</label>
               <select id={`${base}-job`} value={draft.jobId} onChange={(e) => setDraft({ ...draft, jobId: e.target.value })} disabled={busy} style={field}>
@@ -128,6 +134,7 @@ export function ManagerMatchPanel({ conversationId, sample = null }: {
                 {panel.jobs.map((j) => <option key={j.id} value={j.id}>{j.title}{j.status !== "published" ? "（非公開）" : ""}</option>)}
               </select>
             </div>
+            )}
             <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
               <label htmlFor={`${base}-date`} style={label}>面談日</label>
               <input id={`${base}-date`} type="date" value={draft.metOn} onChange={(e) => setDraft({ ...draft, metOn: e.target.value })} disabled={busy} style={field} />
