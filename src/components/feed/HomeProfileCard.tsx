@@ -60,6 +60,7 @@ export function HomeProfileCard({ me, counts, experienceCount, nextStepKey }: Ho
       <style>{`
         .hpc-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 14px; white-space: nowrap; text-decoration: none; font-size: 13px; color: var(--ink-soft); }
         .hpc-row:hover { background: var(--bg-tint); color: var(--royal); }
+        .hpc-row.hpc-row-static:hover { background: none; color: var(--ink-soft); }
         .hpc-n { flex-shrink: 0; font-weight: 700; color: var(--ink); font-family: var(--font-inter), var(--font-noto); }
         .hpc-link { font-size: 12px; font-weight: 600; color: var(--royal); text-decoration: none; }
         .hpc-link:hover { text-decoration: underline; }
@@ -107,6 +108,12 @@ export function HomeProfileCard({ me, counts, experienceCount, nextStepKey }: Ho
             <span>{r.label}</span><span className="hpc-n">{r.value}</span>
           </Link>
         ))}
+        {/* ★あなたを気にしている企業（2026-11-06）。⚠️ どの会社かは出さないので押せる行にしない。null（取得失敗）は出さない */}
+        {counts.starredBy !== null && (
+          <div className="hpc-row hpc-row-static" data-state="home-count-starred-by">
+            <span>あなたを気にしている企業</span><span className="hpc-n">{counts.starredBy}社</span>
+          </div>
+        )}
       </div>
 
     </section>

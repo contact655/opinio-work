@@ -39,7 +39,15 @@ export type ProfileCardData = {
    *    募集に「フォロー」は存在しないので、**ラベルに「フォロー中の募集」と書かないこと**
    *    （本物のフォローを作った日に名前が衝突する。`?industry=` と同じ形）。
    */
-  counts: { following: number; followers: number; companies: number; savedJobs: number };
+  counts: {
+    following: number; followers: number; companies: number; savedJobs: number;
+    /**
+     * ★あなたを ☆「気になる」にしている企業の数（2026-11-06）。数え方は lib/people/companyStars.ts。
+     * ⚠️ null は取得に失敗した。行ごと出さない（0 と書くと嘘になる）。
+     * ⚠️ 押せる行にしない（どの会社かは出さないので、行き先が無い）。
+     */
+    starredBy: number | null;
+  };
   nextStep: { label: string; href: string } | null;
 };
 
@@ -77,6 +85,7 @@ export function ProfileCard({ me, counts, nextStep, activeRel, variant = "card",
           font-size: 13px; color: var(--ink-soft);
         }
         .pc-count:hover { background: var(--bg-tint); color: var(--royal); }
+        .pc-count.pc-count-static:hover { background: none; color: var(--ink-soft); }
         .pc-count.active { background: var(--royal-50); color: var(--royal); font-weight: 700; }
         .pc-count-n {
           flex-shrink: 0; font-size: 13px; font-weight: 700; color: var(--ink);
@@ -144,6 +153,11 @@ export function ProfileCard({ me, counts, nextStep, activeRel, variant = "card",
         <Link href="/mypage/bookmarks" className="pc-count">
           <span>保存した募集</span><span className="pc-count-n">{counts.savedJobs}件</span>
         </Link>
+        {counts.starredBy !== null && (
+          <div className="pc-count pc-count-static" data-state="pc-count-starred-by">
+            <span>あなたを気にしている企業</span><span className="pc-count-n">{counts.starredBy}社</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -11,12 +11,13 @@ export function StarIcon({ filled, size = 14 }: { filled: boolean; size?: number
 
 /**
  * ★カードと右欄（詳細の名前の横）の★ボタン（2026-10-28 に CandidatesClient から切り出した。詳細でも同じ形・同じ動きにするため）。
- * ⚠️ 押しても候補者本人には何も届かない（会社の中だけ）。⚠️ aria-pressed で押した状態を伝える
+ * ⚠️ 押しても候補者本人に通知は届かない。ただし本人の画面に「あなたを気にしている企業 N社」の数として出る（2026-11-06。会社名は出さない）。
+ *    ⚠️ その旨を title と候補者の一覧の案内に書いてある。片方だけ戻さないこと。⚠️ aria-pressed で押した状態を伝える
  * ⚠️ 大きさと当たり判定は CSS（.cand-star。CandidatesClient の style）。--star-size で渡す
  */
 export function StarButton({ starred, onToggle, size = 28 }: { starred: boolean; onToggle: () => void; size?: number }) {
   return (
-    <button type="button" aria-pressed={starred} aria-label={starred ? "気になるから外す" : "気になるに保存"} title={starred ? "気になるから外す" : "気になる（社内で共有・本人には通知されません）"}
+    <button type="button" aria-pressed={starred} aria-label={starred ? "気になるから外す" : "気になるに保存"} title={starred ? "気になるから外す" : "気になる（社内で共有。本人には会社名を出さず、企業の数としてだけ伝わります）"}
       data-state={starred ? "star-on" : "star-off"}
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
       className="btn-fixed-size cand-star"

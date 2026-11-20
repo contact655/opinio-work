@@ -3,6 +3,7 @@ import { CAREER_NEXT_STEP_HREF } from "@/lib/home/homeState";
 import { pickProfileNextStep, PROFILE_NEXT_STEP_SIDEBAR_LABEL, type ProfileNextStepInput, type ProfileNextStepKey } from "@/lib/profile/nextStep";
 import type { ProfileCardData } from "@/components/common/ProfileCard";
 import { getFollowCounts } from "@/lib/people/followCounts";
+import { getStarringCompanyCount } from "@/lib/people/companyStarsServer";
 import { getRoleTree } from "@/lib/supabase/queries";
 import { resolveTopRole } from "@/lib/roles/jobRoles";
 import { EXPERIENCE_COMPANY_COLS, resolveExperienceCompanyLabel } from "@/lib/experiences/companyName";
@@ -62,7 +63,7 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
   const db = createAdminClient();
 
   const [userRes, expRes, eduRes, freeEduRes, companyFollowRes, savedJobRes, counts, roleTree] = await Promise.all([
-    db.from("ow_users").select("id, name, avatar_url, avatar_color, headline, about_me").eq("id", owUserId).maybeSingle(),
+    db.from("ow_users").select("id, name, avatar_url, avatar_color, headline, about_me, is_test").eq("id", owUserId).maybeSingle(),
     /* ⚠️★**並び順を指定すること**（2026-09-18）。下で `find(is_current)` が
           **配列の先頭の現職**を代表に採るので、順序を空けると
           **並行在籍（現職が2件以上）の人の所属行と「同じ職種の人」が、
@@ -100,6 +101,8 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
 
   const u = userRes.data;
   if (!u?.name) return null;
+  /* ★あなたを気にしている企業（2026-11-06）。⚠️ is_test を select から落とさないこと（落とすと実在の人として数える） */
+  const starredBy = await getStarringCompanyCount(owUserId, u.is_test === true);
 
   const exps = (expRes.data ?? []) as Array<Record<string, unknown>>;
   const current = exps.find((e) => e.is_current === true) ?? null;
@@ -146,6 +149,7 @@ export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSide
       followers: counts.followers,
       companies: companyFollowRes.count ?? 0,
       savedJobs: savedJobRes.count ?? 0,
+      starredBy,
     },
     nextStep: pickNextStep(nextStepInput),
     nextStepKey: pickProfileNextStep(nextStepInput),

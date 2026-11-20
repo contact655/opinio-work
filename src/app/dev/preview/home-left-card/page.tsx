@@ -16,7 +16,7 @@ const base: HomeProfileCardData = {
     gradient: "linear-gradient(135deg, #002366, #3B5FD9)", initial: "木",
     affiliation: null, roleName: "インサイドセールス", companyLabel: "関西の SaaS 企業",
   },
-  counts: { following: 3, followers: 0, companies: 12, savedJobs: 1 },
+  counts: { following: 3, followers: 0, companies: 12, savedJobs: 1, starredBy: 2 },
   experienceCount: 2,
   nextStepKey: "photo",
 };
@@ -41,6 +41,12 @@ export default function HomeLeftCardPreview() {
       </Variant>
       <Variant label="長い名前・長い職種と社名（1行で切れる）">
         <Col><HomeProfileCard {...base} me={{ ...base.me, name: "とても長い名前のユーザー 太郎", roleName: "カスタマーサクセスマネージャー", companyLabel: "とても長い会社名の株式会社エンタープライズソリューションズジャパン" }} /></Col>
+      </Variant>
+      <Variant label="あなたを気にしている企業: 0社 ／ 取得に失敗（行ごと出さない）">
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <Col><HomeProfileCard {...base} counts={{ ...base.counts, starredBy: 0 }} /></Col>
+          <Col><HomeProfileCard {...base} counts={{ ...base.counts, starredBy: null }} /></Col>
+        </div>
       </Variant>
       <Variant label="職歴はあるが現職が無い（肩書きの行を出さない）">
         <Col><HomeProfileCard {...base} me={{ ...base.me, roleName: null, companyLabel: null }} /></Col>
