@@ -288,6 +288,8 @@ const ANSWER_TABLES = [
   "ow_career_turns",
   /* ★入社の決め手（1問・2026-11-02）。⚠️ 企業ページの上位3つ（月1回の集計）からは、次の月の集計で外れる */
   "ow_join_decisions",
+  /* ★入社後のふり返り（入社3か月・1年・2026-11-20）。軸は FK の CASCADE で一緒に消える */
+  "ow_join_checkins",
   "ow_experience_leave_reasons",
   "ow_experience_gaps",
   "ow_experience_reviews",

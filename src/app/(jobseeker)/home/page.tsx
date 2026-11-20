@@ -9,6 +9,8 @@ import ForYouSection from "../mypage/proposals/ForYouSection";
 import { toForYouViews } from "../mypage/proposals/forYouViews";
 import HomeDecisionCard from "./HomeDecisionCard";
 import { currentJoinDecisionPrompt } from "@/lib/joinDecision/server";
+import HomeCheckinCard from "./HomeCheckinCard";
+import { currentCheckinPrompt } from "@/lib/joinCheckin/server";
 import { HOME_FOR_YOU_LIMIT, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER, HOME_MOBILE_SUGGEST_AFTER, HOME_MOBILE_CONSULTANTS_AFTER, careerCompanyCount, type CareerNudge } from "@/lib/home/homeState";
 import { getUserSuggestions } from "@/lib/people/suggestServer";
 import { SuggestedUsers } from "@/components/feed/SuggestedUsers";
@@ -28,6 +30,7 @@ import { loadFeedProps } from "../feed/(list)/loadFeedProps";
  *   ★2026-11-04 に並びを変えた（柴さんの指示。PC 1440×900 の最初の画面でタイムラインが見えるように）:
  *   中央の上から:
  *     ① 入社の決め手（聞いてよいときだけ。lib/joinDecision）
+ *       ★2026-11-20: 決め手を聞かないときだけ、入社後のふり返り（入社3か月・1年。lib/joinCheckin）
  *     ② 投稿欄 → ③ タイムライン（旧 /feed）
  *   右の列（PC）の上から: 職歴の案内（職歴が0件の人だけ。×で7日間出さない。2026-11-04 に中央の帯から移した）
  *     ★2026-11-12: 職歴はあるが、会社が1社だけ（「これ以上の経歴はない」と答えていない）か学歴が0件の人には、
@@ -61,7 +64,7 @@ export default async function HomePage() {
   const isTest = me.is_test === true;
 
   /* ★タイムライン（loadFeedProps）と上のブロックは互いに依存しないので並列に引く */
-  const [expRes, forYou, proposedRes, decisionPrompt, paths, feed, suggestions, eduRes, profRes, consultants] = await Promise.all([
+  const [expRes, forYou, proposedRes, decisionPrompt, paths, feed, suggestions, eduRes, profRes, consultants, checkinPrompt] = await Promise.all([
     db.from("ow_experiences").select(`id, ${EXPERIENCE_COMPANY_COLS}`).eq("user_id", owId),
     buildForYou(owId),
     db.from("ow_proposals").select("company_id").eq("candidate_user_id", owId),
@@ -79,6 +82,8 @@ export default async function HomePage() {
     db.from("ow_profiles").select("career_history_complete_at, onboarding_completed, career_stance, career_stance_updated_at").eq("user_id", user.id).maybeSingle(),
     /* ★相談できる人（2026-11-12）。失敗しても空配列（ホームを落とさない） */
     getFeaturedConsultants({ excludeOwUserId: owId }),
+    /* ★入社後のふり返り（入社3か月・1年。2026-11-20）。⚠️ 失敗しても null（ホームを落とさない） */
+    currentCheckinPrompt(owId).catch((e) => { console.error("[home] checkin:", (e as Error).message); return null; }),
   ]);
   if (eduRes.error) console.error("[home] educations:", eduRes.error.message);
   if (profRes.error) console.error("[home] profile:", profRes.error.message);
@@ -126,6 +131,12 @@ export default async function HomePage() {
         const e = exps.find((x) => x.id === decisionPrompt.experienceId);
         const name = e ? resolveExperienceCompanyLabel({ ...e, visibility_company: "real" }) ?? "今の会社" : "今の会社";
         return <HomeDecisionCard experienceId={decisionPrompt.experienceId} companyName={name} />;
+      })()}
+      {/* ⚠️ 聞くカードは1画面に1つ。決め手を聞くときはふり返りを出さない */}
+      {!decisionPrompt && checkinPrompt && (() => {
+        const e = exps.find((x) => x.id === checkinPrompt.experienceId);
+        const name = e ? resolveExperienceCompanyLabel({ ...e, visibility_company: "real" }) ?? "今の会社" : "今の会社";
+        return <HomeCheckinCard experienceId={checkinPrompt.experienceId} companyName={name} checkpoint={checkinPrompt.checkpoint} />;
       })()}
     </>
   );
