@@ -5,6 +5,7 @@ import { mutateMany } from "@/lib/supabase/mutate";
 import { isSameCompany } from "@/lib/experiences/companyKey";
 import { COMPANY_CORRECTION } from "@/lib/experiences/jobChange";
 import { clearJoinDecisionForExperiences } from "@/lib/joinDecision/server";
+import { clearJoinCheckinsForExperiences } from "@/lib/joinCheckin/server";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +103,9 @@ export async function PATCH(req: Request) {
   if (!isCorrection && changed && before.some((row) => row.is_current)) {
     const cleared = await clearJoinDecisionForExperiences(owUser.id as string, before.map((row) => row.id));
     if (!cleared) console.error("[PATCH /api/jobseeker/experiences/company] 会社の変更で決め手を消せなかった", ids);
+    /* ★入社後のふり返り（2026-11-20）も同じ扱い。元の会社への回答を新しい会社のものとして残さない */
+    const clearedCheckins = await clearJoinCheckinsForExperiences(owUser.id as string, before.map((row) => row.id));
+    if (!clearedCheckins) console.error("[PATCH /api/jobseeker/experiences/company] 会社の変更でふり返りを消せなかった", ids);
   }
 
   const afterCompanyId = hasId ? (body.company_id as string) : null;

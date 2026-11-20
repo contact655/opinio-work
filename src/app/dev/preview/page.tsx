@@ -59,6 +59,8 @@ const ITEMS = [
     desc: "2026-11-04。保存の前に出す確認と、辞めた月の入力（入社月より前・今月より後はエラー）" },
   { href: "/dev/preview/stance-reconfirm", label: "転職意欲の「変わりありませんか？」（/home のダイアログ）",
     desc: "★90日たった人に出す。同じ値なら確かめた日時だけ・違えば値を変える" },
+  { href: "/dev/preview/join-checkin", label: "入社後のふり返り（入社3か月・1年）",
+    desc: "★2026-11-20。migration を当てるまで実データで開けない。必須の段・任意の段・傾向（比較・1社・失敗）・まだ答えられない状態をここで見る" },
   { href: "/dev/preview/join-decision", label: "入社の決め手（1問）と企業ページの上位3つ",
     desc: "2026-11-02。回答画面（はじめて・30日後の再表示・答え済み）と、企業ページの順位だけの表示" },
   { href: "/dev/preview/career-turn", label: "転機の3問（この会社について）",

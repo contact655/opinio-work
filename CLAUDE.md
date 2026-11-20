@@ -7903,6 +7903,28 @@ npm run dev → http://localhost:3000/dev/preview
 - ⚠️ OB の在籍月数と「現在：」は「社員・OB/OG」に残す（重ねて出さない）。「話を聞ける社員・OB」は入れない。
 - ⚠️ 2026-10-27 時点で出るのは **Salesforce だけ**（前職・在籍・行き先）。ほかの21社は見出しが出ない（それが正しい状態）。
 
+### ★★入社後のふり返り（入社3か月・1年。`ow_join_checkins`）（2026-11-20 / 柴さんの指示）
+
+**OPINIO の成長戦略として「転職の結果データ」を持つ。** 定着は職歴の在籍期間から取り、合っているか・環境の事実は本人に時間差で聞く。
+採用側（Hiring Manager）の評価は使わない（活躍の原因が環境に左右され、特定できないため）。
+
+| | 実体 |
+|---|---|
+| 時点・選択肢・いつ聞くか・検証 | `src/lib/joinCheckin/constants.ts`（何も import しない・テスト `joinCheckin.test.mjs`） |
+| 読み書き | `src/lib/joinCheckin/server.ts`。API は `/api/jobseeker/experiences/[id]/checkin`（本人確認は `requireOwnExperience`） |
+| 聞く時機 | ホームのカード（`HomeCheckinCard`）。在籍中の会社で、入社3〜12か月なら 3m、12〜18か月なら 1y。**決め手のカードが出ているときは出さない** |
+| 聞くこと | 合っているか（0〜10）・入社前の話との差（4項目）が必須／職場の実態（`ow_review_axes`。★「上司の関わり方」`manager_style` を足した）・主に向き合う相手が任意 |
+| 見返り | 保存すると本人の「あなたが合う職場の傾向」（`computeTendency`。1社につき新しい時点の回答を使う） |
+| 見本 | `/dev/preview/join-checkin` |
+
+- ✅ migration `20261120090000_join_checkins` は 2026-11-20 に本番へ適用済み（表2つ・軸 manager_style。適用前の控えは `.dumps/20261120-1410-ow_review_axes.txt`）。
+  当てる前にコードを出すと、`deleteCompanyAnswers` / `hasStoredAnswers`（`ANSWER_TABLES` に足した）が表の不在でエラーを返す。
+- ⚠️★表は anon / authenticated に権限なし・ポリシー0本（`ow_join_decisions` と同じ形）。**回答を会社・他の利用者に出す画面を作らないこと。**
+- ⚠️ 単位は「その会社に入った職歴1件（いちばん古い行）× 時点」。月数もその行の開始日で数える（日本時間）。
+- ⚠️ 「今回は答えない」でその時点はもう聞かない（`skipped_at`）。× で閉じただけなら次も出る。
+- ⚠️ 会社が変わったときの扱いは決め手と同じ（`clearJoinCheckinsForExperiences` を2つの更新処理から呼ぶ）。
+- ⚠️ 物差し（0〜10・差の3択・軸の5段階）は入社後レビューと同じ。テストが突き合わせる。
+
 ### ★★入社の決め手は1問（`ow_join_decisions`）。2026-11-02 に転機の3問から置き換えた（柴さんの指示）
 
 | | 実体 |
