@@ -4,7 +4,7 @@ import { JoinCheckinDemo } from "./Demo";
 
 /**
  * 入社後のふり返り（入社3か月・1年。2026-11-20）。
- * ⚠️ migration（supabase/pending/20261120090000_join_checkins.sql）を当てるまで実データでは開けないので、ここで見る。
+ * 実データでは条件に合う人（在籍中で入社3か月以上）が少ないので、ここで見る。
  *    DB には読みも書きもしない。
  */
 export default function JoinCheckinPreview() {

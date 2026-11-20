@@ -7917,7 +7917,7 @@ npm run dev → http://localhost:3000/dev/preview
 | 見返り | 保存すると本人の「あなたが合う職場の傾向」（`computeTendency`。1社につき新しい時点の回答を使う） |
 | 見本 | `/dev/preview/join-checkin` |
 
-- ⚠️★**migration は `supabase/pending/20261120090000_join_checkins.sql`（未適用）。コードより先に当てること。**
+- ✅ migration `20261120090000_join_checkins` は 2026-11-20 に本番へ適用済み（表2つ・軸 manager_style。適用前の控えは `.dumps/20261120-1410-ow_review_axes.txt`）。
   当てる前にコードを出すと、`deleteCompanyAnswers` / `hasStoredAnswers`（`ANSWER_TABLES` に足した）が表の不在でエラーを返す。
 - ⚠️★表は anon / authenticated に権限なし・ポリシー0本（`ow_join_decisions` と同じ形）。**回答を会社・他の利用者に出す画面を作らないこと。**
 - ⚠️ 単位は「その会社に入った職歴1件（いちばん古い行）× 時点」。月数もその行の開始日で数える（日本時間）。

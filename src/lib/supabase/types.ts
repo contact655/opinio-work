@@ -5352,6 +5352,108 @@ export type Database = {
           },
         ]
       }
+      ow_join_checkin_axes: {
+        Row: {
+          axis_key: string
+          checkpoint: string
+          created_at: string
+          experience_id: string
+          value: number
+        }
+        Insert: {
+          axis_key: string
+          checkpoint: string
+          created_at?: string
+          experience_id: string
+          value: number
+        }
+        Update: {
+          axis_key?: string
+          checkpoint?: string
+          created_at?: string
+          experience_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_join_checkin_axes_axis_key_fkey"
+            columns: ["axis_key"]
+            isOneToOne: false
+            referencedRelation: "ow_review_axes"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "ow_join_checkin_axes_experience_id_checkpoint_fkey"
+            columns: ["experience_id", "checkpoint"]
+            isOneToOne: false
+            referencedRelation: "ow_join_checkins"
+            referencedColumns: ["experience_id", "checkpoint"]
+          },
+        ]
+      }
+      ow_join_checkins: {
+        Row: {
+          answered_at: string | null
+          checkpoint: string
+          created_at: string
+          customer: string | null
+          experience_id: string
+          fit_score: number | null
+          gap_culture: number | null
+          gap_growth: number | null
+          gap_job: number | null
+          gap_pay: number | null
+          skipped_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answered_at?: string | null
+          checkpoint: string
+          created_at?: string
+          customer?: string | null
+          experience_id: string
+          fit_score?: number | null
+          gap_culture?: number | null
+          gap_growth?: number | null
+          gap_job?: number | null
+          gap_pay?: number | null
+          skipped_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answered_at?: string | null
+          checkpoint?: string
+          created_at?: string
+          customer?: string | null
+          experience_id?: string
+          fit_score?: number | null
+          gap_culture?: number | null
+          gap_growth?: number | null
+          gap_job?: number | null
+          gap_pay?: number | null
+          skipped_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_join_checkins_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: false
+            referencedRelation: "ow_experiences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ow_join_checkins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ow_join_decisions: {
         Row: {
           answered_at: string | null

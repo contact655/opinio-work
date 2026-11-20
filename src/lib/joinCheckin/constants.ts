@@ -1,6 +1,6 @@
 /**
  * ★入社後のふり返り（入社3か月・入社1年の時間差レビュー。2026-11-20 / 柴さんの指示）。
- *   置き場所は ow_join_checkins / ow_join_checkin_axes（supabase/pending/20261120090000_join_checkins.sql）。
+ *   置き場所は ow_join_checkins / ow_join_checkin_axes（supabase/migrations/20261120090000_join_checkins.sql）。
  *   時点・選択肢・いつ聞くか・検証はこの1ファイル。
  *
  * なぜ作ったか（2026-11-20 の会話）:

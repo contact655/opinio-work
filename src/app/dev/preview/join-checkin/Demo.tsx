@@ -5,7 +5,7 @@ import { JoinCheckinModal, type LoadedCheckinView } from "@/components/profile/e
 import { computeTendency } from "@/lib/workplaceReview/tendency";
 import type { ReviewAxis } from "@/lib/workplaceReview/constants";
 
-/** ★軸はマスタと同じ文言（migration 20261016190000 と pending/20261120090000）。⚠️ DB を読まない・書かない（preview） */
+/** ★軸はマスタと同じ文言（migration 20261016190000 と 20261120090000）。⚠️ DB を読まない・書かない（preview） */
 const AXES: ReviewAxis[] = [
   { key: "work_style", name: "仕事の進め方", leftText: "決まったやり方に沿って進める", rightText: "やり方は自分で決める", leftHeadlineJoin: "決まったやり方に沿って進め", leftHeadlineEnd: "決まったやり方に沿って進める", rightHeadlineJoin: "やり方を任され", rightHeadlineEnd: "やり方を任される" },
   { key: "onboarding", name: "立ち上がり", leftText: "自分で調べて覚える", rightText: "研修・先輩が教えてくれる", leftHeadlineJoin: "自分で調べて覚えていき", leftHeadlineEnd: "自分で調べて覚えていく", rightHeadlineJoin: "研修や先輩に教わりながら覚えられ", rightHeadlineEnd: "研修や先輩に教わりながら覚えられる" },
