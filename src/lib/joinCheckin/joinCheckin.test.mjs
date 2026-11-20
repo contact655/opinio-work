@@ -5,6 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
+  shouldAutoOpenCheckin, CHECKIN_POPUP_SNOOZE_DAYS,
   JOIN_CHECKPOINTS, CHECKIN_CUSTOMERS, CHECKIN_GAP_KEYS, CHECKIN_FIT_MAX,
   monthsSince, canAnswerCheckpoint, dueCheckpoint, parseCheckinAnswers, latestAnsweredCheckpoint, isCheckpointKey,
 } from "./constants.ts";
@@ -93,4 +94,14 @@ test("傾向には新しい時点（1年）を優先して使う", () => {
   assert.equal(latestAnsweredCheckpoint({ "3m": "answered", "1y": "answered" }), "1y");
   assert.equal(latestAnsweredCheckpoint({ "3m": "answered", "1y": "skipped" }), "3m");
   assert.equal(latestAnsweredCheckpoint({ "3m": "skipped" }), null);
+});
+
+test("ホームの自動ポップアップ: 閉じてから7日は出さない", () => {
+  const day = 24 * 60 * 60 * 1000;
+  const now = Date.UTC(2026, 10, 20);
+  assert.equal(CHECKIN_POPUP_SNOOZE_DAYS, 7);
+  assert.equal(shouldAutoOpenCheckin({ closedAtMs: null, nowMs: now }), true);
+  assert.equal(shouldAutoOpenCheckin({ closedAtMs: now - 6 * day, nowMs: now }), false);
+  assert.equal(shouldAutoOpenCheckin({ closedAtMs: now - 7 * day, nowMs: now }), true);
+  assert.equal(shouldAutoOpenCheckin({ closedAtMs: Number.NaN, nowMs: now }), true);
 });
