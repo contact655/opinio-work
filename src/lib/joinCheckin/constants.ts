@@ -60,6 +60,22 @@ const CUSTOMER_VALUES = new Set<string>(CHECKIN_CUSTOMERS.map((c) => c.value));
 /** ★回答画面に必ず出す一文（入社の決め手と同じ） */
 export const CHECKIN_PRIVACY_NOTE = "この回答は会社には見えません";
 
+/**
+ * ★ホームを開いたら画面の中央に出す（2026-11-20 / 柴さんの指示）。
+ *   × で閉じたら、この日数のあいだは自動では出さない（カードは残るので「ふり返る」からはいつでも開ける）。
+ *   「今回は答えない」・保存した時点はサーバー側で二度と聞かない（ここは関係しない）。
+ * ⚠️ 閉じた記録は端末（localStorage）だけ。別の端末では出る。
+ */
+export const CHECKIN_POPUP_SNOOZE_DAYS = 7;
+export const CHECKIN_POPUP_STORAGE_PREFIX = "opinio:checkin-popup:";
+
+/** 自動で開いてよいか。閉じた記録が無いか、記録から SNOOZE 日たっていれば開く。⚠️ 記録が読めない値なら開く */
+export function shouldAutoOpenCheckin(input: { closedAtMs: number | null; nowMs: number }): boolean {
+  const { closedAtMs, nowMs } = input;
+  if (closedAtMs === null || !Number.isFinite(closedAtMs)) return true;
+  return nowMs - closedAtMs >= CHECKIN_POPUP_SNOOZE_DAYS * 24 * 60 * 60 * 1000;
+}
+
 export type CheckinAnswers = {
   fitScore: number;
   gaps: Record<CheckinGapKey, number>;

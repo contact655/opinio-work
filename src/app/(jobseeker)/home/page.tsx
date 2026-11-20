@@ -136,7 +136,8 @@ export default async function HomePage() {
       {!decisionPrompt && checkinPrompt && (() => {
         const e = exps.find((x) => x.id === checkinPrompt.experienceId);
         const name = e ? resolveExperienceCompanyLabel({ ...e, visibility_company: "real" }) ?? "今の会社" : "今の会社";
-        return <HomeCheckinCard experienceId={checkinPrompt.experienceId} companyName={name} checkpoint={checkinPrompt.checkpoint} />;
+        /* ⚠️ 「変わりありませんか？」を出す日は自動で開かない（ポップアップを2つ重ねない） */
+        return <HomeCheckinCard experienceId={checkinPrompt.experienceId} companyName={name} checkpoint={checkinPrompt.checkpoint} autoOpen={!askStance} />;
       })()}
     </>
   );
