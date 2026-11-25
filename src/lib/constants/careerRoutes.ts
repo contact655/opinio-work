@@ -206,16 +206,26 @@ export function parseHostInput(raw: unknown, ctx: { isListed?: boolean; now?: Da
  * ⚠️ 話せることは転職ルートの経験者と同じ選択肢。同意の方法は転職ルートの4つに 'self' を足したもの（DB の CHECK もそろえてある）。
  */
 
-/** 見出しと説明（1か所） */
-export const CONSULTANTS_TITLE = "相談可能なユーザー";
+/** 見出しと説明（1か所）。★2026-11-25 に「相談可能なユーザー」から「相談にのれる人」へ（柴さんの指示。画面全体でこの呼び方にそろえる） */
+export const CONSULTANTS_TITLE = "相談にのれる人";
 export const CONSULTANTS_NOTE = "本人が「相談にのれる」と設定した人です。";
 /** ★/people のカードと一覧の行に付ける印（2026-11-12 / 柴さんの指示）。⚠️「面談OK」「話を聞ける」に戻さない */
-export const CONSULTANT_BADGE_LABEL = "相談可能";
+export const CONSULTANT_BADGE_LABEL = "相談可";
 /** 箱に出す人数の上限（表示順 → オンにした日時が新しい順）。★2026-11-12 に5→3（柴さんの指示。残りは「すべて見る」の一覧で） */
 export const CONSULTANTS_LIMIT = 3;
-/** ★「すべて見る」の行き先（2026-11-12）。/people を相談可能なユーザーだけに絞った一覧。キーは CONSULTANTS_PARAM */
+/**
+ * ★/people のタブ（2026-11-25 / 柴さんの指示）。「すべて」「採用中のマネージャー」「相談にのれる人」を ?tab= で持つ。
+ * ⚠️ 旧 ?consult=1・?hiring=1（2026-11-12〜11-24 のリンク）もタブとして読む（PeopleListClient の peopleTabOf）
+ */
+export const PEOPLE_TAB_PARAM = "tab";
+export const PEOPLE_TAB_CONSULT = "consult";
+export const PEOPLE_TAB_HIRING = "hiring";
+/** 旧 ?consult=1 のキー（古いリンクを読むためだけに残す） */
 export const CONSULTANTS_PARAM = "consult";
-export const CONSULTANTS_LIST_HREF = `/people?${CONSULTANTS_PARAM}=1`;
+/** ★「すべて見る」の行き先。/people の「相談にのれる人」タブ */
+export const CONSULTANTS_LIST_HREF = `/people?${PEOPLE_TAB_PARAM}=${PEOPLE_TAB_CONSULT}`;
+/** ★「相談にのれる人」タブの案内（本人がオンにしていないときだけ出す） */
+export const CONSULTANTS_INVITE_TEXT = "あなたも相談にのる側として載れます";
 /** マイページの設定の場所（箱の下の「あなたも載る」） */
 export const CONSULTANTS_SETTINGS_HREF = "/mypage/settings#consultant-setting";
 

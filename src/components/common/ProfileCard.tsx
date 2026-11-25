@@ -111,17 +111,17 @@ export function ProfileCard({ me, counts, nextStep, activeRel, variant = "card",
         <Link href={`/u/${me.userId}`} className="pc-link" style={{ display: "inline-block", marginTop: 10 }}>
           プロフィールを見る
         </Link>
+        {/* ★次の1件はカードの中の1行（2026-11-25 / 柴さんの指示。それまでは別の箱だった。ホームの左のカードと同じ形） */}
+        {nextStep && (
+          <Link href={nextStep.href} className="pc-link" data-state="pc-next-step" title={nextStep.label}
+            style={{ display: "block", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nextStep.label} →</Link>
+        )}
       </div>
 
       {/* ⚠️ %も件数も出さない（冒頭の注記）。埋まっていればブロックごと出ない
           ⚠️★説明文（「入力すると他のユーザーに経歴が伝わります。」）は
              2026-09-20 に柴さんの指示で削除した。**戻さないこと。**
              出すのは**次の1件のリンクだけ**。 */}
-      {nextStep && (
-        <div style={{ ...box, marginBottom: 10 }}>
-          <Link href={nextStep.href} className="pc-link">{nextStep.label}</Link>
-        </div>
-      )}
       </div>
 
       <div style={box}>

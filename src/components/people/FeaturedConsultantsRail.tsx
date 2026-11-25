@@ -23,7 +23,8 @@ export function FeaturedConsultantsRail({ items, sample = false }: { items: Cons
       <div style={RAIL_LIST_STYLE}>
         {items.map((c) => {
           const nowLine = [c.currentCompany, c.currentRole].filter(Boolean).join(" ");
-          const sub = nowLine ? `${c.isCurrent ? "" : "以前: "}${nowLine}` : c.talkTags.map(routeTalkTagLabel).join("・") || null;
+          /* ★今の会社・職種 → 無ければ最終学歴（職歴が無い人だけ）→ 話せること。どれも無ければ行を出さない（RailRow が詰める。2026-11-25） */
+          const sub = nowLine ? `${c.isCurrent ? "" : "以前: "}${nowLine}` : c.school || c.talkTags.map(routeTalkTagLabel).join("・") || null;
           return (
             <RailRow
               key={c.userId}

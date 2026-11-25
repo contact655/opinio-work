@@ -11,7 +11,7 @@ import { homeProfileNextStep, type ProfileNextStepKey } from "@/lib/profile/next
  *   枠・角・余白は右の列の箱（railKit の RAIL_BOX_STYLE）と同じ。
  *
  * ★幅は親（左の列 225px）に合わせる（2026-11-04）。名前・肩書き・「職歴を入れる」は1行で切る
- * 上から: 薄い色の帯（顔写真が帯にかかる）→ 名前 → 肩書き1行（現職の「職種・会社名」。職歴0件なら「職歴を入れる」）
+ * 上から: 薄い色の帯（顔写真が帯にかかる）→ 名前 → 肩書き1行（現職の「会社名 ／ 職種」。職歴0件なら「職歴を入れる」）
  *        → プロフィールを見る → 次の1件（1行）→ 数字の行（行全体を押すとその一覧へ）→ 話を聞ける：◯◯・設定する
  *
  * ★次の1件（2026-11-04 / 柴さんの指示。PR #13 で外した「次の1件」の箱を、別の箱にせずこのカードの1行に戻した）。
@@ -38,9 +38,10 @@ const AVATAR = 56;
 /** 1行で切る（全文は title で読める） */
 const ONE_LINE: React.CSSProperties = { minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 
-/** 現職の「職種・会社名」。どちらか片方だけでも出す。両方無ければ null */
+/** 現職の「会社名 ／ 職種」。どちらか片方だけでも出す。両方無ければ null
+ *  ★2026-11-25 に「職種・会社名」から変えた（柴さんの指示。/people の左のカード（sidebarData の affiliation）と表記をそろえる） */
 export function homeProfileTitle(roleName: string | null, companyLabel: string | null): string | null {
-  return [roleName, companyLabel].filter(Boolean).join("・") || null;
+  return [companyLabel, roleName].filter(Boolean).join(" ／ ") || null;
 }
 
 export function HomeProfileCard({ me, counts, experienceCount, nextStepKey }: HomeProfileCardData) {

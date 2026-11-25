@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 import { getDirectoryPeople } from "@/lib/people/directory";
 import { getRoleTree, getRoleAliases } from "@/lib/supabase/queries";
 import { getPeopleSidebarData } from "@/lib/people/sidebarData";
-import { getConsultantUserIds } from "@/lib/featuredConsultants/server";
+import { getConsultantUserIds, getMyConsultantSetting } from "@/lib/featuredConsultants/server";
 import { getHiringBadges } from "@/lib/nextManager/server";
 import type { HiringBadge } from "@/lib/nextManager/constants";
 import { PeopleListClient, type PrevCareerProps } from "./PeopleListClient";
@@ -63,13 +63,15 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
   let consultantUserIds: string[] | null = null;
   /* ★Next Manager（2026-11-13）。採用中のマネージャー。⚠️ 一覧のキャッシュに混ぜず毎回引く（切り替えをすぐ出す） */
   let hiringBadges: Record<string, HiringBadge> | null = null;
+  /* ★見ている本人が「相談にのれる」をオンにしているか（2026-11-25。タブの案内の出し分け）。読めなかったら null（案内を出さない） */
+  let myConsultantListed: boolean | null = null;
   if (user) {
     const admin = createAdminClient();
     const { data: me, error: meErr } = await admin.from("ow_users").select("id, is_test").eq("auth_id", user.id).maybeSingle();
     if (meErr) console.error("[people] me:", meErr.message);
     myUserId = me?.id ?? null;
     if (myUserId) {
-      const [outRes, inRes, sidebarData, pathsView, consultantIds, hiring] = await Promise.all([
+      const [outRes, inRes, sidebarData, pathsView, consultantIds, hiring, mySetting] = await Promise.all([
         admin.from("ow_user_follows").select("target_user_id").eq("follower_user_id", myUserId),
         admin.from("ow_user_follows").select("follower_user_id").eq("target_user_id", myUserId),
         getPeopleSidebarData(myUserId),
@@ -81,8 +83,11 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
         ),
         getConsultantUserIds(),
         getHiringBadges(me?.is_test === true, admin),
+        getMyConsultantSetting(myUserId),
       ]);
       consultantUserIds = consultantIds;
+      /* ⚠️ 「オンにしている」は本人の設定（is_listed）。検証用など一覧に載らない人もオンなら案内を出さない */
+      myConsultantListed = mySetting ? mySetting.listed : null;
       hiringBadges = hiring;
       if (pathsView) {
         const start = pathsView.start;
@@ -124,6 +129,7 @@ export default async function PeoplePage({ searchParams }: { searchParams?: Peop
         prevCareer={prevCareer}
         consultantUserIds={consultantUserIds}
         hiringBadges={hiringBadges}
+        myConsultantListed={myConsultantListed}
       />
     </div>
   );

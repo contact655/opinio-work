@@ -21,7 +21,36 @@ export type CareerMovePerson = {
   to: MoveCompany;
   /** 移った年 */
   movedYear: number | null;
+  /** ★移った先が今の会社か（2026-11-25。「現職（2024年〜）」と書くため）。無ければ false 扱い */
+  toIsCurrent?: boolean;
 };
+
+/* 会社名の末尾に本人が書いた「（現職）」。「・現職」と重ねて書かないために外す（表示だけ。保存値は変えない） */
+const CURRENT_SUFFIX = /\s*[（(]現職[）)]\s*$/;
+
+/**
+ * ★移った先の年の書き方（2026-11-25 / 柴さんの指示）。今の会社なら「現職（2024年〜）」、そうでなければ「2024年」。年が無ければ現職だけ
+ */
+export function moveYearText(p: Pick<CareerMovePerson, "movedYear" | "toIsCurrent">): string {
+  if (p.toIsCurrent) return p.movedYear ? `現職（${p.movedYear}年〜）` : "現職";
+  return p.movedYear ? `${p.movedYear}年` : "";
+}
+
+/** 移った先の会社名。今の会社なら末尾の「（現職）」を外す（「・現職」と二重にしない） */
+export function moveToName(p: Pick<CareerMovePerson, "to" | "toIsCurrent">): string {
+  return p.toIsCurrent ? p.to.name.replace(CURRENT_SUFFIX, "") : p.to.name;
+}
+
+/**
+ * ★1行の書き方（ホームの右の列）。例: 「次は 関西のSaaS企業・現職（2024年〜）」「A → B（2024年）」
+ * ⚠️ カッコを重ねない（会社名の「（現職）」は moveToName で外し、年は1組のカッコだけ）
+ */
+export function moveLineText(p: CareerMovePerson, hideFrom: boolean): string {
+  const to = moveToName(p);
+  const head = hideFrom ? `次は ${to}` : `${p.from.name} → ${to}`;
+  if (p.toIsCurrent) return `${head}・${moveYearText(p)}`;
+  return p.movedYear ? `${head}（${p.movedYear}年）` : head;
+}
 
 export const CAREER_MOVES_CSS = `
   .cms { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 12px 4px; }
@@ -94,8 +123,8 @@ export function CareerMovesSection<P extends CareerMovePerson>({ title, sub, peo
                 {hideFrom && <span className="cms-arrow" aria-hidden>次は</span>}
                 <Logo c={p.to} />
               </div>
-              <div className="cms-to" title={p.to.name}>{p.to.name}</div>
-              <div className="cms-year">{p.movedYear ? `${p.movedYear}年` : ""}</div>
+              <div className="cms-to" title={moveToName(p)}>{moveToName(p)}</div>
+              <div className="cms-year">{moveYearText(p)}</div>
             </div>
             {renderAction ? <div className="cms-act">{renderAction(p)}</div> : <button type="button" className="cms-cta btn-fixed-size">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

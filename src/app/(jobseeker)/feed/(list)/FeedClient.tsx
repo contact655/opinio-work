@@ -20,7 +20,7 @@ import { DMButton } from "@/components/profile/DMButton";
 import { FollowUserButton } from "@/app/(jobseeker)/u/[id]/FollowUserButton";
 import { LikersDialog } from "@/components/feed/LikersDialog";
 import { NewCompaniesCarousel, NEW_COMPANIES_CSS, type NewCompanyItem } from "@/components/feed/NewCompaniesCarousel";
-import { CareerMovesSection, CAREER_MOVES_CSS } from "@/components/people/CareerMovesSection";
+import { CareerMovesSection, CAREER_MOVES_CSS, moveLineText } from "@/components/people/CareerMovesSection";
 import { NewJobsCarousel, ArticlesBlock, FEED_BLOCKS_CSS, type FeedJobItem, type FeedArticleItem } from "@/components/feed/FeedSectionBlocks";
 import type { CareerMoveBlock } from "@/lib/feed/careerMoves";
 
@@ -98,6 +98,15 @@ const BADGE_STYLE = {
   bg: "var(--royal-50)",
   border: "var(--royal-100)",
 } as const;
+
+/** ★同じ会社の募集をまとめた投稿で縦に並べる件数（2026-11-25 / 柴さんの指示）。残りは「ほか◯件を見る →」 */
+const JOB_GROUP_SHOWN = 3;
+
+/** まとめる相手の会社（job_posted だけ）。⚠️ resolveActor と同じ会社を見る */
+function jobPostCompanyId(p: PostItem): string | null {
+  if (p.post_type !== "job_posted") return null;
+  return (p.ref_company ?? p.ref_job?.company ?? null)?.id ?? null;
+}
 
 const POST_TYPE_BADGE: Record<string, { label: string; color: string; bg: string; border: string } | undefined> = {
   company_joined:    { label: "新規掲載", ...BADGE_STYLE },
@@ -1259,7 +1268,8 @@ function RailMoves({ block }: { block: CareerMoveBlock }) {
       <div style={RAIL_LIST_STYLE}>
         {block.people.slice(0, RAIL_LIMIT).map((p) => {
           /* ⚠️ hideFrom（いまの勤務先の枠）では移る前の社名を出さない（CareerMovesSection と同じ） */
-          const sub = `${block.hideFrom ? `次は ${p.to.name}` : `${p.from.name} → ${p.to.name}`}${p.movedYear ? `（${p.movedYear}年）` : ""}`;
+          /* ★書き方は moveLineText の1か所（2026-11-25。「次は ◯◯・現職（2024年〜）」。カッコを重ねない） */
+          const sub = moveLineText(p, block.hideFrom);
           return (
             <RailRow key={p.id} href={p.href} title={sub}
               thumb={<Avatar user={{ name: p.name, avatar_color: null, avatar_url: p.avatarUrl }} size={RAIL_THUMB} />}
@@ -1448,6 +1458,70 @@ function FeedSidebar({
 
 // ─── PostCard ─────────────────────────────────────────────────────────────────
 
+/**
+ * ★募集のカード（job_posted の中身。2026-11-25 に PostCard から切り出した）。同じ会社の募集をまとめた投稿でも同じものを縦に並べる。
+ * ⚠️ 見た目は切り出す前と同じ。ここで変えると1件の投稿とまとめた投稿の両方が変わる
+ */
+function FeedJobBox({ job, company }: { job: NonNullable<RefJob>; company: RefCompany | null | undefined }) {
+  return (
+        <Link
+          href={`/jobs/${job.slug ?? job.id}`}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            background: "var(--success-soft)",
+            border: "1px solid #a7f3d0",
+            borderRadius: 10,
+            padding: "12px 14px",
+            marginBottom: 12,
+            textDecoration: "none",
+          }}
+        >
+          {/* 会社ロゴ / ブリーフケースアイコン */}
+          {company ? (
+            <CompanyLogoImg
+              logoUrl={company.logo_url}
+              logoLetter={company.logo_letter}
+              logoGradient={company.logo_gradient}
+              name={company.brand_name ?? company.name}
+              size={38} borderRadius={8}
+            />
+          ) : (
+            <div style={{
+              width: 38, height: 38, borderRadius: 8, flexShrink: 0,
+              background: "var(--success)", display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+              </svg>
+            </div>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {job.title}
+            </div>
+            {(() => {
+              const mn = job.salary_min;
+              const mx = job.salary_max;
+              const hasMn = mn != null && mn > 0;
+              const hasMx = mx != null && mx > 0;
+              return hasMn || hasMx ? (
+                <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--success-ink)", fontWeight: 600, marginTop: 3 }}>
+                  {hasMn && hasMx ? `${fmtMan(mn)}〜${fmtMan(mx)}万円` : hasMn ? `${fmtMan(mn)}万円〜` : `〜${fmtMan(mx)}万円`}
+                </div>
+              ) : (
+                <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 3 }}>応相談</div>
+              );
+            })()}
+          </div>
+          <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--success-ink)", fontWeight: 600, flexShrink: 0 }}>
+            募集を見る →
+          </div>
+        </Link>
+  );
+}
+
 function PostCard({
   post,
   myUserId,
@@ -1456,8 +1530,11 @@ function PostCard({
   myAvatarUrl,
   onDelete,
   onLikeToggle,
+  jobGroup,
 }: {
   post: PostItem;
+  /** ★同じ会社の「新着の募集」が続いたときのまとまり（先頭がこの post。2026-11-25）。2件以上のときだけまとめて出す */
+  jobGroup?: PostItem[];
   myUserId: string | null;
   myName: string | null;
   myAvatarColor: string | null;
@@ -1499,10 +1576,19 @@ function PostCard({
         ここはフィード一覧の見せ方の話。
 
      ⚠️ tagline が空の企業は content にフォールバックする。**空欄にはしない。** */
+  /* ★まとめた募集の本文は「◯件の募集を開始しました。」（会社名はヘッダーに出ている。1件の投稿と同じく主語を落とす）。
+        ⚠️ 会社の表示名は1件目の本文の「が「」の前から取る（投稿を作ったときの表示名。systemPosts の jobPostedContent と同じもの） */
+  const groupContent = jobGroup && jobGroup.length > 1
+    ? stripActorPrefix(
+        `${post.content.includes("が「") ? post.content.slice(0, post.content.indexOf("が「")) : actor.kind === "company" ? actor.name : ""}が${jobGroup.length}件の募集を開始しました。`,
+        post.post_type, [actor.kind === "company" ? actor.name : null, post.ref_company?.name, post.ref_job?.company?.name],
+      )
+    : null;
   const displayContent =
-    post.post_type === "company_joined" && post.ref_company?.tagline?.trim()
+    groupContent ??
+    (post.post_type === "company_joined" && post.ref_company?.tagline?.trim()
       ? post.ref_company.tagline.trim()
-      : strippedContent;
+      : strippedContent);
 
   const handleLike = async () => {
     if (!myUserId) { router.push("/auth?next=/feed"); return; }
@@ -1816,62 +1902,22 @@ function PostCard({
         <FeedCompanyActions companyId={post.ref_company.id} companyName={post.ref_company.name} />
       )}
 
-      {post.post_type === "job_posted" && post.ref_job && (
-        <Link
-          href={`/jobs/${post.ref_job.slug ?? post.ref_job.id}`}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            background: "var(--success-soft)",
-            border: "1px solid #a7f3d0",
-            borderRadius: 10,
-            padding: "12px 14px",
-            marginBottom: 12,
-            textDecoration: "none",
-          }}
-        >
-          {/* 会社ロゴ / ブリーフケースアイコン */}
-          {post.ref_company ? (
-            <CompanyLogoImg
-              logoUrl={post.ref_company.logo_url}
-              logoLetter={post.ref_company.logo_letter}
-              logoGradient={post.ref_company.logo_gradient}
-              name={post.ref_company.brand_name ?? post.ref_company.name}
-              size={38} borderRadius={8}
-            />
-          ) : (
-            <div style={{
-              width: 38, height: 38, borderRadius: 8, flexShrink: 0,
-              background: "var(--success)", display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-              </svg>
-            </div>
+      {post.post_type === "job_posted" && post.ref_job && (!jobGroup || jobGroup.length <= 1) && (
+        <FeedJobBox job={post.ref_job} company={post.ref_company} />
+      )}
+      {/* ★同じ会社の募集が続いたときは1つの投稿にまとめる（2026-11-25 / 柴さんの指示）。最大3件まで縦に並べ、残りは「ほか◯件を見る →」 */}
+      {jobGroup && jobGroup.length > 1 && (
+        <div data-state="feed-job-group" style={{ display: "flex", flexDirection: "column", marginBottom: 2 }}>
+          {jobGroup.slice(0, JOB_GROUP_SHOWN).map((g) => g.ref_job && (
+            <FeedJobBox key={g.id} job={g.ref_job} company={g.ref_company ?? post.ref_company} />
+          ))}
+          {jobGroup.length > JOB_GROUP_SHOWN && actorHref && (
+            <Link href={`${actorHref}#jobs`} data-action="feed-job-group-more"
+              style={{ alignSelf: "flex-start", margin: "0 0 12px", fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 13, fontWeight: 600, color: "var(--royal)", textDecoration: "none" }}>
+              ほか{jobGroup.length - JOB_GROUP_SHOWN}件を見る →
+            </Link>
           )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 14, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {post.ref_job.title}
-            </div>
-            {(() => {
-              const mn = post.ref_job.salary_min;
-              const mx = post.ref_job.salary_max;
-              const hasMn = mn != null && mn > 0;
-              const hasMx = mx != null && mx > 0;
-              return hasMn || hasMx ? (
-                <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--success-ink)", fontWeight: 600, marginTop: 3 }}>
-                  {hasMn && hasMx ? `${fmtMan(mn)}〜${fmtMan(mx)}万円` : hasMn ? `${fmtMan(mn)}万円〜` : `〜${fmtMan(mx)}万円`}
-                </div>
-              ) : (
-                <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 3 }}>応相談</div>
-              );
-            })()}
-          </div>
-          <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, color: "var(--success-ink)", fontWeight: 600, flexShrink: 0 }}>
-            募集を見る →
-          </div>
-        </Link>
+        </div>
       )}
 
       {/* 記事カード。
@@ -2383,6 +2429,23 @@ export default function FeedClient({
   /* ⚠️ 投稿が足りないときに後ろへまとめる分は、after の小さい順（＝上の並び）に出す */
   inserts.sort((a, b) => a.after - b.after);
   const insertsAfter = (i: number) => inserts.filter((x) => x.after === i).map((x) => x.node);
+  /* ★同じ会社の「新着の募集」が続いたら1つにまとめる（2026-11-25 / 柴さんの指示）。
+        ⚠️ まとめるのは**投稿が続いているときだけ**（間に別の投稿があればまとめない）。
+           差し込みの箱（企業・募集・人の箱・登録パネル）は投稿ではないので切らず、まとめた投稿の後ろに出す
+           （中身が空で何も描かない差し込みもあり、それで切ると見た目は続いているのに割れる。2026-11-25 にスマホで踏んだ）
+        ⚠️ 何件目の投稿の後ろに差し込むか（inserts の after）は元の並びの番号のまま
+        ⚠️ 続きを読み込むと、前の最後のまとまりに新しい募集がつながることがある（読み込んだ範囲で数え直す） */
+  const guestPanelAt = !isDesktop && myUserId === null ? Math.min(GUEST_PANEL_AFTER_POSTS, streamPosts.length) - 1 : -1;
+  const streamGroups: { start: number; end: number; posts: PostItem[] }[] = [];
+  streamPosts.forEach((p, i) => {
+    const last = streamGroups[streamGroups.length - 1];
+    const cid = jobPostCompanyId(p);
+    if (last && cid && jobPostCompanyId(last.posts[0]) === cid) {
+      last.posts.push(p); last.end = i;
+    } else {
+      streamGroups.push({ start: i, end: i, posts: [p] });
+    }
+  });
   const leftoverInserts = inserts.filter((x) => x.after >= streamPosts.length).map((x) => x.node);
 
   const handlePostCreated = useCallback((newPost: PostItem) => {
@@ -2607,10 +2670,11 @@ export default function FeedClient({
               /people のユーザーカード、企業ページのツール等はすべて独立カード）。 */
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 8 }}>
           <style>{NEW_COMPANIES_CSS + CAREER_MOVES_CSS + FEED_BLOCKS_CSS}</style>
-          {streamPosts.map((post, i) => (
+          {streamGroups.map(({ start, end, posts: groupPosts }) => { const post = groupPosts[0]; const range = Array.from({ length: end - start + 1 }, (_, k) => start + k); return (
             <Fragment key={post.id}>
               <PostCard
                 post={post}
+                jobGroup={groupPosts.length > 1 ? groupPosts : undefined}
                 myUserId={myUserId}
                 myName={myName}
                 myAvatarColor={myAvatarColor}
@@ -2627,13 +2691,13 @@ export default function FeedClient({
                   ⚠️ 投稿が `GUEST_PANEL_AFTER_POSTS` より少ないときは最後の投稿の後ろに出る。
                   ⚠️ `marginBottom` を 0 に潰す。パネル自身が 12 を持っており、
                      このリストは `gap: 10` なので、そのままだとここだけ行間が広くなる。 */}
-              {!isDesktop && myUserId === null
-                && i === Math.min(GUEST_PANEL_AFTER_POSTS, streamPosts.length) - 1 && (
+              {range.includes(guestPanelAt) && (
                 <GuestSignupPanel style={{ marginBottom: 0 }} />
               )}
-              {insertsAfter(i)}
+              {/* ★まとめた範囲（start〜end）の差し込みは、まとめた投稿の後ろに順に出す */}
+              {range.flatMap((i) => insertsAfter(i))}
             </Fragment>
-          ))}
+          ); })}
           {leftoverInserts}
         </div>
       )}
