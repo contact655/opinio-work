@@ -163,6 +163,8 @@ export type CompanyDetail = {
   headquartersAddress?: string | null;
   branchLocations?: string[] | null;
   remoteWorkStatus?: string | null;
+  /** ★カバー画像（ow_companies.header_image_url。2026-11-26 に求人ページのヘッダーのため取得を足した） */
+  headerImageUrl?: string | null;
   // Numbers survey timestamp
   numbersUpdatedAt: string | null;
   // Org teams

@@ -25,7 +25,7 @@
  *   1. `lib/people/directory.ts`            … `/people` の一覧
  *   2. `lib/search/companies.ts`            … `/companies` のカードの「現役社員 N名」
  *   3. ~~`getCompaniesForList`（`/feed` の企業一覧の人数）~~ … 2026-10-19 に関数ごと削除
- *   4. `lib/supabase/queries.ts`            … `getJobPositionMembers`（求人ページの経験者）
+ *   4. ~~`getJobPositionMembers`（求人ページの経験者）~~ … 2026-11-26 に求人ページの「この職種の経験者」ごと削除
  *   5. `lib/supabase/queries.ts`            … `getCompanyEmployees`（現役社員 / OB・OG）
  *   6. `lib/supabase/queries.ts`            … 面談対応者（ambassadors）
  *   7. `app/(jobseeker)/u/[id]/page.tsx`    … 公開プロフィール（**404 にする**）

@@ -14,7 +14,6 @@ export const dynamic = "force-dynamic";
 
 const SECTIONS = [
   { href: "/dev/preview/benefits",  label: "福利厚生" },
-  { href: "/dev/preview/employees", label: "現役社員 / OB・OG" },
   { href: "/dev/preview/tools",     label: "ツール" },
   { href: "/dev/preview/cases",     label: "導入事例" },
   { href: "/dev/preview/teams",     label: "組織体制" },
