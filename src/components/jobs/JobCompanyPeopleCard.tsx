@@ -24,10 +24,12 @@ type Resp = {
 
 const MAX = 3;
 
-export function JobCompanyPeopleCard({ companyId, companyHref, title }: {
+export function JobCompanyPeopleCard({ companyId, companyHref, title, excludeUserIds = [] }: {
   companyId: string;
   companyHref: string | null;
   title: React.ReactNode;
+  /** ★上の「この募集に関わる人」に出た人（2026-11-26）。同じ人を2つの枠に出さない。除いた結果0人なら枠ごと出さない */
+  excludeUserIds?: string[];
 }) {
   const [data, setData] = useState<Resp | null>(null);
 
@@ -41,10 +43,11 @@ export function JobCompanyPeopleCard({ companyId, companyHref, title }: {
   }, [companyId]);
 
   if (!data) return null;
+  const excluded = new Set(excludeUserIds);
   const people = [
     ...data.current.map((p) => ({ p, alumni: false })),
     ...data.alumni.map((p) => ({ p, alumni: true })),
-  ];
+  ].filter(({ p }) => !excluded.has(p.userId));
   if (people.length === 0) return null;
   const shown = people.slice(0, MAX);
   const rest = people.length - shown.length;
