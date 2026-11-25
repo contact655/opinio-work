@@ -748,7 +748,8 @@ export async function JobDetailView({
               </div>
 
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-                {[job.employment_type, job.work_style, job.location, job.experience].filter(Boolean).map((b) => (
+                {/* ★住所は区まで（2026-11-25）。全文は下の勤務条件の「勤務地」に1か所だけ出す */}
+                {[job.employment_type, job.work_style, shortAddress(job.location), job.experience].filter(Boolean).map((b) => (
                   <span key={b} style={{
                     display: "inline-flex", alignItems: "center",
                     fontSize: 12, fontWeight: 600, padding: "5px 11px",
@@ -1299,7 +1300,6 @@ export async function JobDetailView({
                 {/* 縦並びタイムライン */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                   {job.selection_flow.map((step, i) => {
-                    const isFirst = i === 0;
                     const isLast = i === job.selection_flow.length - 1;
                     return (
                       <div key={i} style={{ display: "flex", gap: 16, alignItems: "stretch" }}>
@@ -1307,20 +1307,15 @@ export async function JobDetailView({
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 36, flexShrink: 0 }}>
                           <div style={{
                             width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-                            background: isLast
-                              ? "linear-gradient(135deg, var(--success) 0%, #34D399 100%)"
-                              : isFirst
-                              ? "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)"
-                              : "#fff",
-                            border: isLast ? "none" : isFirst ? "none" : "2px solid var(--line)",
+                            /* ★すべて同じ形の番号（2026-11-25 / 柴さんの指示）。それまでは1番目が紺の塗り（「今ここ」に見える）、
+                               最後が緑のチェック（「終わった」に見える）だった。⚠️ 段ごとに見た目を変えないこと */
+                            background: "#fff",
+                            border: "2px solid var(--line)",
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            color: (isFirst || isLast) ? "#fff" : "var(--ink-mute)",
+                            color: "var(--ink-soft)",
                             fontSize: 13, fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)",
-                            boxShadow: isFirst || isLast ? "0 4px 12px rgba(0,35,102,0.2)" : "none",
                           }}>
-                            {isLast ? (
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.8}><polyline points="20 6 9 17 4 12"/></svg>
-                            ) : (i + 1)}
+                            {i + 1}
                           </div>
                           {!isLast && (
                             <div style={{ width: 2, flex: 1, minHeight: 16, background: "var(--line)", margin: "4px 0" }} />
@@ -1680,7 +1675,7 @@ export async function JobDetailView({
                 {[
                   { key: "職種", value: job.roleLabel },
                   { key: "雇用形態", value: job.employment_type },
-                  { key: "勤務地", value: job.location },
+                  { key: "勤務地", value: shortAddress(job.location) }, /* ★区まで（2026-11-25）。全文は勤務条件に */
                   { key: "働き方", value: job.work_style },
                   { key: "経験", value: job.experience },
                   /* ★掲載日・更新日（2026-11-19 / 柴さんの指示）。規則は jobDateRows（heroFacts.ts）の1か所 */
