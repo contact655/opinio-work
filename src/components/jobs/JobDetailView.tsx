@@ -227,9 +227,9 @@ export async function JobDetailView({
     usedLabor.add(label);
     return hits.map((h) => h.value).join("\n");
   };
-  const benefitsText = (company.benefits ?? [])
-    .map((b) => (b.detail ? `${b.name}（${b.detail}）` : b.name))
-    .join("、");
+  /* ★福利厚生は1行に1項目（2026-11-26 / 柴さんの指示）。先頭に記号を付けない。補足があれば括弧で続ける */
+  const benefitLines = (company.benefits ?? [])
+    .map((b) => ({ value: b.detail ? `${b.name}（${b.detail}）` : b.name }));
   const specRows = [
     { label: "雇用形態", value: specLines([
       { value: job.employment_type },
@@ -259,7 +259,7 @@ export async function JobDetailView({
     { label: "休日・休暇", value: job.holidays },
     { label: "手当・福利厚生", value: specLines([
       { label: "社会保険", value: laborVal("社会保険") },
-      { label: "福利厚生", value: benefitsText },
+      ...benefitLines,
     ]) },
     { label: "受動喫煙対策", value: laborVal("受動喫煙防止の措置") },
     { label: "変更の範囲", value: specLines([
