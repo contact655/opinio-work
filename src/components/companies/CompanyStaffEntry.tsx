@@ -14,14 +14,18 @@ import Link from "next/link";
  * - ⚠️ 色で目立たせない。求職者向けのページの末尾にある、企業の人向けの小さな案内。
  * - ⚠️ ISR のページなので、閲覧者で出し分けない（呼び出し側が運営会社・検証用・プレビューで外す）。
  */
-export function CompanyStaffEntry({ companyId }: { companyId: string }) {
+export function CompanyStaffEntry({ companyId, compact = false }: {
+  companyId: string;
+  /** ★企業ページの「話せる人」カードの一番下に置くとき（2026-11-26）。上の余白を詰める */
+  compact?: boolean;
+}) {
   const next = `/biz/companies/add/new?company=${companyId}`;
   return (
     <div
       data-company-staff-entry
       style={{
-        marginTop: "var(--space-8)",
-        paddingTop: "var(--space-4)",
+        marginTop: compact ? 12 : "var(--space-8)",
+        paddingTop: compact ? 10 : "var(--space-4)",
         borderTop: "1px solid var(--line-soft)",
         fontSize: 12,
         lineHeight: 1.7,

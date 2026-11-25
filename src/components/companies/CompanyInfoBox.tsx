@@ -8,6 +8,8 @@ import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { formatUrlForDisplay, splitUrlForWrap } from "@/lib/utils/url";
 import { splitParenTail } from "@/lib/utils/parenSuffix";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
+import { SpecTable, specLines, type SpecRow } from "@/components/common/SpecTable";
+import { getStageCfg } from "@/lib/utils/stageCfg";
 
 /**
  * 「企業情報」ボックス。**サイドバー（デスクトップ）と本文（モバイル）の両方が使う。**
@@ -234,6 +236,55 @@ export function CompanyInfoBox({
             </div>
           ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * ★企業ページのサイドバー「会社概要」（2026-11-26 / 柴さんの指示）。求人ページの表（SpecTable）と同じ見た目。
+ *   行: 業種／事業領域／顧客の業界／設立／従業員数（世界）／代表者／本社（住所・最寄駅）／拠点／資本区分（注記）／
+ *       親会社／リモート状況／ジャンル／公式サイト。値が無い行は SpecTable が落とす。
+ *
+ * ⚠️ それまで本文にあった「拠点・資本関係」（LocationsCapitalSection）の中身はここに移した（本社の住所・最寄駅・拠点・資本の注記）。
+ * ⚠️ 事業ステージ（新）が無い会社だけ、旧 phase の名前を資本区分の後ろに付ける（ヘッダーのバッジにあったもの）。
+ * ⚠️ /companies の分割表示のペイン（CompanyPane）は従来の CompanyInfoBox のまま。こちらは企業ページだけ。
+ */
+export function CompanyInfoTable({ company, detail }: { company: Company; detail: CompanyDetail }) {
+  const stageFallback = !detail.companyStage ? getStageCfg(company.phase)?.label ?? null : null;
+  const typeText = [companyTypeText(detail.capitalType, detail.hqCountry, detail.companyStage), stageFallback].filter(Boolean).join("・");
+  const urlHref = detail.url ? (detail.url.startsWith("http") ? detail.url : `https://${detail.url}`) : null;
+  const rows: SpecRow[] = [
+    { label: "業種", value: detail.industryPath ?? null },
+    { label: "事業領域", value: orderedBusinessDomains(company.business_domains).map((d) => d.name).join("／") },
+    { label: "顧客の業界", value: customersText({ allIndustries: detail.customerAllIndustries === true, industryNames: detail.customerIndustryNames ?? [], servesConsumers: detail.servesConsumers === true }) },
+    { label: "設立", value: detail.established },
+    { label: "従業員数", value: specLines([
+      { value: formatEmployeeSize(company.employee_count_band, company.employee_count_as_of) },
+      { label: "世界", value: detail.globalEmployeeCount ? formatEmployeeCount(detail.globalEmployeeCount) : null },
+    ]) },
+    { label: "代表者", value: detail.ceo },
+    { label: "本社", value: specLines([
+      { value: detail.headquartersAddress || detail.hq },
+      { value: detail.headquartersAddress ? detail.nearestStation : null },
+    ]) },
+    { label: "拠点", value: detail.branchLocations && detail.branchLocations.length > 0 ? detail.branchLocations.join("・") : null },
+    { label: "資本区分", value: specLines([{ value: typeText || null }, { value: detail.capitalNotes ?? null }]) },
+    { label: "親会社", value: detail.parentCompanyName ? detail.parentCompanyName + (detail.parentCompanyCountry ? `（${detail.parentCompanyCountry}）` : "") : null },
+    { label: "リモート", value: detail.remoteWorkStatus ? WORK_STYLE_LABELS[detail.remoteWorkStatus] ?? detail.remoteWorkStatus : null },
+    { label: "ジャンル", value: company.genres.map((g) => g.name).join("、") },
+    { label: "公式サイト", value: urlHref ? (
+      <a href={urlHref} target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline", minWidth: 0, overflowWrap: "anywhere" }}>
+        {splitUrlForWrap(formatUrlForDisplay(detail.url)).map((seg, i, arr) => (
+          <Fragment key={i}>{seg}{i < arr.length - 1 && <wbr />}</Fragment>
+        ))} ↗
+      </a>
+    ) : null },
+  ];
+  if (!rows.some((r) => r.value)) return null;
+  return (
+    <div className="jd-card jd-side-card" data-state="company-info-table">
+      <h2 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>会社概要</h2>
+      <SpecTable rows={rows} ariaLabel="会社概要" compact />
     </div>
   );
 }

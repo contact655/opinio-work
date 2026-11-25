@@ -50,11 +50,7 @@ export function CompanyFlowSection({ companyId, summary, preview }: {
   return (
     <section id="company-flow" data-state={locked ? "cf-summary" : "cf-full"} style={{ marginBottom: "var(--space-8)", scrollMarginTop: 120 }}>
       <style>{CSS}</style>
-      <SecTitle iconColor="default" icon={
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
-        </svg>
-      }>
+      <SecTitle>
         人の流れ
       </SecTitle>
       <p style={{ margin: "-4px 0 14px", fontSize: 12, lineHeight: 1.7, color: "var(--ink-mute)" }}>

@@ -121,25 +121,11 @@ export function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
   return (
     <section
       id="products-clients"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
+      className="cd-sec"
     >
       {/* Section header */}
-      <div style={{ padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
-        <SecTitle
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <rect x="2" y="3" width="20" height="14" rx="2"/>
-              <path d="M8 21h8M12 17v4"/>
-            </svg>
-          }
-        >
+      <div style={{ padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)" }}>
+        <SecTitle>
           製品・導入事例
         </SecTitle>
       </div>
@@ -397,12 +383,5 @@ export function ProductsClientsSection({ detail }: { detail: CompanyDetail }) {
   );
 }
 
-
-// ─── Locations & Capital Section ─────────────────────────────────────────────
-
-/* ⚠️ 「拠点・資本関係」は `components/companies/LocationsCapitalSection.tsx` に
-      移した（2026-08-30）。**求人詳細でも同じものを出すため。**
-      ここに戻すと実装が2つに割れ、片方だけ直る形になる。
-   ⚠️ 見出しは呼び出し側から `title` で渡す（このページの `SecTitle` を使う）。 */
 
 // ─── Benefits Section ─────────────────────────────────────────────────────────

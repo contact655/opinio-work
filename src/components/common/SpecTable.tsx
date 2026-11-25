@@ -17,7 +17,12 @@ function hasValue(v: React.ReactNode): boolean {
   return true;
 }
 
-export function SpecTable({ rows, ariaLabel }: { rows: SpecRow[]; ariaLabel?: string }) {
+export function SpecTable({ rows, ariaLabel, compact = false }: {
+  rows: SpecRow[];
+  ariaLabel?: string;
+  /** ★幅の狭いサイドバー用（2026-11-26 / 企業ページの会社概要）。見出しの列を 84px にし、余白と文字を小さくする */
+  compact?: boolean;
+}) {
   const shown = rows.filter((r) => hasValue(r.value));
   if (shown.length === 0) return null;
   return (
@@ -28,13 +33,16 @@ export function SpecTable({ rows, ariaLabel }: { rows: SpecRow[]; ariaLabel?: st
         .spec-row + .spec-row { border-top: 1px solid var(--line); }
         .spec-row dt { background: var(--bg-tint); padding: 14px 16px; font-size: 13px; font-weight: 700; color: var(--ink-soft); line-height: 1.7; }
         .spec-row dd { margin: 0; padding: 14px 16px; font-size: 15px; line-height: 1.9; color: var(--ink); min-width: 0; overflow-wrap: anywhere; white-space: pre-line; }
+        .spec-table--compact .spec-row { grid-template-columns: 84px minmax(0, 1fr); }
+        .spec-table--compact .spec-row dt { padding: 10px 10px; font-size: 12px; }
+        .spec-table--compact .spec-row dd { padding: 10px 12px; font-size: 13.5px; line-height: 1.75; }
         @media (max-width: 640px) {
           .spec-row { grid-template-columns: 96px minmax(0, 1fr); }
           .spec-row dt { padding: 12px 10px; font-size: 12px; }
           .spec-row dd { padding: 12px 12px; font-size: 14px; }
         }
       `}</style>
-      <dl className="spec-table" aria-label={ariaLabel}>
+      <dl className={compact ? "spec-table spec-table--compact" : "spec-table"} aria-label={ariaLabel}>
         {shown.map((r) => (
           <div key={r.label} className="spec-row" data-spec-row={r.label}>
             <dt>{r.label}</dt>

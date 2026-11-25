@@ -573,7 +573,6 @@ export async function JobDetailView({
       {/* ⚠️ style タグの中に不等号・バッククォートを書かない（ハイドレーションが壊れる） */}
       <style>{`
         .jd-page { background: var(--bg-tint); }
-        .jd-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; }
         .jd-head { overflow: hidden; margin-bottom: 20px; }
         .jd-cover { display: block; width: 100%; height: 200px; object-fit: cover; }
         .jd-head-body { padding: 24px 32px 28px; }
@@ -587,7 +586,6 @@ export async function JobDetailView({
         .jd-body .md-sec { margin: 28px 0 12px; padding-top: 28px; border-top: 1px solid var(--line); font-size: 19px; font-weight: 700; color: var(--ink); line-height: 1.4; }
         .jd-body .opinio-md .md-sec:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
         .jd-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-        .jd-side-card { padding: 20px; }
         @media (max-width: 1023px) {
           .jd-cols { grid-template-columns: minmax(0, 1fr); }
         }
@@ -596,7 +594,6 @@ export async function JobDetailView({
           .jd-title { font-size: 22px; }
           .jd-body { padding: 4px 18px; }
           .jd-sec { padding: 22px 0; }
-          .jd-side-card { padding: 18px; }
         }
       `}</style>
     </>

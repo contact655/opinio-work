@@ -439,6 +439,41 @@ export async function getPublicJobManagers(jobId: string, companyId: string, db:
     .filter((u) => u.name);
 }
 
+/**
+ * ★企業ページの「話せる人」に出す Hiring Manager（2026-11-26）。会社単位。
+ *   担当者で本人が「採用中」にしている人（ow_company_admins.is_hiring）＋ 申告の採用中（loadValidSelfHiring を通る人）。
+ *   ⚠️ 絞り方は getPublicJobManagers と同じ（本人が登録していない・システム・非公開は出さない。検証用と実在は混ぜない）。
+ *   ⚠️ 取れなければ []（ページは出す）
+ */
+export async function getPublicCompanyManagers(companyId: string, db: Db = createAdminClient()): Promise<PublicJobManager[]> {
+  const [{ data: admins, error: aErr }, selfRows, { data: co, error: cErr }] = await Promise.all([
+    db.from("ow_company_admins").select("user_id, hiring_note").eq("company_id", companyId)
+      .eq("is_active", true).eq("is_hiring", true).not("user_id", "is", null),
+    loadValidSelfHiring(db, { companyId }),
+    db.from("ow_companies").select("is_test").eq("id", companyId).maybeSingle(),
+  ]);
+  if (aErr || cErr) { console.error("[nextManager] company managers:", aErr?.message ?? cErr?.message); return []; }
+  const noteOf = new Map<string, string | null>();
+  for (const a of admins ?? []) noteOf.set(a.user_id as string, (a.hiring_note as string | null) ?? null);
+  for (const r of selfRows ?? []) if (!noteOf.has(r.userId)) noteOf.set(r.userId, r.note);
+  const uids = Array.from(noteOf.keys());
+  if (uids.length === 0) return [];
+  const { data: users, error: uErr } = await db.from("ow_users")
+    .select("id, name, avatar_url, headline, auth_id, is_test, is_system, visibility").in("id", uids);
+  if (uErr) { console.error("[nextManager] company managers:", uErr.message); return []; }
+  const companyIsTest = co?.is_test === true;
+  return (users ?? [])
+    .filter((u) => !!u.auth_id && (u.is_test === true) === companyIsTest && u.is_system !== true && u.visibility !== "private")
+    .map((u) => ({
+      userId: u.id as string,
+      name: (u.name as string | null)?.trim() || "",
+      avatarUrl: (u.avatar_url as string | null) ?? null,
+      headline: (u.headline as string | null) ?? null,
+      note: noteOf.get(u.id as string) ?? null,
+    }))
+    .filter((u) => u.name);
+}
+
 // ─── ユーザー一覧のバッジ ─────────────────────────────────────────────────
 
 /**
