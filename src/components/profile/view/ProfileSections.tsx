@@ -99,28 +99,43 @@ export type FeaturedArticleRow = {
  * ⚠️ 見出しどうしの間隔（gap:10）は**この内側**が持つ。外側の gap は
  *    「見出しの塊 ↔ 罫線・ボタン」の間隔になる。
  */
+/* ★見出しのアイコン（2026-11-25 / 柴さんの指示）。求人ページ・企業ページと同じ「明朝体 18px＋四角いアイコン」にそろえた。
+   アイコンは latin（節の英字の名前）で引く。⚠️ 英字の副題は画面に出さなくなったが、節を見分けるキーとして呼び出し側は渡し続ける */
+const SECTION_ICONS: Record<string, React.ReactNode> = {
+  ABOUT: <><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></>,
+  CAREER: <><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></>,
+  EDUCATION: <><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></>,
+  SCHOOLMATES: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></>,
+  ACHIEVEMENTS: <><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></>,
+  AWARDS: <><circle cx="12" cy="8" r="6"/><path d="M8.2 13.4 7 22l5-3 5 3-1.2-8.6"/></>,
+  CERTIFICATIONS: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></>,
+  LANGUAGES: <><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></>,
+  SKILLS: <><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></>,
+  MEDIA: <><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9h4"/><path d="M10 7h8M10 11h8M10 15h5"/></>,
+  FEATURED: <><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>,
+  CONTENT: <><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></>,
+  ACTIVITY: <><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></>,
+  ROUTES: <><circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/><path d="M9 19h7a3 3 0 0 0 0-6H8a3 3 0 0 1 0-6h7"/></>,
+};
+const DEFAULT_SECTION_ICON = <><rect x="3" y="3" width="18" height="18" rx="3"/></>;
+
 export function SectionTitle({ title, latin }: { title: string; latin?: string }) {
+  const icon = (latin && SECTION_ICONS[latin]) ?? DEFAULT_SECTION_ICON;
   return (
-    <span style={{ display: "inline-flex", alignItems: "baseline", gap: 10, minWidth: 0, flexWrap: "wrap" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-3)", minWidth: 0 }}>
+      <span aria-hidden style={{
+        width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+        background: "var(--royal-50)", color: "var(--royal)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">{icon}</svg>
+      </span>
       {/* ⚠️★`title` に `whiteSpace: "nowrap"` を付けないこと（2026-08-31 に外した）。
-             呼び出しの大半は「職歴」「スキル」など短い固定文だが、`/u/[id]` の1箇所だけ
-             **会社名から組み立てた可変長**（`${会社名}の募集中の求人`）を渡している。
-             セールスフォース・ジャパンで **297px** になり、`body { overflow-x: hidden }` が
-             **画面幅346px 未満で末尾を切り落としていた**（320px で 26px ぶん・実測）。
-          ⚠️ `document.documentElement.scrollWidth` では見つからない。
-             body の overflow-x が隠すので**横スクロールは出ない**
-             （.claude/rules/ui-debugging.md「横はみ出し」）。
-          ⚠️ `latin` 側の nowrap は残す。あれは CAREER / SKILLS のような短い固定文で、
-             途中で折り返ると読めなくなる。 */}
-      {/* ⚠️ 書体と大きさは CSS（.pf-title）。スマホのプロフィールではゴシック 20px にするので、インラインに戻さない */}
-      <span className="pf-title" style={{ fontWeight: 700, color: "var(--ink)" }}>
+             `/u/[id]` の1箇所だけ会社名から組み立てた可変長の見出しを渡しており、狭い画面で末尾が切れていた。
+          ⚠️ 書体と大きさは CSS（.pf-title）。インラインに戻さない */}
+      <span className="pf-title" style={{ fontWeight: 700, color: "var(--ink)", minWidth: 0 }}>
         {title}
       </span>
-      {latin && (
-        <span className="pf-title-latin" style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-          {latin}
-        </span>
-      )}
     </span>
   );
 }
