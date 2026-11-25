@@ -14,6 +14,8 @@ export const HOME_MOBILE_PATHS_AFTER = 4;   // 5件目のあと
 export const HOME_MOBILE_SUGGEST_AFTER = 3; // 4件目のあと
 /** ★相談できる人（2026-11-12）。「あなたに合う会社」とおすすめのユーザーの間 */
 export const HOME_MOBILE_CONSULTANTS_AFTER = 2; // 3件目のあと
+/** ★スマホのホームで「採用中のマネージャー」を差し込む位置（2026-11-25。外した「相談にのれる人」と同じ3件目のあと） */
+export const HOME_MOBILE_HIRING_AFTER = 2;
 
 /** ★職歴が0件の人の案内（2026-11-04 に1行の帯から右の列の箱へ） */
 export const CAREER_BOX_TITLE = "職歴を1件入れましょう";

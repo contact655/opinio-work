@@ -16,7 +16,7 @@ import type { PeopleSidebarData } from "@/lib/people/sidebarData";
 import { useHideOnScroll } from "@/lib/hooks/useHideOnScroll";
 import { PeopleFilterDrawer, type PeopleFilterValues } from "@/components/people/PeopleFilterDrawer";
 import {
-  CONSULTANTS_PARAM, CONSULTANTS_NOTE, CONSULTANT_BADGE_LABEL, CONSULTANTS_TITLE, CONSULTANTS_INVITE_TEXT, CONSULTANTS_SETTINGS_HREF,
+  CONSULTANTS_PARAM, CONSULTANTS_NOTE, CONSULTANT_BADGE_LABEL,
   PEOPLE_TAB_PARAM, PEOPLE_TAB_CONSULT, PEOPLE_TAB_HIRING,
 } from "@/lib/constants/careerRoutes";
 import { CAREER_GENERAL_KEY } from "@/lib/constants/careerConsult";
@@ -51,23 +51,23 @@ type Props = {
   followerUserIds: string[];
   /** ★左サイドバーの中身（2026-09-18）。未ログイン・自分の行が無いときは null */
   sidebar: PeopleSidebarData | null;
-  /** ★相談可能なユーザー全員の ow_users.id（2026-11-12。?consult=1 の絞り込み）。読めなかったら null（絞り込みのチップを出さない） */
+  /** ⚠️ 使っていない（2026-11-25 に「相談にのれる人」を画面から外した）。見本ページが渡しているので型だけ残す */
   consultantUserIds?: string[] | null;
   /** ★Next Manager（2026-11-13）。採用中のマネージャー（ow_users.id → 会社と募集）。読めなかったら null（切り替えを出さない） */
   hiringBadges?: Record<string, HiringBadge> | null;
   /** ★前の経歴（2026-11-03。旧 /paths）。読み込めなかったときは null（チップを出さない） */
   prevCareer?: PrevCareerProps | null;
-  /** ★見ている本人が「相談にのれる」をオンにしているか（2026-11-25）。false のときだけ「相談にのれる人」タブに案内を出す。読めなければ null */
+  /** ⚠️ 使っていない（2026-11-25 に「相談にのれる人」の案内ごと外した）。型だけ残す */
   myConsultantListed?: boolean | null;
 };
 
-/* ★/people のタブ（2026-11-25 / 柴さんの指示）。URL は ?tab=consult / ?tab=hiring（無ければ「すべて」）。
-   ⚠️ 旧 ?consult=1・?hiring=1 もタブとして読む（ホームの古いリンク・ブックマーク） */
-export type PeopleTab = "all" | "hiring" | "consult";
+/* ★/people のタブは「すべて」「採用中のマネージャー」の2つ（2026-11-25 / 柴さんの指示。「相談にのれる人」タブは同日に外した）。
+   URL は ?tab=hiring（無ければ「すべて」）。旧 ?hiring=1 と ?tab=managers も採用中として読む。
+   ⚠️ 旧 ?tab=consult・?consult=1 は「すべて」を出し、URL からも外す（PeopleListClient の useEffect） */
+export type PeopleTab = "all" | "hiring";
 export function peopleTabOf(params: { get(k: string): string | null }): PeopleTab {
   const t = params.get(PEOPLE_TAB_PARAM);
-  if (t === PEOPLE_TAB_CONSULT || params.get(CONSULTANTS_PARAM) === "1") return "consult";
-  if (t === PEOPLE_TAB_HIRING || params.get(HIRING_PARAM) === "1") return "hiring";
+  if (t === PEOPLE_TAB_HIRING || t === "managers" || params.get(HIRING_PARAM) === "1") return "hiring";
   return "all";
 }
 /** ★「相談にのれる人」タブの「相談する」で開く中身（ホームの箱と同じ。キャリア全般） */
@@ -911,22 +911,8 @@ function matchRole(card: AmbassadorCard, slugs: string[], roleSlugToId: Record<s
   return !!card.topRoleId && ids.includes(card.topRoleId);
 }
 
-/**
- * ★「相談にのれる人」タブの案内（2026-11-25 / 柴さんの指示）。本人が「相談にのれる」をオンにしていないときだけ出す。
- * ⚠️ 見た目は一覧の空の表示と同じ白い箱。リンクの書き方はホームの箱の「あなたも載る →」と同じ
- */
-function ConsultInvite() {
-  return (
-    <div data-state="people-consult-invite" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "6px 12px",
-      background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "12px 16px", marginBottom: 14, fontSize: 13.5, color: "var(--ink)" }}>
-      <span style={{ fontWeight: 600 }}>{CONSULTANTS_INVITE_TEXT}</span>
-      <Link href={CONSULTANTS_SETTINGS_HREF} data-action="people-consult-settings" style={{ color: "var(--royal)", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>設定する →</Link>
-    </div>
-  );
-}
-
 // ── PeopleListClient ─────────────────────────────────────────────────
-export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUserId, followedUserIds, followerUserIds, sidebar, prevCareer = null, consultantUserIds = null, hiringBadges = null, myConsultantListed = null }: Props) {
+export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUserId, followedUserIds, followerUserIds, sidebar, prevCareer = null, hiringBadges = null }: Props) {
   /* ★前の経歴で絞っているとき（2026-11-03）。⚠️ 人数を出さない（PrevCareerProps の注記） */
   const prevNotes = prevCareer?.notes ?? null;
   /* ★絞り込みは URL に持つ（2026-09-18）。共有リンク・リロード・戻るで同じ結果になる。
@@ -952,22 +938,16 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     [searchParams],
   );
   const foreignOnly = searchParams.get("foreign") === "1";
-  /* ★タブ（2026-11-25 / 柴さんの指示）。「すべて」「採用中のマネージャー」「相談にのれる人」。URL は ?tab=（peopleTabOf）。
-     ⚠️ 相談にのれる人の判定は lib/featuredConsultants/server.ts の getConsultantUserIds（ホームの箱と同じ条件）。
-        採用中は lib/nextManager/server.ts の getHiringBadges。ここで条件を作らない
-     ⚠️ どちらも読めなかったとき（null）はそのタブを出さず、「すべて」として扱う */
+  /* ★タブ（2026-11-25 / 柴さんの指示）。「すべて」「採用中のマネージャー」。URL は ?tab=（peopleTabOf）。
+     ⚠️ 採用中の判定は lib/nextManager/server.ts の getHiringBadges。ここで条件を作らない
+     ⚠️ 読めなかったとき（null）は採用中のタブを出さず、「すべて」として扱う
+     ⚠️ 「相談にのれる人」タブ・案内・「相談可」の印は同日に外した（相談はメッセージリクエストで受ける方針）。データは残してある */
   const urlTab = peopleTabOf(searchParams);
-  const tab: PeopleTab =
-    urlTab === "consult" && consultantUserIds ? "consult"
-    : urlTab === "hiring" && hiringBadges ? "hiring"
-    : "all";
-  const consultOnly = tab === "consult";
-  const consultantSet = useMemo(() => new Set(consultantUserIds ?? []), [consultantUserIds]);
+  const tab: PeopleTab = urlTab === "hiring" && hiringBadges ? "hiring" : "all";
   const hiringOnly = tab === "hiring";
   const tabs: { key: PeopleTab; label: string }[] = [
     { key: "all", label: "すべて" },
     ...(hiringBadges ? [{ key: "hiring" as const, label: HIRING_FILTER_LABEL }] : []),
-    ...(consultantUserIds ? [{ key: "consult" as const, label: CONSULTANTS_TITLE }] : []),
   ];
   const tabLabel = tabs.find((t) => t.key === tab)?.label ?? "すべて";
   /** ★タブの切り替え。⚠️ push（replace にしない）。ブラウザの戻るで前のタブへ戻れるように。旧 ?consult= ?hiring= は消す */
@@ -975,11 +955,17 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     const p = new URLSearchParams(searchParams.toString());
     p.delete(CONSULTANTS_PARAM); p.delete(HIRING_PARAM);
     if (next === "all") p.delete(PEOPLE_TAB_PARAM);
-    else p.set(PEOPLE_TAB_PARAM, next === "consult" ? PEOPLE_TAB_CONSULT : PEOPLE_TAB_HIRING);
+    else p.set(PEOPLE_TAB_PARAM, PEOPLE_TAB_HIRING);
     router.push(`${pathname}${p.toString() ? `?${p.toString()}` : ""}`, { scroll: false });
   };
-  /* ★本人がオンにしていないときだけ出す案内（「相談にのれる人」タブ）。⚠️ 読めなかったとき（null）は出さない */
-  const showConsultInvite = consultOnly && !!myUserId && myConsultantListed === false;
+  /* ★外した「相談にのれる人」タブの URL（?tab=consult・?consult=1）で来たら、URL からも外す（中身は「すべて」）。replace なので履歴は増えない */
+  useEffect(() => {
+    if (searchParams.get(PEOPLE_TAB_PARAM) !== PEOPLE_TAB_CONSULT && searchParams.get(CONSULTANTS_PARAM) !== "1") return;
+    const p = new URLSearchParams(searchParams.toString());
+    if (p.get(PEOPLE_TAB_PARAM) === PEOPLE_TAB_CONSULT) p.delete(PEOPLE_TAB_PARAM);
+    p.delete(CONSULTANTS_PARAM);
+    router.replace(`${pathname}${p.toString() ? `?${p.toString()}` : ""}`, { scroll: false });
+  }, [searchParams, pathname, router]);
   /* ★つながりの選択肢（2026-11-12。上部のチップと「すべてのフィルター」が同じものを使う）。
      ⚠️ ログインしていない・自分の行が無いときは空。同じ会社にいた人は、マスタに紐づく職歴があるときだけ */
   const relOptions = useMemo(() => (sidebar
@@ -991,7 +977,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
   const prevSelected = useMemo(() => prevCareer?.selected ?? { role: null, industry: null, company: null }, [prevCareer]);
   /* ★キーワード（q）もパネルで入れる（2026-11-12）。⚠️ keyword はこの下で宣言しているので、ここでは URL から直に読む */
   const qParam = searchParams.get("q") ?? "";
-  /* ⚠️ 相談にのれる人は 2026-11-25 にタブにしたので、パネルの条件からは外した（consult は常に false） */
+  /* ⚠️ 相談にのれる人はパネルの条件に無い（consult は常に false。2026-11-25 に機能ごと画面から外した） */
   const drawerValues = useMemo(() => ({ q: qParam, rel, roles, ages, foreign: foreignOnly, consult: false, prev: prevSelected }), [qParam, rel, roles, ages, foreignOnly, prevSelected]);
   /* 選んでいる条件の数（「すべてのフィルター」に添える。⚠️ 人数ではない） */
   const prevActive = !!(prevCareer?.selected.role || prevCareer?.selected.industry || prevCareer?.selected.company);
@@ -1096,7 +1082,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
          ⚠️ マスタに紐付いていない職歴（自由入力の社名）の人は false になり、
             **外資で絞り込んだときだけ**落ちる。 */
       if (foreignOnly && !a.hasForeignExperience) return false;
-      if (consultOnly && !consultantSet.has(a.userId)) return false;
       if (hiringOnly && !hiringBadges?.[a.userId]) return false;
       /* ★前の経歴（2026-11-03）。その経歴から次へ進んだ人だけ */
       if (prevNotes && !(a.userId in prevNotes)) return false;
@@ -1130,7 +1115,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
     });
   }, [ambassadors, roles, keyword, roleSlugToId, keywordRoleIds,
       rel, followedUserIds, followerUserIds,
-      foreignOnly, consultOnly, consultantSet, hiringOnly, hiringBadges, ages, prevNotes]);
+      foreignOnly, hiringOnly, hiringBadges, ages, prevNotes]);
 
   const sorted = useMemo(() => {
     if (sort === "updated") {
@@ -1229,7 +1214,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
 
           {/* ★3行目: 「前の経歴で絞り込み中」（左）と、表示切替・並び替え（文字だけ）（右）
                 ★人数は画面に出さない（2026-11-04 / 柴さんの指示。/companies・/jobs も同じ）。読み上げにだけ残す */}
-          {/* ★タブ（2026-11-25 / 柴さんの指示）。「すべて」「採用中のマネージャー」「相談にのれる人」。
+          {/* ★タブ（2026-11-25 / 柴さんの指示）。「すべて」「採用中のマネージャー」。
                 見た目は 2026-11-13 の「すべて／採用中のマネージャー」の切り替えのまま（新しい部品を作らない）。
                 ⚠️ 読めなかったタブ（null）は出さない。タブが「すべて」だけなら切り替えごと出さない
                 ⚠️ スマホでは3つが1行に収まらないので横にスクロールさせる（折り返すと高さが変わる） */}
@@ -1342,8 +1327,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           />
         )}
         <div className="ppl-main">
-        {/* ★「相談にのれる人」タブの案内（2026-11-25）。本人がオンにしていないときだけ。0人のときは下の空の表示がこの案内になる */}
-        {showConsultInvite && sorted.length > 0 && <ConsultInvite />}
         {prevNotes && prevCareer?.summary}
         {prevNotes && sorted.length > 0 && (
           <h2 style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)", margin: "0 0 10px" }}>この経歴から進んだ人</h2>
@@ -1352,13 +1335,6 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
           <div data-state="people-prev-none" style={{ textAlign: "center", padding: "32px 24px", color: "var(--ink-mute)", fontSize: 14 }}>
             この経歴から次へ進んだ人は、まだいません。
           </div>
-        ) : sorted.length === 0 && consultOnly && !keyword && activeFilterCount === 0 ? (
-          /* ★相談にのれる人が0人のとき。オンにしていない人には案内を、オンにしている人には事実だけを出す */
-          showConsultInvite ? <ConsultInvite /> : (
-            <div data-state="people-consult-none" style={{ textAlign: "center", padding: "48px 24px", color: "var(--ink-mute)", fontSize: 14 }}>
-              相談にのれる人は、まだいません。
-            </div>
-          )
         ) : sorted.length === 0 ? (
           <div style={{ textAlign: "center", padding: "48px 24px", color: "var(--ink-mute)", fontSize: 14 }}>
             該当する方が見つかりません
@@ -1371,19 +1347,19 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
             /* ★スマホは縦長のカードを2列（2026-10-19 / 柴さんの判断。それまでは1人1行の CompactRow）。ビュートグルは出さない */
             <><div className="ppl-grid">
               {shown.map((card) => (
-                <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} narrow pathNote={prevNotes?.[card.userId]} consultable={!consultOnly && consultantSet.has(card.userId)} consultMode={consultOnly} hiring={hiringBadges?.[card.userId] ?? null} />
+                <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} narrow pathNote={prevNotes?.[card.userId]} hiring={hiringBadges?.[card.userId] ?? null} />
               ))}
             </div>{moreButton}</>
           ) : view === "list" ? (
             <><div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {shown.map((card) => (
-                <ListRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} pathNote={prevNotes?.[card.userId]} consultable={!consultOnly && consultantSet.has(card.userId)} consultMode={consultOnly} hiring={hiringBadges?.[card.userId] ?? null} />
+                <ListRow key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} pathNote={prevNotes?.[card.userId]} hiring={hiringBadges?.[card.userId] ?? null} />
               ))}
             </div>{moreButton}</>
           ) : (
           <><div className="ppl-grid">
             {shown.map((card) => (
-              <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} pathNote={prevNotes?.[card.userId]} consultable={!consultOnly && consultantSet.has(card.userId)} consultMode={consultOnly} hiring={hiringBadges?.[card.userId] ?? null} />
+              <GridCard key={card.userId} card={card} myUserId={myUserId} followedUserIds={followedUserIds} followerUserIds={followerUserIds} pathNote={prevNotes?.[card.userId]} hiring={hiringBadges?.[card.userId] ?? null} />
             ))}
           </div>{moreButton}</>
           )

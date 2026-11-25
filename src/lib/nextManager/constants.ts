@@ -64,6 +64,10 @@ export const HIRING_BADGE_LABEL = "採用中";
 /** ユーザー一覧の切り替え（?hiring=1） */
 export const HIRING_PARAM = "hiring";
 export const HIRING_FILTER_LABEL = "採用中のマネージャー";
+/** ★/people の「採用中のマネージャー」タブの URL（2026-11-25。ホームの箱の「すべて見る →」） */
+export const HIRING_LIST_HREF = "/people?tab=hiring";
+/** ★ホームの右の列「採用中のマネージャー」に出す人数（2026-11-25。外した「相談にのれる人」の箱と同じ3人） */
+export const HOME_HIRING_MANAGERS_LIMIT = 3;
 /** 採用中の設定（/mypage/settings の欄）。マイページの入口が送る先（2026-11-19） */
 export const HIRING_SETTING_HREF = "/mypage/settings#hiring-manager-setting";
 

@@ -11,11 +11,12 @@ import HomeDecisionCard from "./HomeDecisionCard";
 import { currentJoinDecisionPrompt } from "@/lib/joinDecision/server";
 import HomeCheckinCard from "./HomeCheckinCard";
 import { currentCheckinPrompt } from "@/lib/joinCheckin/server";
-import { HOME_FOR_YOU_LIMIT, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER, HOME_MOBILE_SUGGEST_AFTER, HOME_MOBILE_CONSULTANTS_AFTER, careerCompanyCount, type CareerNudge } from "@/lib/home/homeState";
+import { HOME_FOR_YOU_LIMIT, HOME_MOBILE_FOR_YOU_AFTER, HOME_MOBILE_PATHS_AFTER, HOME_MOBILE_SUGGEST_AFTER, HOME_MOBILE_HIRING_AFTER, careerCompanyCount, type CareerNudge } from "@/lib/home/homeState";
 import { getUserSuggestions } from "@/lib/people/suggestServer";
 import { SuggestedUsers } from "@/components/feed/SuggestedUsers";
-import { getFeaturedConsultants } from "@/lib/featuredConsultants/server";
-import { FeaturedConsultantsRail } from "@/components/people/FeaturedConsultantsRail";
+/* ⚠️ 「相談にのれる人」（getFeaturedConsultants / FeaturedConsultantsRail）は 2026-11-25 に画面から外した。同じ位置に採用中のマネージャー */
+import { getHomeHiringManagers } from "@/lib/nextManager/homeRail";
+import { HiringManagersRail } from "@/components/nextManager/HiringManagersRail";
 import { getPathsView } from "@/lib/paths/server";
 import { PrevCareerSummary } from "@/components/people/PrevCareerSummary";
 import FeedClient from "../feed/(list)/FeedClient";
@@ -64,7 +65,7 @@ export default async function HomePage() {
   const isTest = me.is_test === true;
 
   /* ★タイムライン（loadFeedProps）と上のブロックは互いに依存しないので並列に引く */
-  const [expRes, forYou, proposedRes, decisionPrompt, paths, feed, suggestions, eduRes, profRes, consultants, checkinPrompt] = await Promise.all([
+  const [expRes, forYou, proposedRes, decisionPrompt, paths, feed, suggestions, eduRes, profRes, hiringManagers, checkinPrompt] = await Promise.all([
     db.from("ow_experiences").select(`id, ${EXPERIENCE_COMPANY_COLS}`).eq("user_id", owId),
     buildForYou(owId),
     db.from("ow_proposals").select("company_id").eq("candidate_user_id", owId),
@@ -80,8 +81,8 @@ export default async function HomePage() {
     /* ⚠️ ow_profiles.user_id は auth 空間 */
     /* ★career_stance と確かめた日時は「変わりありませんか？」の判定（2026-11-12） */
     db.from("ow_profiles").select("career_history_complete_at, onboarding_completed, career_stance, career_stance_updated_at").eq("user_id", user.id).maybeSingle(),
-    /* ★相談できる人（2026-11-12）。失敗しても空配列（ホームを落とさない） */
-    getFeaturedConsultants({ excludeOwUserId: owId }),
+    /* ★採用中のマネージャー（2026-11-25。/people の採用中のタブと同じ人）。失敗しても空配列（ホームを落とさない） */
+    getHomeHiringManagers({ owUserId: owId, isTest }),
     /* ★入社後のふり返り（入社3か月・1年。2026-11-20）。⚠️ 失敗しても null（ホームを落とさない） */
     currentCheckinPrompt(owId).catch((e) => { console.error("[home] checkin:", (e as Error).message); return null; }),
   ]);
@@ -152,7 +153,7 @@ export default async function HomePage() {
   const railTop = (
     <>
       <ForYouSection {...forYouProps} compact={{ limit: HOME_FOR_YOU_LIMIT, moreHref: "/mypage/proposals", title: "あなたに合う会社", layout: "rail" }} />
-      <FeaturedConsultantsRail items={consultants} />
+      <HiringManagersRail items={hiringManagers} />
     </>
   );
   /* ★行き先は5人以上の行が1つも無ければ出さない（PrevCareerSummary も null を返すが、スマホの差し込みの枠ごと作らないためここでも見る） */
@@ -161,7 +162,7 @@ export default async function HomePage() {
   const railSuggestions = suggestions.length > 0 ? <SuggestedUsers users={suggestions} layout="rail" /> : null;
   const mobileInserts = [
     { key: "home-for-you", after: HOME_MOBILE_FOR_YOU_AFTER, node: <ForYouSection {...forYouProps} compact={{ limit: HOME_FOR_YOU_LIMIT, moreHref: "/mypage/proposals", title: "あなたに合う会社", layout: "scroll" }} /> },
-    ...(consultants.length > 0 ? [{ key: "home-consultants", after: HOME_MOBILE_CONSULTANTS_AFTER, node: <div style={{ marginBottom: 16 }}><FeaturedConsultantsRail items={consultants} /></div> }] : []),
+    ...(hiringManagers.length > 0 ? [{ key: "home-hiring-managers", after: HOME_MOBILE_HIRING_AFTER, node: <div style={{ marginBottom: 16 }}><HiringManagersRail items={hiringManagers} /></div> }] : []),
     ...(suggestions.length > 0 ? [{ key: "home-user-suggest", after: HOME_MOBILE_SUGGEST_AFTER, node: <SuggestedUsers users={suggestions} layout="scroll" /> }] : []),
     ...(paths && pathsHasRows ? [{ key: "home-paths", after: HOME_MOBILE_PATHS_AFTER, node: <div style={{ marginBottom: 16 }}><PrevCareerSummary view={paths} variant="home" /></div> }] : []),
   ];

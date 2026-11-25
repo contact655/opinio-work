@@ -4,7 +4,6 @@ import MypageLayout from "../_components/MypageLayout";
 import AccountSettings from "./AccountSettings";
 import PrivacySettings from "./PrivacySettings";
 import ConnectionSettingSection from "./ConnectionSettingSection";
-import ConsultantSettingSection from "./ConsultantSettingSection";
 import HiringManagerSection from "./HiringManagerSection";
 import LogoutSection from "./LogoutSection";
 import { isCandidateAgeDisplayEnabled } from "@/lib/business/candidates/ageFilter";
@@ -100,8 +99,8 @@ export default async function MypageSettingsPage() {
             これは載るかどうかだけの設定で、届いた相談を受けるかどうかは今までどおり受け取った人が決める */}
       {/* ★つながりとしての表示（2026-10-16 / フェーズ3）。初期値はオフ */}
       <ConnectionSettingSection />
-      {/* ★相談可能なユーザーとして載せる（2026-11-12 / 柴さんの決定「誰でも」）。初期値はオフ */}
-      <ConsultantSettingSection />
+      {/* ⚠️ 「相談にのれる人として載せる」（ConsultantSettingSection）は 2026-11-25 に外した（柴さんの指示。相談はメッセージリクエストで受ける）。
+            部品・API（/api/jobseeker/consultant-setting）・ow_featured_consultants は残してある */}
       {/* ★Next Manager「採用中」（2026-11-13）。会社の担当者になっている人にだけ出る（担当者でなければ何も描かない） */}
       <HiringManagerSection />
       {/* ★企業からのメッセージ（2026-10-11 に説明だけにした）。⚠️ スイッチを戻さないこと */}
