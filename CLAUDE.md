@@ -1340,7 +1340,7 @@ select c.name, c.source,
 | フィードの企業カード | フォロー・保存 | `FeedCompanyActions`（画面に入ってから状態を取る） |
 | 検証用の会社の枠 | 1行に畳む（押すと開く）。⚠️ サーバーで描くので**デスクトップでも畳む** | `TestCompaniesSection` |
 | 応募フォーム（`/jobs/[id]/apply`） | 1列（求人の要約はフォームの下）。担当者がいない企業では「担当者はまだ登録していません。OPINIO が預かり、登録した時点で届きます」 | `ApplicationForm`（.apply-grid）/ `page.tsx` |
-| 求人詳細の上部（条件の下）と下の固定バー | 話を聞く／この募集に応募する／**企業の採用ページで応募する**＋**保存（☆）**。上部の行は最初の画面、固定バーは上部を過ぎてから | `JobMobileHeroActions` / `JobMobileStickyBar`（同じ `mobileCtaProps`） |
+| 求人詳細のヘッダーカードと下の固定バー | ★2026-11-26 から: ヘッダーカード（全幅）に 話を聞いてみたい／応募する／保存／シェア。固定バーは［話を聞いてみたい］［応募する］の2つで、ヘッダーカードを過ぎてから | `JobDetailView`（`MainActions`）/ `JobMobileStickyBar`（同じ `casualHref` / `applyHref`） |
 | 入力欄の文字の大きさ | **16px 以上**（iPhone が入力時に画面を拡大しないため） | globals.css 末尾（このプロジェクトで例外的に `!important`） |
 | 記事一覧の上部 | 他の一覧と同じ1行（`.list-toolbar`） | `ArticleFilterBar` |
 | 応募・面談の件数 | 4つを1行 | `ApplicationsClient` |
@@ -1356,6 +1356,7 @@ select c.name, c.source,
 ⚠️★**同じ対象の保存ボタンが1画面に複数あるときは、押した結果をイベント（`opinio:bookmark-changed`）で揃えている**（`BookmarkButton`）。消すと片方だけ古い状態で残る。
 ⚠️★**スマホの入力欄を 16px 未満にしても、globals.css の規則が 16px に戻す。** 消さないこと（新規登録の入力欄が 15px で、iPhone で押した瞬間に拡大されていた）。
 ⚠️★**求人詳細の「企業の採用ページで応募する」と「保存する」は、2026-10-17 まで lg 以上のサイドバーにしか無かった。** スマホでは押す手段が0だった（OPINIO で応募を受けていない企業がほとんどなので、実質すべての求人）。**サイドバーに操作を足したら `JobMobileStickyBar` にも足すこと。**
+⚠️★**2026-11-26 に求人詳細を作り直した**（docs/phase0-job-detail-20261126.md）。操作はヘッダーカード（どの幅でも同じもの）に移し、サイドバーには操作を置かない。サイドバーのカードは 1023px 以下で本文の下に同じ順で並ぶ。人（社員・OB/OG）はブラウザから取りに行く（`JobCompanyPeopleCard`。ISR の HTML に「ログインユーザーのみ」の人を焼かないため）。
 
 ### ★一覧の上部（2026-10-21 / 柴さんの指示）
 
@@ -7710,7 +7711,7 @@ npm run dev → http://localhost:3000/dev/preview
    固定幅のコンテナでは発火しない。縦に積んで**ブラウザ自体をリサイズ**する。
 
 ⚠️ **セクションを `page.tsx` のローカル関数で書かない。** preview から import できない。
-   部品にすること（`JobEmployeesSection` は 2026-08-30 にそのために切り出した）。
+   部品にすること（`JobEmployeesSection` は 2026-08-30 にそのために切り出した。2026-11-26 に求人詳細の作り直しで削除）。
 
 ⚠️ 新しいセクションを作ったら **`/dev/preview` の索引（`page.tsx` の `ITEMS`）にも足す。**
    足さないと誰も見に来ない。
