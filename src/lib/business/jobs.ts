@@ -433,9 +433,6 @@ export async function fetchJobById(
     /* ★要相談（2026-10-10）。⚠️ ここに無いと jobToForm が false を入れ、別の項目を保存した瞬間に消える */
     salaryNegotiable: row.salary_negotiable === true,
     probationPeriod: row.probation_period ?? undefined,
-    whyHire: row.why_hire ?? undefined,
-    teamComposition: row.team_composition ?? undefined,
-    first90Days: row.first_90_days ?? undefined,
     workHours: row.work_hours ?? undefined,
     holidays: row.holidays ?? undefined,
     /* ★労働条件（2026-10-11）。⚠️ SELECT から列を落とすと "" になり、別の項目を保存した瞬間に消える */

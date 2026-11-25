@@ -82,15 +82,6 @@ function PointsCard() {
   );
 }
 
-function TextCard({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
-  return (
-    <section style={CARD}>
-      <Title icon={icon}>{title}</Title>
-      <p style={{ margin: 0, fontSize: 15, lineHeight: 1.9, color: "var(--ink)" }}>{text}</p>
-    </section>
-  );
-}
-
 function Person({ initial, name, role, tag }: { initial: string; name: string; role: string; tag?: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, border: "1px solid var(--line)", borderRadius: 12, minWidth: 0 }}>
@@ -115,9 +106,6 @@ function PeopleCard() {
   return (
     <section style={CARD}>
       <Title icon={I.people}>一緒に働く人</Title>
-      <div style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.8 }}>
-        <span style={{ fontWeight: 700 }}>チーム構成：</span>PM 1名・エンジニア 4名
-      </div>
       <SubHead>この募集の Hiring Manager</SubHead>
       <div style={PEOPLE_GRID}>
         <Person initial="佐" name="佐藤 一郎" role="開発部 マネージャー" tag="採用中" />
@@ -257,8 +245,7 @@ const NOW: Block[] = [
 
 const PROPOSED: Block[] = [
   { key: "points", node: <PointsCard /> },
-  { key: "why", node: <TextCard icon={I.why} title="なぜ今採用するか" text={WHY} /> },
-  { key: "90", node: <TextCard icon={I.flag} title="入社後90日でやること" text={DAYS90} /> },
+  /* ★「なぜ今採用するか」「入社後90日」「チーム構成」は 2026-11-25 に本番から外した（柴さんの指示）。見本からも外す */
   { key: "people", node: <PeopleCard /> },
   { key: "overview", node: <OverviewCard /> },
   { key: "conditions", node: <ConditionsCard /> },
@@ -267,7 +254,7 @@ const PROPOSED: Block[] = [
 ];
 
 const NOW_ORDER = "ポイント → 仕事内容 → Hiring Manager → この職種の人 → 勤務条件 → 労働条件 → 入社後90日 → チーム構成 → なぜ今 → 選考 → 採用担当者";
-const PROPOSED_ORDER = "ポイント → なぜ今 → 入社後90日 → 一緒に働く人 → 仕事内容 → 勤務条件 → 選考 → 労働条件（畳む）";
+const PROPOSED_ORDER = "ポイント → 一緒に働く人 → 仕事内容 → 勤務条件 → 選考 → 労働条件（畳む）";
 
 export default function Page({ searchParams }: { searchParams: { v?: string } }) {
   devOnly();

@@ -86,9 +86,6 @@ type FormState = {
   startDatePreference: string;
   assigneeIds: string[];
   urgency: "open" | "hot";
-  whyHire: string;
-  teamComposition: string;
-  first90Days: string;
   businessModel: string;
   // セールス職専用項目 (Migration 212)
   oteMin: string;
@@ -117,7 +114,7 @@ function jobToForm(job: BizJob | null): FormState {
     requiredSkills: [], preferredSkills: [], cultureFit: "",
     selectionSteps: ["書類選考", "カジュアル面談", "1次面接", "最終面接"],
     selectionDuration: "", startDatePreference: "応相談", assigneeIds: [], urgency: "open",
-    whyHire: "", teamComposition: "", first90Days: "", businessModel: "",
+    businessModel: "",
     oteMin: "", oteMax: "", salesSegment: [], salesHunterFarmer: "", incentiveNote: "",
     techStack: [], companyRoleName: "", requiredExperienceYears: "", positionLevel: "", laborTerms: { ...EMPTY_LABOR_TERMS },
   };
@@ -153,9 +150,6 @@ function jobToForm(job: BizJob | null): FormState {
           プロパティを読もうとしており、`BizJob` には存在しないので常に undefined** だった。
           キャストは型検査を素通りさせるので tsc も lint も何も言わない。
           **キャストで別名を読むくらいなら、型に足すこと。** */
-    whyHire: job.whyHire ?? "",
-    teamComposition: job.teamComposition ?? "",
-    first90Days: job.first90Days ?? "",
     businessModel: job.businessModel ?? "",
     oteMin: job.oteMin?.toString() ?? "",
     oteMax: job.oteMax?.toString() ?? "",
@@ -1035,15 +1029,8 @@ export function JobEditForm({
             <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.9, margin: "0 0 16px" }}>
               書かなくても公開できます。書くと、求職者が応募するかを決めやすくなります。
             </p>
-            <MoreGroup title="なぜ今採用するか" filled={!!form.whyHire.trim()}>
-              <FormTextarea id="jef-why-hire" ariaLabel="なぜ今採用するか" value={form.whyHire} onChange={(v) => updateForm("whyHire", v)} placeholder="例：プロダクトの成長にともない、PMを1名から3名体制にします。" rows={4} maxLength={600} />
-            </MoreGroup>
-            <MoreGroup title="チーム構成" filled={!!form.teamComposition.trim()}>
-              <FormTextarea id="jef-team-composition" ariaLabel="チーム構成" value={form.teamComposition} onChange={(v) => updateForm("teamComposition", v)} placeholder="例：PM2名、エンジニア8名、デザイナー2名の12名。" rows={4} maxLength={600} />
-            </MoreGroup>
-            <MoreGroup title="入社後90日でやること" filled={!!form.first90Days.trim()}>
-              <FormTextarea id="jef-first-90-days" ariaLabel="入社後90日でやること" value={form.first90Days} onChange={(v) => updateForm("first90Days", v)} placeholder="例：1か月目はオンボーディング。2か月目に小さな機能のPRDを書きます。" rows={4} maxLength={600} />
-            </MoreGroup>
+            {/* ⚠️「なぜ今採用するか」「チーム構成」「入社後90日でやること」は 2026-11-25 に外した（柴さんの指示。求人ページの表示と一緒に）。
+                   DB の列と値は残してあり、保存の API もこの3列を書かない（既存の値は消えない） */}
             <MoreGroup title="候補者へのメッセージ" filled={!!form.messageToCandidates.trim()}>
               <FormTextarea id="jef-message-to-candidates" ariaLabel="候補者へのメッセージ" value={form.messageToCandidates} onChange={(v) => updateForm("messageToCandidates", v)} placeholder="例：社会的意義のあるプロダクトに関わりたい方をお待ちしています。" rows={4} maxLength={500} />
             </MoreGroup>

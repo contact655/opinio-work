@@ -78,10 +78,8 @@ function buildJobRecord(body: Record<string, unknown>, companyId: string, salary
           「なぜ今採用するか」「チーム構成」「入社後90日」を書いてから
           「作成して続ける」を押すと、その3つだけが消える形だった。
        ⚠️ **POST と PUT は同じ項目を受けること。** 片方だけに足すと、
-          新規作成と編集で保存される内容が変わる。 */
-    why_hire: str(body.whyHire, 5000),
-    team_composition: str(body.teamComposition, 5000),
-    first_90_days: str(body.first90Days, 5000),
+          新規作成と編集で保存される内容が変わる。
+       ★2026-11-25: この3つは入力欄ごと外したので、POST も PUT も書かない（既存の値は消さない）。 */
     /* ⚠️ 同上。`urgency`（採用温度感）と `department_id` も PUT にしか無く、
           新規作成時は DB の既定値になっていた。「HOT」を選んで作成しても `open` で入る。
        ⚠️ `toUrgency` は PUT と同じものを使う。ここで別の判定を書かない。 */
