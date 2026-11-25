@@ -12,6 +12,7 @@ import { syncCompanyJobRole } from "@/lib/business/companyJobRole";
 import { validateJobOptionFields, toUrgency } from "@/lib/business/jobs";
 import { copyJobInternalNote } from "@/lib/jobs/internalNotes";
 import { parseJobExperienceYears, parseJobPositionLevel } from "@/lib/constants/jobFit";
+import { normalizeJobPoints } from "@/lib/jobs/jobPoints";
 
 /** 新規作成では「送られてこない」も未入力（null） */
 function fitValue<T>(v: T | null | undefined | "invalid"): T | null {
@@ -56,6 +57,8 @@ function buildJobRecord(body: Record<string, unknown>, companyId: string, salary
     /* ⚠️ 正は `description`（2026-08-26 統合）。旧列に書くと求職者側に出ない。 */
     description: str(body.descriptionMarkdown, 50000),
     message_to_candidates: str(body.messageToCandidates, 2000),
+    /* ★この募集のポイント（2026-11-25）。キーが無ければ触らない・空なら消す。整形は lib/jobs/jobPoints.ts */
+    catch_copy: typeof body.catchCopy === "string" ? normalizeJobPoints(body.catchCopy) : undefined,
     required_skills: strArr(body.requiredSkills),
     preferred_skills: strArr(body.preferredSkills),
     culture_fit: str(body.cultureFit, 2000),

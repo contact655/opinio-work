@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/job-points-fold", label: "求人詳細のポイント3行と、仕事内容を畳む（見本）",
+    desc: "★ポイントあり・なし・短い本文（畳まない）・企業の入力欄" },
   { href: "/dev/preview/job-detail-order", label: "求人詳細の並び替え（見本）",
     desc: "★判断に使う情報を上へ・見出しを1つの形に・一緒に働く人をまとめる。?v=now でいまの並び" },
   { href: "/dev/preview/people-toolbar", label: "ユーザー一覧の上部（/people）",

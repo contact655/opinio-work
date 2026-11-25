@@ -97,6 +97,7 @@ type DbJobFull = {
   probation_period: string | null;
   description: string | null;
   message_to_candidates: string | null;
+  catch_copy: string | null;
   required_skills: string[] | null;
   preferred_skills: string[] | null;
   culture_fit: string | null;
@@ -361,7 +362,7 @@ export async function fetchJobById(
   const { data, error } = await supabase
     .from("ow_jobs")
     .select(
-      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_negotiable, salary_note, location, remote_work_status, probation_period, description, message_to_candidates, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, stopped_reason, stopped_at, business_model, ote_min, ote_max, sales_segment, sales_hunter_farmer, incentive_note, tech_stack, required_experience_years, position_level, why_hire, team_composition, first_90_days, work_hours, holidays, contract_period, contract_period_detail, contract_renewal, contract_renewal_limit, workplace_change_scope, workplace_change_note, duties_change_scope, duties_change_note, break_time, overtime, fixed_overtime, fixed_overtime_hours, fixed_overtime_pay, social_insurance, smoking_measure, smoking_note, ow_job_assignees!job_id(user_id)"
+      "id, company_id, title, job_category, employment_type, department, salary_min, salary_max, salary_negotiable, salary_note, location, remote_work_status, probation_period, description, message_to_candidates, catch_copy, required_skills, preferred_skills, culture_fit, selection_steps, selection_duration, start_date_preference, status, urgency, published_at, updated_at, submitted_at, rejection_reason, rejection_date, rejection_reviewer, stopped_reason, stopped_at, business_model, ote_min, ote_max, sales_segment, sales_hunter_farmer, incentive_note, tech_stack, required_experience_years, position_level, why_hire, team_composition, first_90_days, work_hours, holidays, contract_period, contract_period_detail, contract_renewal, contract_renewal_limit, workplace_change_scope, workplace_change_note, duties_change_scope, duties_change_note, break_time, overtime, fixed_overtime, fixed_overtime_hours, fixed_overtime_pay, social_insurance, smoking_measure, smoking_note, ow_job_assignees!job_id(user_id)"
     )
     .eq("id", jobId)
     .single();
@@ -396,6 +397,7 @@ export async function fetchJobById(
     remoteWorkStatus: row.remote_work_status ?? undefined,
     descriptionMarkdown: row.description ?? undefined,
     messageToCandidates: row.message_to_candidates ?? undefined,
+    catchCopy: row.catch_copy ?? undefined,
     requiredSkills: row.required_skills ?? [],
     preferredSkills: row.preferred_skills ?? [],
     cultureFit: row.culture_fit ?? undefined,

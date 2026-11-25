@@ -23,6 +23,8 @@ export type BizJob = {
   remoteWorkStatus?: string;
   descriptionMarkdown?: string;
   messageToCandidates?: string;
+  /** この募集のポイント（ow_jobs.catch_copy。1行に1つ・3行まで） */
+  catchCopy?: string;
   requiredSkills: string[];
   preferredSkills: string[];
   cultureFit?: string;
