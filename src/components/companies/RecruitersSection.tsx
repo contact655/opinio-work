@@ -90,9 +90,12 @@ export function RecruitersSection({
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 16px", borderRadius: 8,
                 fontSize: 13, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap",
-                ...(headerCta.meeting
-                  ? { background: MEETING_CTA_BG, color: MEETING_CTA_FG, boxShadow: `0 2px 8px rgba(${MEETING_CTA_SHADOW_RGB},0.3)` }
-                  : { background: "var(--royal)", color: "#fff" }),
+                /* ★枠線だけのボタン（2026-11-25 / 柴さんの指示）。1024px 以上は右の列に同じ入口があり、
+                   塗りのボタンが2つ並んでどちらを押すか迷わせていたため。⚠️ 塗りに戻さないこと */
+                background: "#fff",
+                /* ⚠️ MEETING_CTA_BG はグラデーションで枠線に使えない。色は影と同じ RGB から作る */
+                border: headerCta.meeting ? `1.5px solid rgb(${MEETING_CTA_SHADOW_RGB})` : "1.5px solid var(--royal)",
+                color: headerCta.meeting ? "var(--ink)" : "var(--royal)",
               }}
             >
               {headerCta.label}
