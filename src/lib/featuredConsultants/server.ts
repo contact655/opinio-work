@@ -27,6 +27,8 @@ export type ConsultantCard = {
   currentCompany: string | null;
   currentRole: string | null;
   isCurrent: boolean;
+  /** ★職歴が1件も無い人の最終学歴（2026-11-25。/people のカードと同じく、職歴が無いときだけ所属として出す）。無ければ null */
+  school: string | null;
   talkTags: RouteTalkTag[];
   message: string | null;
 };
@@ -76,14 +78,27 @@ export async function getFeaturedConsultants(opts: { excludeOwUserId?: string | 
   const userById = l.userById;
   const listable = l.rows.filter((r) => r.user_id !== opts.excludeOwUserId).slice(0, CONSULTANTS_LIMIT);
   if (listable.length === 0) return [];
-  const jobs = await currentJobs(listable.map((r) => r.user_id as string));
+  const ids = listable.map((r) => r.user_id as string);
+  const [jobs, eduRes] = await Promise.all([
+    currentJobs(ids),
+    /* ⚠️ sort_order 昇順の先頭が最終学歴（lib/people/directory.ts と同じ読み方） */
+    createAdminClient().from("ow_user_educations").select("user_id, school, sort_order").in("user_id", ids).order("sort_order").order("id"),
+  ]);
   if (!jobs) return [];
+  if (eduRes.error) console.error("[featuredConsultants] educations:", eduRes.error.message);
+  const schoolOf = new Map<string, string>();
+  for (const e of (eduRes.data ?? []) as { user_id: string; school: string | null }[]) {
+    const v = e.school?.trim();
+    if (v && !schoolOf.has(e.user_id)) schoolOf.set(e.user_id, v);
+  }
   return listable.map((r) => {
     const u = userById.get(r.user_id as string) as UserRow;
     const job = jobs.get(u.id);
     return {
       userId: u.id, profileKey: u.username || u.id, name: u.name, avatarUrl: u.avatar_url,
       currentCompany: job?.company ?? null, currentRole: job?.role ?? null, isCurrent: job?.isCurrent ?? false,
+      /* ⚠️ 職歴が1件も無いときだけ（職歴があるのに会社名を出せない人に学校を出して取り違えさせない） */
+      school: job ? null : schoolOf.get(u.id) ?? null,
       talkTags: sortRouteTalkTags(Array.isArray(r.talk_tags) ? (r.talk_tags as unknown[]) : []),
       message: (r.message as string | null) ?? null,
     };

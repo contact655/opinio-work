@@ -83,7 +83,7 @@ const NAV_GROUPS = [
       /* ★2026-11-11。転職ルート（/routes/…）の追加・公開と、経験者の登録・承認 */
       { label: "転職ルート",          href: "/admin/routes",           icon: <Eye          size={16} strokeWidth={2} /> },
       /* ★2026-11-12。相談できる人（/people の左サイドバー）の登録・同意の記録・承認 */
-      { label: "相談可能なユーザー",  href: "/admin/consultants",      icon: <Eye          size={16} strokeWidth={2} /> },
+      { label: "相談にのれる人",  href: "/admin/consultants",      icon: <Eye          size={16} strokeWidth={2} /> },
       /* ★2026-11-19。会社の担当者でない人の「採用中」（本人の申告）。なりすましを外す */
       { label: "採用中（本人の申告）", href: "/admin/self-hiring",     icon: <Eye          size={16} strokeWidth={2} /> },
       { label: "学校マスタ",          href: "/admin/schools",          icon: <School       size={16} strokeWidth={2} /> },

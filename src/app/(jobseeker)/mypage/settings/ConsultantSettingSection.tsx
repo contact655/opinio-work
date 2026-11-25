@@ -108,7 +108,7 @@ export default function ConsultantSettingSection() {
               ) : (
                 <button type="button" data-action="consultant-on" disabled={saving || saved.stopped} onClick={() => void save(true)}
                   style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: saved.stopped ? "var(--line)" : "var(--royal)", color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: "inherit", cursor: saved.stopped ? "default" : "pointer" }}>
-                  相談可能なユーザーとして載せる
+                  相談にのれる人として載せる
                 </button>
               )}
               {done && <span role="status" style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600 }}>{done}</span>}

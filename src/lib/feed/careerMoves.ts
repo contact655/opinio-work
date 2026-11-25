@@ -173,6 +173,7 @@ export async function getCareerMoveBlocks(viewerOwId: string): Promise<CareerMov
         from: co(m.from),
         to: co(m.to),
         movedYear: m.to.started_at ? Number(m.to.started_at.slice(0, 4)) : null,
+        toIsCurrent: m.to.is_current === true,
         aboutCompanyId: m.from.company_id,
       };
     };

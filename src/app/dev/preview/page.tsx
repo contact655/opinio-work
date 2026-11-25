@@ -29,7 +29,7 @@ const ITEMS = [
     desc: "★検索・フィルター・並び替え・表示切替。条件は ?foreign=1&consult=1&age=30s などを足して見る" },
   { href: "/dev/preview/people-filters", label: "ユーザーフィルター（/people の「すべてのフィルター」）",
     desc: "★PC は右から・767px 以下は下から。リセット・結果を表示" },
-  { href: "/dev/preview/consultants", label: "相談可能なユーザー（ホームの右の列）",
+  { href: "/dev/preview/consultants", label: "相談にのれる人（ホームの右の列）",
     desc: "★1人・4人（職歴なし・タグなし・ひとことなし・以前の職歴）・長文・0人" },
   { href: "/dev/preview/routes", label: "転職ルート（/routes/[slug]・プロフィール）",
     desc: "★経験者のカード（1人・3人・長文）・準備中・プロフィールの「転職ルート」" },

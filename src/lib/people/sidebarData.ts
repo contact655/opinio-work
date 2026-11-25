@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CAREER_NEXT_STEP_HREF } from "@/lib/home/homeState";
-import { pickProfileNextStep, PROFILE_NEXT_STEP_SIDEBAR_LABEL, type ProfileNextStepInput, type ProfileNextStepKey } from "@/lib/profile/nextStep";
+import { homeProfileNextStep, pickProfileNextStep, type ProfileNextStepInput, type ProfileNextStepKey } from "@/lib/profile/nextStep";
 import type { ProfileCardData } from "@/components/common/ProfileCard";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { getRoleTree } from "@/lib/supabase/queries";
@@ -50,12 +50,14 @@ const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
 /**
  * 次に埋めるとよい項目を**1つだけ**返す（/people の左サイドバーの箱）。
  * ★判定は lib/profile/nextStep.ts の pickProfileNextStep（2026-11-04 に切り出した。ホームの左のカードも同じ判定を使う）。
- * ⚠️ 文言と行き先は /people では従来どおり（長い文言・/mypage）。ホームは短い文言と ?focus= を使う。
+ * ★2026-11-25 から文言と行き先もホームと同じ（短い文言・?focus=。柴さんの指示「ホームと同じく、プロフィールカードの中の『写真を追加する →』に統一」）。
+ *   職歴0件だけはホームの肩書きの欄と同じ「職歴を入れる」。
  */
 function pickNextStep(d: ProfileNextStepInput): { label: string; href: string } | null {
   const key = pickProfileNextStep(d);
   if (!key) return null;
-  return { label: PROFILE_NEXT_STEP_SIDEBAR_LABEL[key], href: key === "career" ? CAREER_NEXT_STEP_HREF : "/mypage" };
+  if (key === "career") return { label: "職歴を入れる", href: CAREER_NEXT_STEP_HREF };
+  return homeProfileNextStep(key);
 }
 
 export async function getPeopleSidebarData(owUserId: string): Promise<PeopleSidebarData | null> {
