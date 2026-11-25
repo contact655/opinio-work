@@ -78,6 +78,7 @@ type FormState = {
   holidays: string;
   descriptionMarkdown: string;
   messageToCandidates: string;
+  catchCopy: string;
   requiredSkills: string[];
   preferredSkills: string[];
   cultureFit: string;
@@ -110,7 +111,7 @@ function jobToForm(job: BizJob | null): FormState {
     title: "", employmentType: "正社員", jobCategory: "", department: "",
     salaryMin: "", salaryMax: "", salaryNegotiable: false, salaryNote: "", location: "", remoteWorkStatus: "",
     probationPeriod: "", workHours: "", holidays: "",
-    descriptionMarkdown: "", messageToCandidates: "",
+    descriptionMarkdown: "", messageToCandidates: "", catchCopy: "",
     requiredSkills: [], preferredSkills: [], cultureFit: "",
     selectionSteps: ["書類選考", "カジュアル面談", "1次面接", "最終面接"],
     selectionDuration: "", startDatePreference: "応相談", assigneeIds: [], urgency: "open",
@@ -134,6 +135,7 @@ function jobToForm(job: BizJob | null): FormState {
     holidays: job.holidays ?? "",
     descriptionMarkdown: job.descriptionMarkdown ?? "",
     messageToCandidates: job.messageToCandidates ?? "",
+    catchCopy: job.catchCopy ?? "",
     requiredSkills: [...job.requiredSkills],
     preferredSkills: [...job.preferredSkills],
     cultureFit: job.cultureFit ?? "",
@@ -1031,6 +1033,14 @@ export function JobEditForm({
             </p>
             {/* ⚠️「なぜ今採用するか」「チーム構成」「入社後90日でやること」は 2026-11-25 に外した（柴さんの指示。求人ページの表示と一緒に）。
                    DB の列と値は残してあり、保存の API もこの3列を書かない（既存の値は消えない） */}
+            {/* ★この募集のポイント（2026-11-25 / 柴さんの指示）。求人ページのいちばん上に箇条書きで出る。
+                   保存の整形（1行に1つ・3行まで・1行60字）は API の normalizeJobPoints */}
+            <MoreGroup title="この募集のポイント" filled={!!form.catchCopy.trim()}>
+              <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7, margin: "0 0 8px" }}>
+                求人ページのいちばん上に出ます。1行に1つ、3行まで。求職者が最初に読む場所です。
+              </p>
+              <FormTextarea id="jef-catch-copy" ariaLabel="この募集のポイント" value={form.catchCopy} onChange={(v) => updateForm("catchCopy", v)} placeholder={"例：顧客と直接話し、要件定義から設計まで任される\n入社3か月でPLに上がったメンバーが複数いる\n受注案件の過半数がAI関連"} rows={3} maxLength={200} />
+            </MoreGroup>
             <MoreGroup title="候補者へのメッセージ" filled={!!form.messageToCandidates.trim()}>
               <FormTextarea id="jef-message-to-candidates" ariaLabel="候補者へのメッセージ" value={form.messageToCandidates} onChange={(v) => updateForm("messageToCandidates", v)} placeholder="例：社会的意義のあるプロダクトに関わりたい方をお待ちしています。" rows={4} maxLength={500} />
             </MoreGroup>

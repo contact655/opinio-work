@@ -16,6 +16,7 @@ import { syncJobCategoryFromRoles } from "@/lib/business/deriveJobCategory";
 import { syncCompanyJobRole } from "@/lib/business/companyJobRole";
 import { requireCompanyAction, permissionDeniedResponse } from "@/lib/auth/permissions";
 import { validateJobOptionFields, toUrgency, canCompanyTransition, JOB_STATUS_TRANSITIONS } from "@/lib/business/jobs";
+import { normalizeJobPoints } from "@/lib/jobs/jobPoints";
 
 
 function str(v: unknown, max: number): string | undefined {
@@ -97,6 +98,8 @@ export async function PUT(
       /* ⚠️ 正は `description`（2026-08-26 統合）。旧列に書くと求職者側に出ない。 */
       description: str(body.descriptionMarkdown, 50000),
       message_to_candidates: str(body.messageToCandidates, 2000),
+      /* ★この募集のポイント（2026-11-25）。キーが無ければ触らない・空なら消す。整形は lib/jobs/jobPoints.ts */
+      catch_copy: typeof body.catchCopy === "string" ? normalizeJobPoints(body.catchCopy) : undefined,
       required_skills: Array.isArray(body.requiredSkills) ? body.requiredSkills.filter((x: unknown): x is string => typeof x === "string").slice(0, 30).map((s: string) => s.slice(0, 200)) : [],
       preferred_skills: Array.isArray(body.preferredSkills) ? body.preferredSkills.filter((x: unknown): x is string => typeof x === "string").slice(0, 30).map((s: string) => s.slice(0, 200)) : [],
       culture_fit: str(body.cultureFit, 2000),

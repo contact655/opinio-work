@@ -47,6 +47,8 @@ import { BenefitsList } from "@/components/companies/BenefitsList";
 /* ⚠️ 2026-08-30 にページから切り出した。`/dev/preview/employees` から見るため
       （ページ内のローカル関数だと preview で import できない）。 */
 import { JobEmployeesSection } from "@/components/jobs/JobEmployeesSection";
+import { JobBodyFold } from "@/components/jobs/JobBodyFold";
+import { jobPointLines } from "@/lib/jobs/jobPoints";
 import { JobHiringManagersSection } from "@/components/nextManager/JobHiringManagersSection";
 import { getPublicJobManagers } from "@/lib/nextManager/server";
 import { RecruitersSection } from "@/components/companies/RecruitersSection";
@@ -796,34 +798,31 @@ export async function JobDetailView({
               <style>{`[data-toc] { scroll-margin-top: 72px; }`}</style>
               <JobToc />
 
-              {/* ⑩ この求人のポイント — catch_copy を冒頭に強調 */}
-              {job.highlight && (
-              <section style={{
+              {/* ⑩ この募集のポイント（catch_copy）。★1行に1つ・3行までの箇条書き（2026-11-25 / 柴さんの指示。見本 /dev/preview/job-points-fold）。
+                     規則は lib/jobs/jobPoints.ts の1か所。以前の1段落の文は1行目にそのまま出る */}
+              {jobPointLines(job.highlight).length > 0 && (
+              <section data-state="job-points" style={{
                 background: "linear-gradient(135deg, #f0f4ff 0%, var(--royal-50) 100%)",
                 border: "1.5px solid var(--royal-100)",
                 borderRadius: 14, padding: "var(--space-6)",
               }}>
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 8, marginBottom: 14,
-                  fontSize: 12, fontWeight: 800, color: "var(--royal)", letterSpacing: "0.08em",
-                }}>
-                  <span style={{
-                    width: 22, height: 22, borderRadius: 6, background: "var(--royal)",
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
-                  </span>
+                <SecTitle color="var(--royal)" icon={
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                }>
                   この募集のポイント
-                </div>
-                <p style={{
-                  fontFamily: 'var(--font-noto-serif)',
-                  fontSize: "var(--text-base)", fontWeight: 600,
-                  color: "var(--ink)", lineHeight: 1.85, margin: 0,
-                }}>
-                  {job.highlight}
-                </p>
+                </SecTitle>
+                <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
+                  {jobPointLines(job.highlight).map((p, i) => (
+                    <li key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 15, fontWeight: 600, lineHeight: 1.7, color: "var(--ink)" }}>
+                      <span aria-hidden style={{ flexShrink: 0, marginTop: 4, width: 18, height: 18, borderRadius: "50%", background: "var(--royal)", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      </span>
+                      <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{p}</span>
+                    </li>
+                  ))}
+                </ul>
               </section>
               )}
 
@@ -878,7 +877,10 @@ export async function JobDetailView({
                 {/* ⚠️ markdown として描画する（2026-08-26）。入力欄が markdown なので合わせる。
                     ★求人の本文として整える（jobBody。2026-10-29）: 改行を行替えに・短い「■」の行を見出しに・
                        「・」の行を字下げのそろった箇条書きに。規則は lib/jobs/jobBody.ts */}
-                <Markdown jobBody>{job.overview}</Markdown>
+                {/* ★長いときだけ途中で畳む（2026-11-25 / 柴さんの指示）。畳んでいても HTML には全文が入る */}
+                <JobBodyFold>
+                  <Markdown jobBody>{job.overview}</Markdown>
+                </JobBodyFold>
               </section>
               )}
 
