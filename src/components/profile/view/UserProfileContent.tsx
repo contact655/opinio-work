@@ -28,7 +28,7 @@ import { ProfileShareButton } from "@/components/profile/ProfileShareButton";
 import { FollowUserButton } from "@/app/(jobseeker)/u/[id]/FollowUserButton";
 import { getFollowCounts } from "@/lib/people/followCounts";
 import { DMButton } from "@/components/profile/DMButton";
-import { getTenantContext } from "@/lib/business/dashboard";
+import { getTenantContextIfSelected } from "@/lib/business/dashboard";
 import { buildAutoSkills } from "@/lib/profile/autoSkillsServer";
 /* ⚠️ 各セクションの見た目は `components/profile/view/` に移した（2026-08-16）。
       `/mypage` のプロフィールが同じものを使う。**ここに書き戻さないこと。** */
@@ -196,9 +196,11 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
 
   /* ★社内メモ（2026-10-10 / 段5）。企業の担当者が見たとき・フラグがオンのときだけ。担当の候補は自社の有効な担当者 */
   let notesAdmins: { id: string; name: string }[] | null = null;
-  if (viewerOwUserId && !viewerIsOwner) {
-    const tenant = await getTenantContext();
-    if (tenant && isCandidateNotesEnabled()) {
+  /* ⚠️★getTenantContext を使わないこと。複数の会社の担当者が会社を選ぶ前に開くと /biz/select-company へ飛ばされ、
+        プロフィールそのものが見られなくなる（2026-11-25 に直した）。会社を選んでいなければメモは出さない */
+  if (viewerOwUserId && !viewerIsOwner && isCandidateNotesEnabled()) {
+    const tenant = await getTenantContextIfSelected();
+    if (tenant) {
       const { data: adminRows, error: aErr } = await adminSupabase.from("ow_company_admins")
         .select("user_id, ow_users!user_id(name)").eq("company_id", tenant.tenantId).eq("is_active", true).not("user_id", "is", null);
       if (aErr) console.error("[u/[id]] notes admins:", aErr.message);

@@ -103,9 +103,17 @@ export async function getBizUserName(): Promise<string> {
  *   呼び、各ページも呼ぶので、**同じリクエストの中では1回だけ引く**ようにしている。
  *   ⚠️ 外すとサイドバーのぶん問い合わせが倍になる。
  */
-export const getTenantContext = cache(loadTenantContext);
+export const getTenantContext = cache(() => loadTenantContext({ redirectWhenUnselected: true }));
 
-async function loadTenantContext(): Promise<TenantContext | null> {
+/**
+ * ★会社を選んでいないときに移動させない版（2026-11-25）。/biz の外（求職者側の画面）から使う。
+ *   複数の会社の担当者が /biz で会社をまだ選んでいない（cookie が無い）ときは、選択画面へ移動させずに null を返す。
+ * ⚠️ 2026-11-25 まで /u/[id] が getTenantContext を呼んでおり、その人がプロフィールを開くと
+ *    /biz/select-company へ飛ばされていた（プロフィールが見られなかった）。求職者側では getTenantContext を呼ばないこと
+ */
+export const getTenantContextIfSelected = cache(() => loadTenantContext({ redirectWhenUnselected: false }));
+
+async function loadTenantContext(opts: { redirectWhenUnselected: boolean }): Promise<TenantContext | null> {
   const supabase = createClient();
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -118,7 +126,9 @@ async function loadTenantContext(): Promise<TenantContext | null> {
     if (!ctx) return null;
 
     // Multi-company: redirect to selection page when no cookie is set
+    //   ⚠️ 求職者側から呼ぶ版（getTenantContextIfSelected）は移動させず、会社を選んでいない＝null にする
     if (!cookieCompanyId && ctx.allMemberships.length > 1) {
+      if (!opts.redirectWhenUnselected) return null;
       redirect("/biz/select-company");
     }
 
