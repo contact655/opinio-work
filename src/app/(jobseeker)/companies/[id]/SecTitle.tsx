@@ -40,19 +40,22 @@ export function SecTitle({
         display: "flex",
         alignItems: "center",
         gap: "var(--space-3)",
-        fontFamily: 'var(--font-inter), var(--font-noto)',
-        fontWeight: 800,
-        fontSize: 20,
+        /* ★求人ページの見出し（JobDetailView の SecTitle）と同じ形にそろえた（2026-11-25 / 柴さんの指示）。
+           明朝体 18px・四角いアイコン。それまでは太いゴシック体 20px・丸いアイコンで、2つのページで見出しの形が違っていた。
+           ⚠️ 片方だけ戻さないこと */
+        fontFamily: "var(--font-noto-serif)",
+        fontWeight: 700,
+        fontSize: 18,
         color: "var(--ink)",
-        letterSpacing: "-0.01em",
-        lineHeight: 1.25,
+        letterSpacing: "0.01em",
+        lineHeight: 1.3,
       }}
     >
       <span
         style={{
-          width: 34,
-          height: 34,
-          borderRadius: "50%",
+          width: 30,
+          height: 30,
+          borderRadius: 8,
           background: iconBg[iconColor],
           color: iconFg[iconColor],
           display: "flex",
