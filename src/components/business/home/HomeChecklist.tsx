@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { HomeChecklistItem } from "@/lib/business/homeTypes";
+import { BizSectionTitle, BIZ_ICONS } from "@/components/business/BizSectionTitle";
 
 /**
  * ★ホームの「はじめにやること（済んだ数 / 全体）」（2026-10-12。旧スタートガイド・企業ページの充実度・
@@ -15,9 +16,9 @@ export function HomeChecklist({ items }: { items: HomeChecklistItem[] }) {
   const finished = items.filter((i) => i.done);
   return (
     <section data-state="home-checklist" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, minWidth: 0, overflow: "hidden" }}>
-      <h2 style={{ margin: 0, padding: "16px 20px 10px", fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
+      <BizSectionTitle icon={BIZ_ICONS.todo} style={{ padding: "16px 20px 10px" }}>
         はじめにやること（<span data-state="checklist-done">{done}</span> / {items.length}）
-      </h2>
+      </BizSectionTitle>
       <ul style={{ listStyle: "none", margin: 0, padding: finished.length > 0 ? 0 : "0 0 6px" }}>
         {todo.map((it) => (
           <li key={it.key} data-check={it.key} data-done={it.done ? "1" : "0"}>

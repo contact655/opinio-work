@@ -59,6 +59,7 @@ import {
 /* ★並び替えの選択肢・社会人年数の帯・更新時期の帯は model.ts（2026-10-10 に移した）。
    ⚠️ 年齢・性別に関わる軸を足さないこと（労働施策総合推進法9条・均等法5条）。 */
 import { sortByPositionFit, type PositionFits, type PositionOption } from "@/lib/business/candidates/positionFitModel";
+import { BizPageTitle } from "@/components/business/BizSectionTitle";
 const SORT_OPTIONS = CANDIDATE_SORT_OPTIONS;
 
 /** 月数 → カードに出す1行。未算出（null）は**何も出さない**（「0年」と書かない） */
@@ -870,7 +871,7 @@ export default function CandidatesClient({
                ★上部を詰めた（2026-10-11 / 柴さんの指示。1300×800 で最初から8〜9人）。見出しもツールバーと同じ行に置く。
                ⚠️ 見出しの下の説明文は外し、「？」に入れた。説明を見出しの下に戻さないこと */}
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0, marginRight: 8 }}>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0, lineHeight: "38px", whiteSpace: "nowrap" }}>候補者を探す</h1>
+          <BizPageTitle style={{ lineHeight: "38px", whiteSpace: "nowrap" }}>候補者を探す</BizPageTitle>
           <HelpToggle label="候補者を探すについて">
             {/* ⚠️「現職・過去の在籍企業とそのグループ会社には表示されません」は `can_send_scout()` の在籍企業の除外の言い換え。判定は変えていない */}
             理由を添えて、候補者に貴社としてメッセージを送れます。現職・過去の在籍企業とそのグループ会社には表示されません。

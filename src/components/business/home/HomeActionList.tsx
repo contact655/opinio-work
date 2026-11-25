@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { HomeActions } from "@/lib/business/homeTypes";
+import { BizSectionTitle, BIZ_ICONS } from "@/components/business/BizSectionTitle";
 
 /**
  * ★ホームの「対応が必要なもの（n）」（2026-10-12）。中身は `lib/business/actionItems.ts` の1か所。
@@ -13,9 +14,9 @@ export function HomeActionList({ actions }: { actions: HomeActions }) {
   const { items, failed, meetings } = actions;
   return (
     <section data-state={items.length > 0 ? "has-actions" : "no-actions"} style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, minWidth: 0, overflow: "hidden" }}>
-      <h2 style={{ margin: 0, padding: "16px 20px", fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
+      <BizSectionTitle icon={BIZ_ICONS.bell} style={{ padding: "16px 20px" }}>
         対応が必要なもの（<span data-state="action-count">{items.length}</span>）
-      </h2>
+      </BizSectionTitle>
       {items.length === 0 ? (
         <p data-state="no-actions-text" style={{ margin: 0, padding: "0 20px 18px", fontSize: 13, color: "var(--ink-mute)" }}>今日の対応はありません</p>
       ) : (

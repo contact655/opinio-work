@@ -9,6 +9,7 @@ import { countByTab } from "@/lib/business/mockJobs";
 import { JOB_STATE_LABEL, JOB_TABS, JOB_TAB_LABEL, jobState, jobStateTab, type JobStateTab } from "@/lib/jobs/jobState";
 import { JobsEmptyState } from "@/components/business/JobsEmptyState";
 import { FilterChip } from "@/components/common/FilterChip";
+import { BizPageTitle } from "@/components/business/BizSectionTitle";
 
 type Props = {
   jobs: BizJob[];
@@ -249,7 +250,7 @@ export function JobsClient({ jobs: initialJobs, canEdit = true, initialStatus = 
       )}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0 }}>求人管理</h1>
+        <BizPageTitle>求人管理</BizPageTitle>
         {canEdit && (
           <Link href="/biz/jobs/new" className="btn-fixed-size" style={{
             display: "inline-flex", alignItems: "center", gap: 6,

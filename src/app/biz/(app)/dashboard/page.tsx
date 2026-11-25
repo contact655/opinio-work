@@ -21,6 +21,7 @@ import { companyPageStatus, companyStatusText } from "@/lib/companies/pageStatus
 import { getEvidenceMaterials } from "@/lib/evidence/materials";
 import { getCompanyEmployees } from "@/lib/supabase/queries";
 import { jobState } from "@/lib/jobs/jobState";
+import { BizPageTitle } from "@/components/business/BizSectionTitle";
 
 export const dynamic = "force-dynamic";
 
@@ -282,7 +283,7 @@ export default async function BizDashboardPage({
         </div>
       )}
 
-      <h1 style={{ margin: "0 0 16px", fontSize: 22, fontWeight: 700, color: "var(--ink)" }}>ホーム</h1>
+      <BizPageTitle style={{ margin: "0 0 16px" }}>ホーム</BizPageTitle>
 
       <div className="biz-home-grid">
         <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
