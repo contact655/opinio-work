@@ -827,29 +827,11 @@ export async function JobDetailView({
               </section>
               )}
 
-              {/* ★なぜ今採用するか（2026-11-25 / 柴さんの指示）。判断に使う情報なので、ポイントのすぐ下へ上げた。
-                     それまでは労働条件より下で、見出しも「青い帯の小さな見出し」だった。見出しは SecTitle にそろえる */}
-              {job.why_hire && (
-              <section id="job-why" data-toc="なぜ今" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
-                <SecTitle color="var(--royal)" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>}>
-                  なぜ今採用するか
-                </SecTitle>
-                <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{job.why_hire}</p>
-              </section>
-              )}
-
-              {/* ★入社後90日でやること（2026-11-25。上と同じ理由で上げた） */}
-              {job.first_90_days && (
-              <section id="job-first90" data-toc="入社後90日" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
-                <SecTitle color="var(--royal)" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}>
-                  入社後90日でやること
-                </SecTitle>
-                <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{job.first_90_days}</p>
-              </section>
-              )}
-
+              {/* ⚠️★「なぜ今採用するか」「入社後90日でやること」「チーム構成」は 2026-11-25 に外した（柴さんの指示）。
+                     表示も企業の入力欄も外し、DB の列（why_hire / first_90_days / team_composition）と値は残してある。
+                     ⚠️ 戻すときは表示と入力欄をセットで戻すこと（片方だけだと「書けるのに出ない」になる） */}
               {/* ★一緒に働く人（2026-11-25 / 柴さんの指示。見本は /dev/preview/job-detail-order）。
-                     チーム構成・この募集の Hiring Manager・採用担当者・この職種の現役メンバーと OB・OG を1つの枠にまとめた。
+                     この募集の Hiring Manager・採用担当者・この職種の現役メンバーと OB・OG を1つの枠にまとめた（チーム構成は 2026-11-25 に外した）。
                      それまでは4つの枠に分かれ、採用担当者はページの下のほう（他の現役社員の下）にあった。
                      ⚠️ 中の3つの部品は embedded（枠を持たない形）で使う。単独で使う企業ページは変えていない。
                      ⚠️ OB・OG は0件でも出す（alwaysShowAlumni / 2026-08-30 の柴さんの判断）ので、この枠は常に出る。 */}
@@ -858,12 +840,6 @@ export async function JobDetailView({
                   一緒に働く人
                 </SecTitle>
                 <div style={{ display: "grid", gap: "var(--space-6)" }}>
-                  {job.team_composition && (
-                    <div>
-                      <h3 style={{ margin: "0 0 var(--space-2)", fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>チーム構成</h3>
-                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{job.team_composition}</p>
-                    </div>
-                  )}
                   {/* ★Next Manager（2026-11-13）。本人が採用中にしている人だけ。0人なら出さない */}
                   <JobHiringManagersSection managers={hiringManagers} preview={preview} embedded />
                   {/* ⚠️ 実体は components/companies/RecruitersSection.tsx（企業詳細と共通）。ここに複製しないこと */}

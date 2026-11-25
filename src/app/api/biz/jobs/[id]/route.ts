@@ -104,9 +104,7 @@ export async function PUT(
       selection_duration: str(body.selectionDuration, 100),
       start_date_preference: str(body.startDatePreference, 100),
       urgency: toUrgency(body.urgency),
-      why_hire: str(body.whyHire, 5000),
-      team_composition: str(body.teamComposition, 5000),
-      first_90_days: str(body.first90Days, 5000),
+      /* ⚠️ why_hire / team_composition / first_90_days は 2026-11-25 に入力欄ごと外した。書かない（既存の値を消さない） */
       business_model: str(body.businessModel, 50) || null,
       // セールス職専用項目 (Migration 212)
       ote_min: body.oteMin ? parseInt(String(body.oteMin)) || null : null,
