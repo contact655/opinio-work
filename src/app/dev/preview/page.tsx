@@ -25,6 +25,8 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
+  { href: "/dev/preview/job-detail-order", label: "求人詳細の並び替え（見本）",
+    desc: "★判断に使う情報を上へ・見出しを1つの形に・一緒に働く人をまとめる。?v=now でいまの並び" },
   { href: "/dev/preview/people-toolbar", label: "ユーザー一覧の上部（/people）",
     desc: "★検索・フィルター・並び替え・表示切替。条件は ?foreign=1&consult=1&age=30s などを足して見る" },
   { href: "/dev/preview/people-filters", label: "ユーザーフィルター（/people の「すべてのフィルター」）",

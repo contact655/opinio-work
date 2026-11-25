@@ -827,6 +827,67 @@ export async function JobDetailView({
               </section>
               )}
 
+              {/* ★なぜ今採用するか（2026-11-25 / 柴さんの指示）。判断に使う情報なので、ポイントのすぐ下へ上げた。
+                     それまでは労働条件より下で、見出しも「青い帯の小さな見出し」だった。見出しは SecTitle にそろえる */}
+              {job.why_hire && (
+              <section id="job-why" data-toc="なぜ今" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+                <SecTitle color="var(--royal)" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>}>
+                  なぜ今採用するか
+                </SecTitle>
+                <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{job.why_hire}</p>
+              </section>
+              )}
+
+              {/* ★入社後90日でやること（2026-11-25。上と同じ理由で上げた） */}
+              {job.first_90_days && (
+              <section id="job-first90" data-toc="入社後90日" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+                <SecTitle color="var(--royal)" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}>
+                  入社後90日でやること
+                </SecTitle>
+                <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{job.first_90_days}</p>
+              </section>
+              )}
+
+              {/* ★一緒に働く人（2026-11-25 / 柴さんの指示。見本は /dev/preview/job-detail-order）。
+                     チーム構成・この募集の Hiring Manager・採用担当者・この職種の現役メンバーと OB・OG を1つの枠にまとめた。
+                     それまでは4つの枠に分かれ、採用担当者はページの下のほう（他の現役社員の下）にあった。
+                     ⚠️ 中の3つの部品は embedded（枠を持たない形）で使う。単独で使う企業ページは変えていない。
+                     ⚠️ OB・OG は0件でも出す（alwaysShowAlumni / 2026-08-30 の柴さんの判断）ので、この枠は常に出る。 */}
+              <section id="job-people" data-toc="一緒に働く人" data-state="job-people-group" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+                <SecTitle color="var(--royal)" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>}>
+                  一緒に働く人
+                </SecTitle>
+                <div style={{ display: "grid", gap: "var(--space-6)" }}>
+                  {job.team_composition && (
+                    <div>
+                      <h3 style={{ margin: "0 0 var(--space-2)", fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>チーム構成</h3>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{job.team_composition}</p>
+                    </div>
+                  )}
+                  {/* ★Next Manager（2026-11-13）。本人が採用中にしている人だけ。0人なら出さない */}
+                  <JobHiringManagersSection managers={hiringManagers} preview={preview} embedded />
+                  {/* ⚠️ 実体は components/companies/RecruitersSection.tsx（企業詳細と共通）。ここに複製しないこと */}
+                  <RecruitersSection
+                recruiters={recruiters}
+                /* ★申し込めない企業では null（2026-10-29）。行き先は右の列の面談ボタンと同じ */
+                meetingHref={company.accepting_casual_meetings && companyHref ? `${casualBase}/casual-meeting?job_id=${job.id}` : null}
+                /* ★面談を受け付けない企業: 応募への導線（2026-10-29）。スマホはカードの下にボタンを出さない（固定バーに同じボタンがある） */
+                closedCta={mobileCtaProps.applyHref
+                  ? { note: "この募集に応募すると、上記担当者に届きます。", href: mobileCtaProps.applyHref, label: "この募集に応募する", mobileButton: false }
+                  : undefined}
+                    title={<h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>採用担当者</h3>}
+                    embedded
+                  />
+                  <JobEmployeesSection
+                    current={jobEmployees.current}
+                    alumni={jobEmployees.alumni}
+                    companyId={job.company_id}
+                    alwaysShowAlumni
+                    embedded
+                  />
+                </div>
+              </section>
+
               {/* Overview → 仕事内容 */}
               {job.overview && (
               <section id="job-overview" data-toc="仕事内容" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
@@ -845,24 +906,38 @@ export async function JobDetailView({
               </section>
               )}
 
-              {/* 現役社員・OB/OG — 職種マッチ
-                     ★2026-10-20（柴さんの指示）: 仕事内容のすぐ下へ移した。それまでは選考フローの下（スマホで上から約4,000px）で、
-                       「この職種で働く実在の人が見える」という OPINIO の特徴が、ほとんど読まれない位置にあった。
-                       ⚠️ 「この会社の他の現役社員」は下に残す（職種と無関係の人なので、求人の中身より先に出さない）
-                     ⚠️★OB・OG は**0件でも枠ごと出す**（`alwaysShowAlumni`）。
-                        「この求人の職種を経験して退職した人」という項目そのものを
-                        見せたい、という判断（柴さん・2026-08-30）。 */}
-              {/* ★Next Manager（2026-11-13）。この募集の Hiring Manager（本人が採用中にしている人だけ。0人なら出さない） */}
-              <JobHiringManagersSection managers={hiringManagers} preview={preview} />
-
-              {/* ★目次の飛び先（2026-10-23）。この職種の人は部品の中で描くので、直前に印だけ置く */}
-              <div id="job-people" data-toc="この職種の人" aria-hidden style={{ scrollMarginTop: 72 }} />
-              <JobEmployeesSection
-                current={jobEmployees.current}
-                alumni={jobEmployees.alumni}
-                companyId={job.company_id}
-                alwaysShowAlumni
-              />
+              {/* Main tasks */}
+              {job.main_tasks.length > 0 && (
+              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+                <SecTitle color="var(--royal)" icon={
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                    <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                  </svg>
+                }>
+                  メイン業務
+                </SecTitle>
+                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+                  {job.main_tasks.map((task, i) => (
+                    <li key={i} style={{
+                      display: "flex", gap: 14, alignItems: "flex-start",
+                      padding: "12px 16px", borderRadius: 10,
+                      background: "var(--bg-tint)", border: "1px solid var(--line)",
+                    }}>
+                      <span style={{
+                        width: 24, height: 24, borderRadius: "50%", flexShrink: 0, marginTop: 1,
+                        background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
+                        color: "#fff",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 12, fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)",
+                      }}>
+                        {i + 1}
+                      </span>
+                      <span style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.75, flex: 1 }}>{task}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+              )}
 
               {/* Skills */}
               {(job.required_skills.length > 0 || job.preferred_skills.length > 0) && (
@@ -1097,35 +1172,6 @@ export async function JobDetailView({
               </section>
               )}
 
-              {/* ── ★労働条件（2026-10-11）。法律で明示が必要な項目（lib/jobs/laborTerms.ts）。
-                     ⚠️ 入っている行だけ出す。1行も無ければ節ごと出さない */}
-              {job.labor && laborLines(job.labor).length > 0 && (
-              <section data-section="labor-terms" className="jd-labor-section" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
-                <SecTitle color="var(--royal)" icon={
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>
-                  </svg>
-                }>
-                  労働条件
-                </SecTitle>
-                <dl style={{ margin: 0, display: "flex", flexDirection: "column" }}>
-                  {laborLines(job.labor).map((l) => (
-                    <div key={l.label} className="jd-labor-row" style={{ borderTop: "1px solid var(--line-soft)", padding: "10px 0" }}>
-                      <dt style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)" }}>{l.label}</dt>
-                      <dd style={{ margin: 0, fontSize: 14, color: "var(--ink)", lineHeight: 1.7, minWidth: 0, overflowWrap: "anywhere" }}>{l.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <style>{`
-                  .jd-labor-row { display: grid; grid-template-columns: 180px minmax(0,1fr); gap: 12px; align-items: baseline; }
-                  @media (max-width: 640px) { .jd-labor-row { grid-template-columns: minmax(0,1fr); gap: 2px; } }
-                `}</style>
-              </section>
-              )}
-
-              {/* ⚠️ 勤務条件・選考フローの後ろに置いていた応募ボタン（2026-10-23）は 2026-10-29 に外した（柴さんの指示）。
-                     上部を過ぎると下の固定バーに同じボタンが出るので、同じボタンが画面に2つ並んでいた */}
-
               {/* ── 企業について ── */}
               {(company.about || company.why_join) && (
               <section id="job-company" data-toc="会社" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
@@ -1212,81 +1258,6 @@ export async function JobDetailView({
               </section>
               )}
 
-
-              {/* Main tasks */}
-              {job.main_tasks.length > 0 && (
-              <section style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
-                <SecTitle color="var(--royal)" icon={
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                    <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-                  </svg>
-                }>
-                  メイン業務
-                </SecTitle>
-                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
-                  {job.main_tasks.map((task, i) => (
-                    <li key={i} style={{
-                      display: "flex", gap: 14, alignItems: "flex-start",
-                      padding: "12px 16px", borderRadius: 10,
-                      background: "var(--bg-tint)", border: "1px solid var(--line)",
-                    }}>
-                      <span style={{
-                        width: 24, height: 24, borderRadius: "50%", flexShrink: 0, marginTop: 1,
-                        background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
-                        color: "#fff",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 12, fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)",
-                      }}>
-                        {i + 1}
-                      </span>
-                      <span style={{ fontSize: 14, color: "var(--ink)", lineHeight: 1.75, flex: 1 }}>{task}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-              )}
-
-
-              {/* 入社後90日 */}
-              {job.first_90_days && (
-              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 0, boxShadow: "0 1px 4px rgba(15,23,42,0.06)" }}>
-                <div style={{ padding: "var(--space-4) var(--space-6) var(--space-3)", background: "var(--royal-50)", borderBottom: "1px solid var(--royal-100)", display: "flex", alignItems: "center", gap: 8 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)" }}>入社後90日でやること</span>
-                </div>
-                <div style={{ padding: "var(--space-4) var(--space-6)", fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
-                  {job.first_90_days}
-                </div>
-              </div>
-              )}
-
-              {/* チーム構成 */}
-              {job.team_composition && (
-              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 0, boxShadow: "0 1px 4px rgba(15,23,42,0.06)" }}>
-                <div style={{ padding: "var(--space-4) var(--space-6) var(--space-3)", background: "var(--royal-50)", borderBottom: "1px solid var(--royal-100)", display: "flex", alignItems: "center", gap: 8 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth={2.5} strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)" }}>チーム構成</span>
-                </div>
-                <div style={{ padding: "var(--space-4) var(--space-6)", fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
-                  {job.team_composition}
-                </div>
-              </div>
-              )}
-
-              {/* なぜ今採用するか */}
-              {job.why_hire && (
-              <div style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", marginBottom: 0, boxShadow: "0 1px 4px rgba(15,23,42,0.06)" }}>
-                <div style={{ padding: "var(--space-4) var(--space-6) var(--space-3)", background: "var(--royal-50)", borderBottom: "1px solid var(--royal-100)", display: "flex", alignItems: "center", gap: 8 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth={2.5} strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-                  {/* ⚠ 同上。オレンジはカジュアル面談だけ。ここは royal（主要な情報）にする */}
-                  <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--royal)" }}>なぜ今採用するか</span>
-                </div>
-                <div style={{ padding: "var(--space-4) var(--space-6)", fontSize: "var(--text-base)", color: "var(--ink)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
-                  {job.why_hire}
-                </div>
-              </div>
-              )}
-
               {/* Selection flow */}
               {job.selection_flow.length > 0 && (
               <section id="job-selection" data-toc="選考" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
@@ -1349,6 +1320,45 @@ export async function JobDetailView({
                 )}
               </section>
               )}
+
+              {/* ── ★労働条件（2026-10-11）。法律で明示が必要な項目（lib/jobs/laborTerms.ts）。
+                     ⚠️ 入っている行だけ出す。1行も無ければ節ごと出さない */}
+              {job.labor && laborLines(job.labor).length > 0 && (
+              <section data-section="labor-terms" className="jd-labor-section" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "var(--space-6)" }}>
+                {/* ★最初は畳んでおく（2026-11-25 / 柴さんの指示）。法律で示す項目はページに書いてあれば足りる。
+                       ⚠️ 768px 以上だけの節（スマホは勤務条件の中に出す）。 */}
+                <details>
+                <summary className="jd-labor-summary" style={{ cursor: "pointer", listStyle: "none" }}>
+                <SecTitle color="var(--royal)" icon={
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>
+                  </svg>
+                }>
+                  労働条件
+                </SecTitle>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--royal)" }}>契約期間・休憩・固定残業代・社会保険などを見る</span>
+                </summary>
+                <div style={{ marginTop: "var(--space-4)" }}>
+                <dl style={{ margin: 0, display: "flex", flexDirection: "column" }}>
+                  {laborLines(job.labor).map((l) => (
+                    <div key={l.label} className="jd-labor-row" style={{ borderTop: "1px solid var(--line-soft)", padding: "10px 0" }}>
+                      <dt style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)" }}>{l.label}</dt>
+                      <dd style={{ margin: 0, fontSize: 14, color: "var(--ink)", lineHeight: 1.7, minWidth: 0, overflowWrap: "anywhere" }}>{l.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                </div>
+                </details>
+                <style>{`
+                  .jd-labor-summary::-webkit-details-marker { display: none; }
+                  .jd-labor-row { display: grid; grid-template-columns: 180px minmax(0,1fr); gap: 12px; align-items: baseline; }
+                  @media (max-width: 640px) { .jd-labor-row { grid-template-columns: minmax(0,1fr); gap: 2px; } }
+                `}</style>
+              </section>
+              )}
+
+              {/* ⚠️ 勤務条件・選考フローの後ろに置いていた応募ボタン（2026-10-23）は 2026-10-29 に外した（柴さんの指示）。
+                     上部を過ぎると下の固定バーに同じボタンが出るので、同じボタンが画面に2つ並んでいた */}
 
               {/* Related article */}
               {job.related_article_title && (
@@ -1482,30 +1492,6 @@ export async function JobDetailView({
                 />
               )}
 
-              {/* ★採用担当者（企業詳細と同じコンポーネント）── 2026-09-03 追加
-                     ⚠️ 実体は `components/companies/RecruitersSection.tsx`。
-                        企業詳細から切り出して共通化した。**ここに複製しないこと。**
-                     ⚠️ 位置は「拠点・資本関係」の下（柴さんの指定）。 */}
-              <RecruitersSection
-                recruiters={recruiters}
-                /* ★申し込めない企業では null（2026-10-29）。行き先は右の列の面談ボタンと同じ */
-                meetingHref={company.accepting_casual_meetings && companyHref ? `${casualBase}/casual-meeting?job_id=${job.id}` : null}
-                /* ★面談を受け付けない企業: 応募への導線（2026-10-29）。スマホはカードの下にボタンを出さない（固定バーに同じボタンがある） */
-                closedCta={mobileCtaProps.applyHref
-                  ? { note: "この募集に応募すると、上記担当者に届きます。", href: mobileCtaProps.applyHref, label: "この募集に応募する", mobileButton: false }
-                  : undefined}
-                title={
-                  <SecTitle color="var(--royal)" icon={
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                    </svg>
-                  }>
-                    採用担当者
-                  </SecTitle>
-                }
-              />
 
               {/* Position members — role-matched alumni/current employees */}
               <PositionMembersSection members={positionMembers} jobCategory={job.dept ?? ""} />

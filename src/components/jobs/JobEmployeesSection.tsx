@@ -96,6 +96,7 @@ export function JobEmployeesSection({
   alumniTitle,
   currentSubtitle,
   alwaysShowAlumni = false,
+  embedded = false,
 }: {
   current: CompanyEmployee[];
   alumni: CompanyEmployee[];
@@ -117,6 +118,8 @@ export function JobEmployeesSection({
    *    （現役が居ないことは求人ページで強調する情報ではない）。
    */
   alwaysShowAlumni?: boolean;
+  /** ★求人ページの「一緒に働く人」の枠の中に置く（2026-11-25）。枠を持たず、見出しを小見出しにする */
+  embedded?: boolean;
 }) {
   if (current.length === 0 && alumni.length === 0 && !alwaysShowAlumni) return null;
 
@@ -127,15 +130,15 @@ export function JobEmployeesSection({
 
       {/* 現役社員 */}
       {current.length > 0 && (
-        <section className="person-section-body" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 1px 3px rgba(15,23,42,0.06)", overflow: "hidden" }}>
+        <section className={embedded ? undefined : "person-section-body"} style={embedded ? undefined : { background: "#fff", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 1px 3px rgba(15,23,42,0.06)", overflow: "hidden" }}>
           {/* ★件数は見出しの右端ではなく、見出しのすぐ後ろ（2026-10-17）。右端だと長い見出しが折れ、件数が縦に潰れていた */}
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: "var(--space-4)" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: embedded ? "var(--space-3)" : "var(--space-4)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, /* ⚠️ 18px。**`SecTitle`（10箇所）と同じ大きさに揃える**（2026-08-30）。
                      `var(--text-lg)` は 20px で、ここだけ他のセクション見出しより
                      大きくなっていた。SecTitle を使わず手で組んでいる見出しが3つあり、
                      3つとも 20px だった。⚠️ 見出しを新しく足すときは SecTitle を使うこと。 */
-                fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 18, color: "var(--ink)" }}>
-              <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--royal-50)", color: "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                ...(embedded ? { fontSize: 14 } : { fontFamily: "var(--font-noto-serif)", fontSize: 18 }), fontWeight: 700, color: "var(--ink)" }}>
+              <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--royal-50)", color: "var(--royal)", display: embedded ? "none" : "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
@@ -170,14 +173,14 @@ export function JobEmployeesSection({
 
       {/* OB/OG */}
       {(alumni.length > 0 || alwaysShowAlumni) && (
-        <section className="person-section-body" style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 1px 3px rgba(15,23,42,0.06)", overflow: "hidden" }}>
+        <section className={embedded ? undefined : "person-section-body"} style={embedded ? undefined : { background: "#fff", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "0 1px 3px rgba(15,23,42,0.06)", overflow: "hidden" }}>
           {/* ★件数は見出しの右端ではなく、見出しのすぐ後ろ（2026-10-17）。右端だと長い見出しが折れ、件数が縦に潰れていた */}
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: "var(--space-4)" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: embedded ? "var(--space-3)" : "var(--space-4)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, /* ⚠️ 18px。**`SecTitle`（10箇所）と同じ大きさに揃える**（2026-08-30）。
                      `var(--text-lg)` は 20px で、ここだけ他のセクション見出しより
                      大きくなっていた。SecTitle を使わず手で組んでいる見出しが3つあり、
                      3つとも 20px だった。⚠️ 見出しを新しく足すときは SecTitle を使うこと。 */
-                fontFamily: "var(--font-noto-serif)", fontWeight: 700, fontSize: 18, color: "var(--ink)" }}>
+                ...(embedded ? { fontSize: 14 } : { fontFamily: "var(--font-noto-serif)", fontSize: 18 }), fontWeight: 700, color: "var(--ink)" }}>
               {/* ⚠️★紫をやめた（2026-08-30）。`.claude/skills/ui-conventions`「色の役割」は
                      **紫は使わない**と定めており、`SecTitle` からも 2026-08-29 に
                      purple を削除している（「戻さないこと」と書いてある）。
@@ -185,7 +188,7 @@ export function JobEmployeesSection({
                   ⚠️ **企業詳細の「OB・OG社員」は SecTitle の既定色（royal）**。揃える。
                   ⚠️ アイコンも人型に変える。**地図ピンは「拠点」の意味**で、
                      同じページの「拠点・資本関係」と同じ絵だった。 */}
-              <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--royal-50)", color: "var(--royal)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ width: 30, height: 30, borderRadius: 8, background: "var(--royal-50)", color: "var(--royal)", display: embedded ? "none" : "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                   <circle cx="12" cy="7" r="4"/>

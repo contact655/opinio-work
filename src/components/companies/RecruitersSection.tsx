@@ -47,11 +47,14 @@ export function RecruitersSection({
   title,
   meetingHref,
   closedCta,
+  embedded = false,
 }: {
   recruiters: CompanyRecruiter[];
   title: React.ReactNode;
   meetingHref: string | null;
   closedCta?: { note: string; href: string; label: string; mobileButton?: boolean } | null;
+  /** ★求人ページの「一緒に働く人」の枠の中に置く（2026-11-25）。外枠・影・余白を持たない */
+  embedded?: boolean;
 }) {
   if (recruiters.length === 0) return null;
   if (!meetingHref && closedCta === null) return null;
@@ -65,7 +68,7 @@ export function RecruitersSection({
 
   return (
     <section
-      style={{
+      style={embedded ? undefined : {
         background: "#fff",
         border: "1px solid var(--line)",
         borderRadius: 18,
@@ -75,8 +78,8 @@ export function RecruitersSection({
       }}
     >
       <div style={{
-        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
-        borderBottom: "1px solid var(--line-soft)",
+        padding: embedded ? "0 0 var(--space-3)" : "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
+        borderBottom: embedded ? undefined : "1px solid var(--line-soft)",
         display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
       }}>
         {title}
@@ -104,7 +107,7 @@ export function RecruitersSection({
         )}
       </div>
 
-      <div style={{ padding: "var(--space-6)" }}>
+      <div style={{ padding: embedded ? 0 : "var(--space-6)" }}>
         <style>{`
           .recruiter-grid {
             display: grid;
