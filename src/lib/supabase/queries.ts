@@ -442,6 +442,7 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
       ? (row.branch_locations as string[])
       : null,
     remoteWorkStatus: (row.remote_work_status as string | null) ?? null,
+    headerImageUrl: (row.header_image_url as string | null) ?? null,
   };
 }
 
@@ -741,6 +742,8 @@ const COMPANY_DETAIL_COLS = [
   "org_teams",
   // Culture keywords
   "culture_keywords",
+  /* ★カバー画像（2026-11-26）。求人ページのヘッダーカードに出す。無ければ出さない */
+  "header_image_url",
   // Customer cases (rich JSONB) — Migration 151 applied ✅
   "customer_cases",
   // Reality disclosure — Migration 202
@@ -1384,94 +1387,6 @@ export const getJobs = unstable_cache(
   { revalidate: 300 }
 );
 
-// ─── Position Members ─────────────────────────────────────────────────────────
-
-export type JobPositionMember = {
-  userId: string;
-  name: string;
-  roleTitle: string;
-  isCurrent: boolean;
-  photoUrl: string | null;
-  gradient: string;
-  initial: string;
-};
-
-// ow_jobs.job_category (text) → ow_roles.id[]
-// 一般的な職種名と role_category_id の対応マップ
-const JOB_CATEGORY_ROLE_MAP: Record<string, string[]> = {
-  "エンタープライズ営業": ["133c74c0-e432-4c52-8235-7ad9bc7d96b8", "6938712f-0b29-4682-ac6e-ad112734a3f1"],
-  "セールス": ["133c74c0-e432-4c52-8235-7ad9bc7d96b8", "6938712f-0b29-4682-ac6e-ad112734a3f1", "d1724303-7ca2-4cbe-a16b-f15d5a2476b8"],
-  "SMB営業": ["d1724303-7ca2-4cbe-a16b-f15d5a2476b8", "6938712f-0b29-4682-ac6e-ad112734a3f1"],
-  "フィールドセールス": ["133c74c0-e432-4c52-8235-7ad9bc7d96b8", "6938712f-0b29-4682-ac6e-ad112734a3f1"],
-  "インサイドセールス": ["d1724303-7ca2-4cbe-a16b-f15d5a2476b8", "6938712f-0b29-4682-ac6e-ad112734a3f1"],
-  "カスタマーサクセス": ["ad47e554-e328-4aec-abd1-dab9953ddf9d"],
-  "セールスエンジニア": ["133c74c0-e432-4c52-8235-7ad9bc7d96b8", "c8140123-e29a-43b3-9dbf-1a3d21a68966"],
-  "ソリューションエンジニア": ["133c74c0-e432-4c52-8235-7ad9bc7d96b8", "c8140123-e29a-43b3-9dbf-1a3d21a68966"],
-  "ソリューションズアーキテクト": ["133c74c0-e432-4c52-8235-7ad9bc7d96b8", "c8140123-e29a-43b3-9dbf-1a3d21a68966"],
-  "プロダクトマネージャー": ["669c6a08-997a-4a3f-b588-762acffacbc4", "168cd1ab-d096-46cc-ad7e-5baf7f10a0b1"],
-  "バックエンドエンジニア": ["2e9ea870-9e0a-4ae5-b75f-b50edae9a6e4", "c8140123-e29a-43b3-9dbf-1a3d21a68966"],
-  "ソフトウェアエンジニア": ["c8140123-e29a-43b3-9dbf-1a3d21a68966"],
-  "フロントエンドエンジニア": ["dfadc9b0-2739-4e4b-881f-8a44065b5d1b", "c8140123-e29a-43b3-9dbf-1a3d21a68966"],
-  "MLエンジニア": ["c8140123-e29a-43b3-9dbf-1a3d21a68966"],
-  "リサーチエンジニア": ["c8140123-e29a-43b3-9dbf-1a3d21a68966"],
-  "プロダクトデザイナー": ["9f8deb80-3c93-450b-ad30-dfab90430ea4"],
-  "ビジネスオペレーション": ["b49b9bc8-488b-47a5-80b0-9eba4869e910", "23e79605-332b-485d-98c2-d162a491a409"],
-};
-
-export async function getJobPositionMembers(jobCategory: string): Promise<JobPositionMember[]> {
-  const roleIds = JOB_CATEGORY_ROLE_MAP[jobCategory];
-  if (!roleIds || roleIds.length === 0) return [];
-
-  const supabase = createClient();
-
-  /* ⚠️ **error を捨てない**（2026-08-20 / 段階2）。未ログインではこの session クライアントは
-        **anon として飛ぶ**。`ow_users` は anon の SELECT を23列に絞ってあるので、
-        埋め込みに許可外の列を1つ足すと **403 が丸ごと返り、`!expRows` で静かに空になる**。
-        CLAUDE.md「★403 は『0件』として静かに素通りする」参照。 */
-  const { data: expRows, error: expError } = await supabase
-    .from("ow_experiences")
-    .select("user_id, role_title, is_current, role_category_id, ow_users!user_id(id, auth_id, name, avatar_color, avatar_url, visibility, is_test)")
-    .in("role_category_id", roleIds);
-  if (expError) console.error("[getJobPositionMembers] ow_experiences+ow_users:", expError.message);
-
-  if (!expRows || expRows.length === 0) return [];
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const expData = expRows as Record<string, any>[];
-
-  const seen = new Set<string>();
-  const result: JobPositionMember[] = [];
-
-  for (const exp of expData) {
-    const user = exp.ow_users as Record<string, any> | null;
-    if (!user || user.visibility !== "public") continue;
-    if ((user.is_test as boolean | null) === true) continue;
-    /* ★本人が登録していない行は出さない。⚠️ 現時点では visibility==='public' が0人なので
-          no-op だが、**no-op であることは足さない理由ではなく足す理由**（誰かが public を
-          選んだ日に、気づかないまま出る）。lib/users/registered.ts */
-    if (!isRegisteredUser(user)) continue;
-    const uid = user.id as string;
-    if (seen.has(uid)) continue;
-    seen.add(uid);
-    const name = (user.name as string) ?? "—";
-    const avatarColor = user.avatar_color as string | null;
-    const avatarUrl = user.avatar_url as string | null;
-    result.push({
-      userId: uid,
-      name,
-      roleTitle: (exp.role_title as string) ?? "",
-      isCurrent: (exp.is_current as boolean) ?? false,
-      photoUrl: avatarUrl,
-      gradient: avatarColor?.startsWith("linear-gradient") ? avatarColor : FALLBACK_GRADIENT,
-      initial: name.charAt(0),
-    });
-    if (result.length >= 6) break;
-  }
-
-  return result;
-}
-
-
 /**
  * ⚠️ **内部専用。UUID しか受けない。** ページからは `getJobBySlugOrId` を呼ぶこと。
  *    2026-08-11 まで apply ページがこれを slug 付きで呼んでおり、
@@ -1711,6 +1626,10 @@ export type CompanyRecruiter = {
   department: string | null;
   role_title: string | null;
   catchphrase: string | null;
+  /** ★ow_users.id（2026-11-26）。求人ページの採用担当に「メッセージを送る」を出すため。送れるかは DMButton が確かめる */
+  user_id: string;
+  /** ★プロフィール写真（2026-11-26）。無ければ頭文字 */
+  avatar_url: string | null;
 };
 
 export async function getCompanyRecruiters(companyId: string): Promise<CompanyRecruiter[]> {
@@ -1739,11 +1658,20 @@ export async function getCompanyRecruiters(companyId: string): Promise<CompanyRe
   const userIds = adminRows.map((r) => r.user_id as string).filter(Boolean);
   if (userIds.length === 0) return [];
 
+  /* ★検証用の会社では検証用の担当者を出す（2026-11-26）。出すのは「会社と is_test が一致する人」だけ
+        （この募集の Hiring Manager＝getPublicJobManagers と同じ規則）。
+     ⚠️ 実在の会社は今までどおり実在の担当者だけ。検証用の会社のページは検証用アカウントにしか見えない。
+     ⚠️ 会社が引けなければ実在の会社として扱う（検証用の人を出さない向きに倒す）。 */
+  const { data: companyRow, error: companyRowErr } = await supabase
+    .from("ow_companies").select("is_test").eq("id", companyId).maybeSingle();
+  if (companyRowErr) console.error("[getCompanyRecruiters] ow_companies:", companyRowErr.message);
+  const companyIsTest = companyRow?.is_test === true;
+
   const { data: userRows, error: userRowsError } = await supabase
     .from("ow_users")
-    .select("id, name, avatar_color, catchphrase")
+    .select("id, name, avatar_color, avatar_url, catchphrase")
     .in("id", userIds)
-    .eq("is_test", false);
+    .eq("is_test", companyIsTest);
   if (userRowsError) console.error("[getCompanyRecruiters] ow_users:", userRowsError.message);
 
   const userMap = new Map(
@@ -1751,7 +1679,7 @@ export async function getCompanyRecruiters(companyId: string): Promise<CompanyRe
     (userRows ?? []).map((u: Record<string, any>) => [u.id as string, u])
   );
 
-  // 案A: userMap に存在しないエントリー（is_test=true のユーザー等）を除外
+  // 案A: userMap に存在しないエントリー（会社と is_test が一致しないユーザー等）を除外
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return adminRows.filter((row: Record<string, any>) =>
     userMap.has(row.user_id as string)
@@ -1768,6 +1696,8 @@ export async function getCompanyRecruiters(companyId: string): Promise<CompanyRe
       department: (row.department as string) ?? null,
       role_title: (row.role_title as string) ?? null,
       catchphrase: (user.catchphrase as string) ?? null,
+      user_id: row.user_id as string,
+      avatar_url: (user.avatar_url as string | null) ?? null,
     };
   });
 }

@@ -12,7 +12,7 @@ import { EMPLOYEES_1, EMPLOYEES_GROUPED, EMPLOYEES_SAME_ROLE, ALUMNI_3 } from ".
  *    ＝ **実データでは描画できない分岐**なので、ここでしか見られない。
  *
  * ⚠️ グループは**本人が登録した職種から導出**する。企業ごとの設定テーブルは読まない。
- * ⚠️ 求人詳細の `JobEmployeesSection` とは**別の部品**（`/dev/preview/employees` はあちら）。
+ * ⚠️ 求人詳細の「この会社で働く人」（`JobCompanyPeopleCard`）とは別の部品。
  */
 
 /* ★2026-10-03: 行の形をそろえたので、確かめる組み合わせを足した。

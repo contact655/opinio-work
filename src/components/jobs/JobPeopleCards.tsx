@@ -1,10 +1,9 @@
 import type React from "react";
-import type { CompanyEmployee } from "@/lib/supabase/queries";
-import { AVATAR_COLOR } from "@/lib/avatarColor";
 
 /**
- * ★求人詳細の「人」を縦長のカードで並べる見本（2026-10-20 / 柴さんの提案「企業と同じように横型に」）。
- *   見本は /dev/preview/job-people。★2026-10-20 に求人詳細へ入れた（JobEmployeesSection の中。3つの欄すべて）。
+ * ★「人」を縦長のカードで並べる形（2026-10-20 / 柴さんの提案「企業と同じように横型に」）。
+ *   企業ページの社員・学校のページ・プロフィールの「同じ学校の人」が使う。
+ *   ⚠️ 求人詳細は 2026-11-26 にサイドバーの「この会社で働く人」（JobCompanyPeopleCard）へ移したので、ここは使っていない。
  *
  *   ・3人以上 … 横にスクロール（ホームの「新しく掲載された企業」と同じ作り。端のカードを少し見せて続きがあると分かる）
  *   ・1〜2人 … 横に流さず左寄せで並べる（1枚だけ流れると空いて見える）
@@ -49,23 +48,5 @@ export function PeopleCardRow({ count, children }: { count: number; children: Re
     <div className={scroll ? "jpc-row jpc-scroll" : "jpc-row"} data-state={scroll ? "people-scroll" : "people-static"}>
       {children}
     </div>
-  );
-}
-
-export function JobPeopleCards({ people }: { people: CompanyEmployee[] }) {
-  if (people.length === 0) return null;
-  return (
-    <PeopleCardRow count={people.length}>
-      {people.map((emp) => (
-        <a key={emp.userId} href={`/u/${emp.userId}`} className="jpc-card" title={[emp.name, emp.roleTitle].filter(Boolean).join(" / ")}>
-          <span className="jpc-avatar" style={{ background: emp.avatarUrl ? undefined : AVATAR_COLOR.bg, color: AVATAR_COLOR.text }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            {emp.avatarUrl ? <img src={emp.avatarUrl} alt="" /> : (emp.avatarInitial ?? emp.name.charAt(0))}
-          </span>
-          <span className="jpc-name">{emp.name}</span>
-          <span className="jpc-role">{emp.roleTitle ?? ""}</span>
-        </a>
-      ))}
-    </PeopleCardRow>
   );
 }

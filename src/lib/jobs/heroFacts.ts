@@ -78,8 +78,17 @@ export function jpDate(iso: string | null | undefined): string | null {
   return `${d.getUTCFullYear()}年${d.getUTCMonth() + 1}月${d.getUTCDate()}日`;
 }
 
+/** 日時を日本時間の「2026/10/28」にする（2026-11-26。求人ページのヘッダーのメタ行）。読めなければ null */
+export function slashDate(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return null;
+  const d = new Date(t + 9 * 3_600_000);
+  return `${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
 /**
- * 募集サマリーに出す「掲載日」「更新日」（2026-11-19）。
+ * 求人ページのヘッダーのメタ行に出す「掲載日」「更新日」（2026-11-19。2026-11-26 から「2026/10/28」の形）。
  * ⚠️ 掲載日が無い求人には何も出さない（下書きから直接来た値を「掲載」と言わない）。
  * ⚠️ 更新日は、日本時間で掲載日より後の日付のときだけ出す（同じ日なら2行並べても情報が増えない）。
  * ⚠️ 更新日は ow_jobs.updated_at。中身を変えない保存でも新しくなる。
@@ -88,10 +97,10 @@ export function jobDateRows(
   publishedAt: string | null | undefined,
   updatedAt: string | null | undefined,
 ): { key: "掲載日" | "更新日"; value: string }[] {
-  const posted = jpDate(publishedAt);
+  const posted = slashDate(publishedAt);
   if (!posted) return [];
   const rows: { key: "掲載日" | "更新日"; value: string }[] = [{ key: "掲載日", value: posted }];
-  const updated = jpDate(updatedAt);
+  const updated = slashDate(updatedAt);
   if (updated && updated !== posted && new Date(updatedAt as string) > new Date(publishedAt as string)) {
     rows.push({ key: "更新日", value: updated });
   }

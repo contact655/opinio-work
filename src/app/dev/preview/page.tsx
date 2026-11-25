@@ -25,10 +25,6 @@ import { devOnly } from "./guard";
  * ⚠️ 新しいセクションを作ったら**ここにも足す**。足さないと誰も見に来ない。
  */
 const ITEMS = [
-  { href: "/dev/preview/job-points-fold", label: "求人詳細のポイント3行と、仕事内容を畳む（見本）",
-    desc: "★ポイントあり・なし・短い本文（畳まない）・企業の入力欄" },
-  { href: "/dev/preview/job-detail-order", label: "求人詳細の並び替え（見本）",
-    desc: "★判断に使う情報を上へ・見出しを1つの形に・一緒に働く人をまとめる。?v=now でいまの並び" },
   { href: "/dev/preview/people-toolbar", label: "ユーザー一覧の上部（/people）",
     desc: "★検索・フィルター・並び替え・表示切替。条件は ?foreign=1&consult=1&age=30s などを足して見る" },
   { href: "/dev/preview/people-filters", label: "ユーザーフィルター（/people の「すべてのフィルター」）",
@@ -123,14 +119,10 @@ const ITEMS = [
     desc: "★対応が多い状態・はじめにやることが全部済んだ状態（枠ごと消える）・一部を取得できなかった状態。検証用の企業では作れない" },
   { href: "/dev/preview/biz-employees", label: "社員・OB/OG（/biz/employees）",
     desc: "⚠️ 管理者バッジ・職種の併記は、ログインできるどの企業にも該当者が居ない。ここでしか見られない" },
-  { href: "/dev/preview/employees", label: "現役社員 / OB・OG",
-    desc: "0件の空状態、1件、3件、12件。長い氏名・役職での折り返し" },
   { href: "/dev/preview/list-toolbar", label: "一覧の上部（検索・絞り込み・並び替え）",
     desc: "見直し案（2026-10-20）。企業・募集・ユーザーで同じ並べ方" },
   { href: "/dev/preview/jobs-for-you", label: "あなたの希望に合う募集（/jobs の一番上）",
     desc: "見本（2026-10-20）。合う3件／1件／0件／希望が未入力" },
-  { href: "/dev/preview/job-people", label: "求人詳細の人（縦長のカード）",
-    desc: "見本（2026-10-20）。1人・2人は左寄せ、3人以上は横スクロール。いまの行の形と並べて比べる" },
   { href: "/dev/preview/tools",     label: "ツール",
     desc: "5グループへの束ね方と、グループ内が増えたときの伸び方" },
   { href: "/dev/preview/cases",     label: "導入事例",
