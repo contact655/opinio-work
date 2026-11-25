@@ -2136,7 +2136,8 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                   <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "var(--font-inter), var(--font-noto)" }}>
                     ACTIVITY
                   </div>
-                  <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
+                  {/* ★見出しの形をほかの節とそろえた（明朝体 18px。2026-11-25） */}
+                  <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-serif)", letterSpacing: "0.01em" }}>
                     更新情報
                   </h2>
                 </div>
