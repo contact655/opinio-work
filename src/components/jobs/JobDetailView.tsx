@@ -17,7 +17,7 @@ import { enterTestViewMode, jobPath, companyPath, TEST_COMPANY_NOTICE } from "@/
  *    だからあのページに「閲覧者が管理者なら下書きも見せる」という分岐を足してはいけない
  *    ——**プレビューが他人に配られる。** プレビューを別ルートにしてあるのはこのため
  *    （`/biz/jobs/[id]/preview` は `force-dynamic` ＋ noindex）。
- *    同じ理由で、人（社員・OB/OG）はブラウザから取りに行く（JobCompanyPeopleCard）。
+ *    同じ理由で、人（採用担当・配属先マネージャー・社員）はブラウザから取りに行く（JobSidePeople）。
  *
  * ⚠️ ここを部品にしたのは「公開ページとプレビューが別物になる」のを防ぐため。
  *    プレビュー側にJSXをコピーしない。**差が出たらプレビューの意味が無くなる。**
@@ -26,7 +26,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { permanentRedirect } from "next/navigation";
 import { cache } from "react";
-import { getJobBySlugOrId, getJobForPreview, getCompanyRecruitersCached, getCompanyBySlugOrId, getRoleTree, resolvePublishedCompanyHref } from "@/lib/supabase/queries";
+import { getJobBySlugOrId, getJobForPreview, getCompanyBySlugOrId, getRoleTree, resolvePublishedCompanyHref } from "@/lib/supabase/queries";
 
 const getJobBySlugOrIdCached = cache(getJobBySlugOrId);
 /* ⚠️ 企業詳細ページと同じ形（`companies/[id]/page.tsx` の `getCompanyBySlugOrIdCached`）。
@@ -38,8 +38,7 @@ import { JobInlineShare } from "@/components/jobs/JobShareButton";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { SpecTable, specLines } from "@/components/common/SpecTable";
 import { CompanyMiniCard } from "@/components/companies/CompanyMiniCard";
-import { JobContactCard } from "@/components/jobs/JobContactCard";
-import { JobCompanyPeopleCard } from "@/components/jobs/JobCompanyPeopleCard";
+import { JobSidePeople } from "@/components/jobs/JobSidePeople";
 import { getSalesSegmentLabel, getHunterFarmerLabel } from "@/lib/constants/salesFields";
 import { isBusinessRole } from "@/lib/roles/jobRoles";
 import { fmtMan, payLabel, payNegotiableText } from "@/lib/utils/salary";
@@ -47,7 +46,6 @@ import { SCHEMA_EMPLOYMENT_TYPE } from "@/lib/constants/schemaEmploymentType";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { Markdown } from "@/components/common/Markdown";
 import { jobPointLines } from "@/lib/jobs/jobPoints";
-import { getPublicJobManagers } from "@/lib/nextManager/server";
 import { MEETING_CTA_BG, MEETING_CTA_FG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 import ViewBeacon from "@/components/views/ViewBeacon";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
@@ -181,15 +179,11 @@ export async function JobDetailView({
   const isBusinessJob = isBusinessRole(jobRoleTree, job.roleIds);
 
 
-  /* ★この募集の Hiring Manager（Next Manager / 2026-11-13）・採用担当者・会社の詳細を同じ段で引く（直列の await を増やさない）。
-     ⚠️ どれも `unstable_cache` 付き。ここで生のクライアントを使わない。
-     ⚠️ 社員・OB/OG はここで引かない（JobCompanyPeopleCard がブラウザから取りに行く。ページの冒頭のコメント） */
-  const [hiringManagers, companyResult, recruiters] = await Promise.all([
-    getPublicJobManagers(job.id, job.company_id),
-    /* ⚠️ `detail`（設立・所在地・カバー画像）はここからしか取れない。企業詳細ページと同じ関数 */
-    getCompanyForJobCached(job.company_id),
-    getCompanyRecruitersCached(job.company_id),
-  ]);
+  /* ⚠️ `detail`（設立・所在地・カバー画像）はここからしか取れない。企業詳細ページと同じ関数（`unstable_cache` 付き）。
+     ⚠️★人（採用担当・配属先マネージャー・チームメンバー・社員）はここで引かない（2026-11-26）。
+        JobSidePeople がブラウザから取りに行く。ISR の HTML は全員に共有されるので、ここで描くと
+        「ログインユーザーのみ」の人の名前まで未ログインの人に配られる。 */
+  const companyResult = await getCompanyForJobCached(job.company_id);
   const companyDetail = companyResult?.detail ?? null;
 
   /* ⚠️ ブックマーク状態はここで引かない（2026-08-09）。引くと `auth.getUser()` が要り、
@@ -545,13 +539,10 @@ export async function JobDetailView({
 
             {/* ── サイドバー（1023px 以下は本文カードの下に同じ順で並ぶ） ── */}
             <aside className="jd-side" aria-label="この募集の担当者と会社">
-              {(hiringManagers.length > 0 || recruiters.length > 0) && (
-                <div className="jd-card jd-side-card">
-                  <JobContactCard managers={hiringManagers} recruiters={recruiters} companyName={company.name} preview={preview} title={<SideTitle>採用担当</SideTitle>} />
-                </div>
-              )}
-              {/* ⚠️ 人はブラウザで取りに行く。0人ならカードごと消えるので、枠も部品の中に持たせる */}
-              <JobCompanyPeopleCard companyId={job.company_id} companyHref={companyHref} title={<SideTitle>この会社で働く人</SideTitle>} />
+              {/* ★「この募集に関わる人」と「この会社で働く人」（2026-11-26）。どちらもブラウザで取りに行く。
+                     0人ならカードごと消えるので、枠も部品の中に持たせる */}
+              <JobSidePeople jobId={job.id} companyId={job.company_id} companyHref={companyHref} preview={preview}
+                peopleTitle={<SideTitle>この会社で働く人</SideTitle>} />
               <div className="jd-card jd-side-card">
                 <SideTitle>会社概要</SideTitle>
                 <CompanyMiniCard company={company} href={companyHref} />
