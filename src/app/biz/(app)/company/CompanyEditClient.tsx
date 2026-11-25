@@ -18,6 +18,7 @@ import { ClassificationPreview } from "@/components/companies/classification/Cla
 import { industryNeedsSub, type ClassDomain, type ClassMasters, type ClassificationValue } from "@/lib/companies/classification";
 import { EMPLOYEE_BANDS } from "@/lib/constants/employeeBand";
 import { COMPANY_REQUIREMENTS, missingCompanyRequirements, type CompanyRequirement } from "@/lib/companies/companyRequirements";
+import { BizSectionTitle, BizPageTitle, BIZ_ICONS } from "@/components/business/BizSectionTitle";
 
 /*
  * ★企業ページの編集（/biz/company）。2026-10-12 に作り直した（柴さんの指示）。
@@ -305,12 +306,21 @@ function FormTextarea({
 // ── 画面の部品 ──────────────────────────────────────────────────────────────
 
 /** 本文の節（基本情報・会社紹介・働き方・写真）。⚠️ `id` は「公開まであと〇つ」から飛ぶ先ではない（飛ぶのは入力欄の id） */
+/* ★見出しは管理画面の共通部品（BizSectionTitle）。アイコンは節の id で引く（2026-11-25） */
+const SECTION_ICONS: Record<string, React.ReactNode> = {
+  "cpe-basic": BIZ_ICONS.building,
+  "cpe-classification": BIZ_ICONS.tag,
+  "cpe-about": BIZ_ICONS.doc,
+  "cpe-work": BIZ_ICONS.monitor,
+  "cpe-photos": BIZ_ICONS.image,
+};
+
 function Section({ id, title, desc, children }: { id: string; title: string; desc?: string; children: React.ReactNode }) {
   return (
     /* ★2026-10-18（柴さんの指示）: 余白を詰めた（padding 24/28 → 18/22・節の間 18 → 14・見出しの下 18 → 12） */
     <section id={id} style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 14, padding: "18px 22px 6px", marginBottom: 14, scrollMarginTop: 16 }}>
-      <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: desc ? "0 0 2px" : "0 0 12px" }}>{title}</h2>
-      {desc && <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6, margin: "0 0 12px" }}>{desc}</p>}
+      <BizSectionTitle icon={SECTION_ICONS[id] ?? BIZ_ICONS.doc} style={{ margin: desc ? "0 0 4px" : "0 0 12px" }}>{title}</BizSectionTitle>
+      {desc && <p style={{ fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.6, margin: "0 0 12px 42px" }}>{desc}</p>}
       {children}
     </section>
   );
@@ -672,7 +682,7 @@ export function CompanyEditClient({
       <div className="cpe-frame" style={{ display: "flex", flexDirection: "column" }}>
         {/* ── 上部: 見出し・状態（灰色の文字）・主ボタン ── */}
         <div className="cpe-head" style={{ background: "#fff", borderBottom: "1px solid var(--line)", flexShrink: 0, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>企業ページ</h1>
+          <BizPageTitle>企業ページ</BizPageTitle>
           <span data-state="page-status" title={pageStatus.detail} style={{ fontSize: 13, color: "var(--ink-mute)" }}>{statusText}</span>
           {saveText && (
             <span aria-live="polite" style={{ fontSize: 12, color: saveState === "error" ? "var(--error-ink)" : "var(--ink-mute)" }}>

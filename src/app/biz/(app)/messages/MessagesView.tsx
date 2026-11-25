@@ -17,6 +17,7 @@ import { ApproachStepsLarge, ApproachTipsList } from "@/components/approaches/Ap
 import { ApproachLetter } from "@/components/approaches/ApproachLetter";
 import { RequestReplyBox } from "@/components/approaches/RequestReplyBox";
 import type { ConversationRow } from "./page";
+import { BizPageTitle } from "@/components/business/BizSectionTitle";
 
 /**
  * /biz/messages の本文（2026-10-11 / 柴さんの指示。「メッセージリクエスト」を「メッセージ」にまとめた）。
@@ -197,7 +198,7 @@ export function MessagesView({ allowed, conversations, sent, quota, initialTab =
 
       {/* ★右上に「候補者を探して送る」（2026-10-11 / モックに合わせた）。⚠️ 1通も送っていないときの大きな案内には出さない（案内の中に同じ行き先がある） */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", margin: 0 }}>メッセージ</h1>
+        <BizPageTitle>メッセージ</BizPageTitle>
         {!showBigGuide && allowed && (
           <Link href="/biz/candidates" data-state="messages-find" className="btn-fixed-size" style={BTN_SECONDARY}>候補者を探して送る</Link>
         )}

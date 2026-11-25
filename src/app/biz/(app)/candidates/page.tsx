@@ -16,6 +16,7 @@ import { isCandidateAgeFilterEnabled } from "@/lib/business/candidates/ageFilter
 import { isCandidateActivityEnabled } from "@/lib/business/candidates/activity";
 import { ensureLastViewed, getSavedSearchForViewer } from "@/lib/business/savedSearchServer";
 import { parseSavedFilters, type SavedCandidateFilters } from "@/lib/business/savedSearch";
+import { BizPageTitle } from "@/components/business/BizSectionTitle";
 
 export const dynamic = "force-dynamic";
 
@@ -93,9 +94,9 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
           background: "#fff", borderRadius: 14, border: "1px solid var(--line)",
           padding: "44px 40px", maxWidth: 620, margin: "48px auto",
         }}>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink)", marginBottom: 14, lineHeight: 1.5 }}>
+          <BizPageTitle style={{ marginBottom: 14 }}>
             候補者を探す
-          </h1>
+          </BizPageTitle>
           {/* ⚠️ 「有料プランです」と書かないこと。**売り物の案内ではなく異常**。
                  利用者にできることが無いので、運営に繋ぐ。 */}
           <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 24 }}>
@@ -139,9 +140,9 @@ export default async function CandidatesPage({ searchParams }: { searchParams?: 
             有料プランの機能
           </div>
 
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink)", marginBottom: 14, lineHeight: 1.5 }}>
+          <BizPageTitle style={{ marginBottom: 14 }}>
             候補者を探す
-          </h1>
+          </BizPageTitle>
 
           {/* ⚠️ 文言を「もうすぐ使えます」の方向に変えないこと。
                  登録者が揃っていないのは事実で、期待を持たせると
