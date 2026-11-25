@@ -1658,11 +1658,20 @@ export async function getCompanyRecruiters(companyId: string): Promise<CompanyRe
   const userIds = adminRows.map((r) => r.user_id as string).filter(Boolean);
   if (userIds.length === 0) return [];
 
+  /* ★検証用の会社では検証用の担当者を出す（2026-11-26）。出すのは「会社と is_test が一致する人」だけ
+        （この募集の Hiring Manager＝getPublicJobManagers と同じ規則）。
+     ⚠️ 実在の会社は今までどおり実在の担当者だけ。検証用の会社のページは検証用アカウントにしか見えない。
+     ⚠️ 会社が引けなければ実在の会社として扱う（検証用の人を出さない向きに倒す）。 */
+  const { data: companyRow, error: companyRowErr } = await supabase
+    .from("ow_companies").select("is_test").eq("id", companyId).maybeSingle();
+  if (companyRowErr) console.error("[getCompanyRecruiters] ow_companies:", companyRowErr.message);
+  const companyIsTest = companyRow?.is_test === true;
+
   const { data: userRows, error: userRowsError } = await supabase
     .from("ow_users")
     .select("id, name, avatar_color, avatar_url, catchphrase")
     .in("id", userIds)
-    .eq("is_test", false);
+    .eq("is_test", companyIsTest);
   if (userRowsError) console.error("[getCompanyRecruiters] ow_users:", userRowsError.message);
 
   const userMap = new Map(
@@ -1670,7 +1679,7 @@ export async function getCompanyRecruiters(companyId: string): Promise<CompanyRe
     (userRows ?? []).map((u: Record<string, any>) => [u.id as string, u])
   );
 
-  // 案A: userMap に存在しないエントリー（is_test=true のユーザー等）を除外
+  // 案A: userMap に存在しないエントリー（会社と is_test が一致しないユーザー等）を除外
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return adminRows.filter((row: Record<string, any>) =>
     userMap.has(row.user_id as string)

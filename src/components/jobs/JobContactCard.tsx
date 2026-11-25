@@ -7,7 +7,7 @@ import type { PublicJobManager } from "@/lib/nextManager/server";
  * 求人ページのサイドバー「採用担当」（2026-11-26）。上にこの募集の Hiring Manager、下に採用担当者。
  *
  * - Hiring Manager は本人が「採用中」にしている人だけ（getPublicJobManagers）。0人なら出さない
- * - 採用担当者は企業の有効な担当者（getCompanyRecruiters。検証用は除いてある）
+ * - 採用担当者は企業の有効な担当者（getCompanyRecruiters。会社と is_test が一致する人だけ）
  * - 「メッセージを送る」は DMButton が送れるかを確かめ、送れない相手には何も出さない
  * - どちらも0人ならカードごと出さない
  *
