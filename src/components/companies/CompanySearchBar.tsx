@@ -218,8 +218,9 @@ export function CompanySearchBar({
         <div className="csb-bar list-toolbar lt-chip-row" style={{ paddingTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
           {/* 保存件数 */}
           {bookmarkCount > 0 && (
+            /* ★行き先は保存した会社の一覧（/mypage/bookmarks の先頭が「企業」）。2026-11-26 まで /mypage（プロフィール）に飛んでいた */
             <a
-              href="/mypage"
+              href="/mypage/bookmarks"
               className="csb-bookmark-link"
               style={{
                 flexShrink: 0,
