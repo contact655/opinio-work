@@ -1,3 +1,4 @@
+import { DRAFT_MILESTONES_KEY, capitalManToYen, capitalYenToMan, type MilestoneInput } from "@/lib/companies/milestones";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BizCompany } from "./mockCompany";
 import type { Json } from "@/lib/supabase/types";
@@ -33,6 +34,8 @@ export type DbCompany = {
   employee_count_band: string | null;
   employee_count_as_of: string | null;
   founded_year: number | null;
+  capital_amount_yen: number | null;
+  ceo_message: string | null;
   avg_age: number | null;
   avg_salary: string | null;
   funding_total: string | null;
@@ -70,6 +73,8 @@ const SELECT_COLUMNS = [
   /* ⚠️ 【廃止】列は取らないこと（about_markdown / established_at / gender_ratio）。
         2026-08-26 に description / founded_year / female_ratio へ統合済み。 */
   "logo_gradient", "logo_letter", "logo_url", "description", "employee_count", "employee_count_band", "employee_count_as_of", "founded_year",
+  /* ★資本金・代表メッセージ（2026-11-27）。⚠️ migration 20261127090000 を当てる前にこのコードを出すと、この select が失敗して画面が開かない */
+  "capital_amount_yen", "ceo_message",
   "avg_age", "avg_salary", "funding_total", "female_ratio", "evaluation_system", "benefits", "fit_positives", "fit_negatives", "location", "nearest_station",
   "remote_work_status", "work_time_system", "avg_overtime_hours", "paid_leave_rate",
   "workstyle_description", "is_published", "accepting_casual_meetings", "notification_emails", "show_fit_negatives",
@@ -162,6 +167,8 @@ export function transformDbToForm(
     publishedDomains?: { ids: string[]; primaryId: string | null };
     /** ★いま公開されているお客さまの業界（`ow_company_customer_industries`）。下書きに無いときの初期値 */
     publishedCustomerIds?: string[];
+    /** ★いま公開されている「これまでの歩み」（ow_company_milestones）。下書きに無いときの初期値 */
+    publishedMilestones?: MilestoneInput[];
   } = {},
 ): BizCompany {
   const row = opts.withDraft ? applyDraft(rawRow) : rawRow;
@@ -177,6 +184,19 @@ export function transformDbToForm(
     tagline: row.tagline ?? "",
     mission: row.mission ?? "",
     whyJoin: row.why_join ?? "",
+    ceoMessage: row.ceo_message ?? "",
+    /* ★下書きにあれば下書き、無ければ公開中の値（事業領域と同じ考え方） */
+    milestones: (() => {
+      const draft = opts.withDraft ? rawRow.draft_data?.[DRAFT_MILESTONES_KEY] : undefined;
+      if (Array.isArray(draft)) {
+        return draft.map((m) => {
+          const o = (m ?? {}) as Record<string, unknown>;
+          return { year: String(o.year ?? ""), month: String(o.month ?? ""), event: String(o.event ?? "") };
+        });
+      }
+      /* ⚠️ 公開中の値を渡されなかった（読み込めなかった・この画面以外）は null。空配列にしない */
+      return opts.publishedMilestones ?? null;
+    })(),
     businessDomainIds: draftDomains?.domain_ids ?? opts.publishedDomains?.ids ?? [],
     primaryBusinessDomainId: draftDomains ? draftDomains.primary_domain_id : (opts.publishedDomains?.primaryId ?? null),
     capitalType: row.capital_type ?? "",
@@ -202,6 +222,7 @@ export function transformDbToForm(
     /* ⚠️ date（"2026-04-01"）→ input type="month" の値（"2026-04"） */
     employeeCountAsOf: (row.employee_count_as_of ?? "").slice(0, 7),
     foundedAt: row.founded_year != null ? String(row.founded_year) : "",
+    capitalMan: capitalYenToMan(row.capital_amount_yen),
     evaluationSystem: row.evaluation_system ?? "",
     /* ⚠️ 旧形式（text[]）も受ける。migration の前後どちらでも動く */
     benefitsTags: normalizeBenefits(row.benefits) ?? [],
@@ -246,6 +267,8 @@ export const COMPANY_BASIC_DRAFT_KEYS: readonly string[] = [
   /* ★分類の③④（2026-10-12）。①②と同じく管理者だけ */
   "capital_type", "hq_country", "company_stage", DRAFT_CUSTOMERS_KEY,
   "url", "careers_url", "logo_gradient", "logo_letter", "logo_url",
+  /* ★これまでの歩み（2026-11-27）。表（ow_company_milestones）の書き込みは会社の管理者だけ（RLS と同じ） */
+  DRAFT_MILESTONES_KEY,
 ];
 
 export function transformFormToDb(form: BizCompany): { [key: string]: Json | undefined } {
@@ -255,6 +278,12 @@ export function transformFormToDb(form: BizCompany): { [key: string]: Json | und
     tagline: form.tagline || null,
     mission: form.mission || null,
     why_join: form.whyJoin || null,
+    /* ★代表メッセージ・これまでの歩み・資本金（2026-11-27） */
+    ceo_message: form.ceoMessage.trim() || null,
+    /* ⚠️ null（読み込めなかった）はキーを出さない（反映で触らない） */
+    [DRAFT_MILESTONES_KEY]: form.milestones ?? undefined,
+    /* ⚠️ 不正な値（数字でない）のときはキーを出さない（反映で触らない）。入力欄でも弾いている */
+    capital_amount_yen: capitalManToYen(form.capitalMan),
     /* ⚠️ company_features / avg_age / avg_salary / funding_total / female_ratio / notification_emails は
           **キーを出さない**（2026-10-12 に入力欄を外した）。キーが無ければ反映（applyDraft.ts）は触らない */
     /* ★事業領域（下書き）。形は setCompanyBusinessDomains の body と同じ */
@@ -451,7 +480,7 @@ export async function fetchCompanyForTenant(
   supabase: SupabaseClient,
   tenantId: string,
   currentPublishedGenres: string[] = [],
-  opts: { withDraft?: boolean; publishedDomains?: { ids: string[]; primaryId: string | null }; publishedCustomerIds?: string[] } = {},
+  opts: { withDraft?: boolean; publishedDomains?: { ids: string[]; primaryId: string | null }; publishedCustomerIds?: string[]; publishedMilestones?: MilestoneInput[] } = {},
 ): Promise<BizCompany | null> {
   const { data, error } = await supabase
     .from("ow_companies")

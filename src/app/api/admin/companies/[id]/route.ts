@@ -8,6 +8,8 @@ import { buildCompanyJoinedRow } from '@/lib/feed/systemPosts';
 import { isAdmin } from '@/lib/auth/isAdmin';
 import { checkPublishable, publishBlockedMessage } from '@/lib/companies/publishable';
 import { cleanupCompanyLogoFiles } from '@/lib/companies/logoFiles';
+import { CEO_MESSAGE_MAX, parseMilestones } from '@/lib/companies/milestones';
+import { replaceCompanyMilestones } from '@/lib/companies/setMilestones';
 import { VALID_COMPANY_REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { isEmployeeBand } from "@/lib/constants/employeeBand";
 import { notifyCompanyStatus } from '@/lib/notify/companyStatus';
@@ -68,6 +70,8 @@ export async function PUT(
     'founded_year',
     'url',
     'ceo_name',
+    /* ★代表メッセージ（2026-11-27）。資本金と歩みは下のループの外で検証する */
+    'ceo_message',
     'headquarters_address',
     'nearest_station',
     // 採用担当者フィールド
@@ -84,7 +88,7 @@ export async function PUT(
     name: 200, brand_name: 100, tagline: 300, mission: 1000, description: 5000,
     // ⚠️ `industry: 100` は 2026-08-25 に削除。長さでは分類の正しさを守れない（下の存在検証に置き換えた）
     why_join: 3000, culture_description: 3000, location: 200, phase: 100,
-    url: 2048, ceo_name: 200, headquarters_address: 300, nearest_station: 200,
+    url: 2048, ceo_name: 200, ceo_message: CEO_MESSAGE_MAX, headquarters_address: 300, nearest_station: 200,
     recruiter_name: 200, recruiter_role: 200, recruiter_message: 2000,
     opinio_comment: 3000, funding_stage: 100,
     logo_url: 2048, recruiter_avatar_url: 2048, casual_interview_url: 2048,
@@ -127,6 +131,21 @@ export async function PUT(
         updates[key] = val;
       }
     }
+  }
+
+  /* ★資本金（円・2026-11-27）。空は null。0 以上の整数以外は 400（黙って捨てない） */
+  if ("capital_amount_yen" in body) {
+    const v = body.capital_amount_yen;
+    if (v === null || v === "") updates.capital_amount_yen = null;
+    else if (typeof v === "number" && Number.isSafeInteger(v) && v >= 0) updates.capital_amount_yen = v;
+    else return NextResponse.json({ error: "資本金に不正な値が指定されました" }, { status: 400 });
+  }
+  /* ★これまでの歩み（2026-11-27）。⚠️ 本体を更新する前に形を確かめる（不正なら何も書かずに 400） */
+  let milestonesToWrite: unknown = undefined;
+  if ("milestones" in body) {
+    const parsed = parseMilestones(body.milestones);
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    milestonesToWrite = body.milestones;
   }
 
   /* ★従業員数の帯と時点（2026-10-10）。⚠️ 許容値は `EMPLOYEE_BANDS`（DB の CHECK と同じ8区分）。
@@ -266,6 +285,12 @@ export async function PUT(
   }
 
   if (turningListed && data && listedBefore === false) await notifyCompanyStatus(params.id, 'listed');
+
+  /* ★これまでの歩み（2026-11-27）。本体の更新が通ってから入れ替える。⚠️ 失敗したら成功にしない */
+  if (milestonesToWrite !== undefined) {
+    const r = await replaceCompanyMilestones(params.id, milestonesToWrite, 'admin PUT これまでの歩み');
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+  }
 
   /* ★ロゴを変えたら、使われなくなったロゴのファイルを消す（2026-10-12。ロゴは毎回別のファイル名で入る）。
      ⚠️ この画面は保存のたびに logo_url を送るので、**値が変わったときだけ**消す（他の項目の保存で消さない） */

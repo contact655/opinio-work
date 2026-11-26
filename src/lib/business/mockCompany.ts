@@ -1,3 +1,4 @@
+import type { MilestoneInput } from "@/lib/companies/milestones";
 import type { Benefit } from "@/lib/companies/benefits";
 // BizCompany — 企業側プロダクト用の型定義とモックデータ
 
@@ -30,6 +31,11 @@ export type BizCompany = {
   // ── About（企業説明） ──────────────────────────────────────
   descriptionMarkdown: string;
   whyJoin: string;          // 入社理由・魅力（公開ページで参照）
+  /** ★代表メッセージ（2026-11-27）。企業が自分で書く。企業ページの「ミッション・カルチャー」に出る */
+  ceoMessage: string;
+  /** ★これまでの歩み（2026-11-27）。下書きのキーは `milestones`（lib/companies/milestones.ts）。管理者だけが編集する。
+   *  ⚠️ null は「読み込めなかった」。そのときは下書きにキーを出さない（空で保存して既存の行を消さないため） */
+  milestones: MilestoneInput[] | null;
   /* ⚠️★企業の特徴（company_features）は 2026-10-12 に入力欄ごと外した（求職者に表示されないため）。
         列とデータ（77社）と開示充実順の計算はそのまま。**フォームに戻さないこと。** */
   /** ★事業領域（2026-10-12 から下書きに入れる。それまでは選ぶと即時保存だった）。
@@ -55,6 +61,8 @@ export type BizCompany = {
   employeeCountAsOf: string;
   /** 設立年（"2017"）。⚠️ 保存は `founded_year`（整数）なので年だけ */
   foundedAt: string;
+  /** ★資本金（万円・入力欄の値。2026-11-27）。保存は ow_companies.capital_amount_yen（円） */
+  capitalMan: string;
   /* ⚠️★平均年齢・男女比・平均年収・累計調達額は 2026-10-12 に入力欄ごと外した（求職者に表示されないため）。
         列とデータは残す。**フォームに戻さないこと。** 戻すなら先に求職者側の表示を作る */
   evaluationSystem: string;

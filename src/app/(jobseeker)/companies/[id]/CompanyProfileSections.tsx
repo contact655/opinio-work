@@ -18,10 +18,12 @@ import { Markdown } from "@/components/common/Markdown";
 import { DefinitionRows } from "@/components/detail/DefinitionRows";
 import { SectionCard } from "@/components/detail/SectionCard";
 import { PhotoCarousel } from "./PhotoCarousel";
+import { milestoneDateLabel, sortMilestones, type Milestone } from "@/lib/companies/milestones";
 
 /** 主な製品を最初に出す数（残りは「ほかN製品を見る」） */
 const PRODUCTS_VISIBLE = 4;
 
+/* ⚠️ この中に不等号・バッククォート・引用符を書かない（style タグに入る。サーバーが実体参照に変えてハイドレーションが壊れる） */
 export const PROFILE_CSS = `
   .cp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
   .cp-tag { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--bg-tint); border: 1px solid var(--line); font-size: 13px; line-height: 1.6; color: var(--ink); }
@@ -42,10 +44,17 @@ export const PROFILE_CSS = `
   .cp-link-mark { flex-shrink: 0; width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; }
   .cp-link-kind { display: block; font-size: 12px; font-weight: 700; color: var(--ink-mute); }
   .cp-link-name { display: block; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cp-tl { margin: 0 0 0 4px; padding: 0; list-style: none; border-left: 1px solid var(--line); }
+  .cp-tl-item { position: relative; display: grid; grid-template-columns: 110px minmax(0, 1fr); column-gap: 16px; padding: 0 0 14px 18px; }
+  .cp-tl-item:last-child { padding-bottom: 0; }
+  .cp-tl-dot { position: absolute; left: -4.5px; top: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--royal); }
+  .cp-tl-date { font-size: 13px; font-weight: 700; color: var(--ink-soft); line-height: 1.8; white-space: nowrap; }
+  .cp-tl-event { font-size: 15px; color: var(--ink); line-height: 1.8; overflow-wrap: anywhere; }
   @media (max-width: 640px) {
     .cp-boxes { grid-template-columns: minmax(0, 1fr); }
     .cp-links { grid-template-columns: minmax(0, 1fr); }
     .cp-prod-sub { display: block; margin-left: 0; }
+    .cp-tl-item { grid-template-columns: minmax(0, 1fr); }
   }
 `;
 
@@ -133,6 +142,27 @@ export function MissionSection({ detail }: { detail: CompanyDetail }) {
         { label: "大切にしていること", value: detail.culture_keywords?.length ? <Tags items={detail.culture_keywords} /> : null },
         { label: "代表メッセージ", value: detail.ceoMessage ?? null },
       ]} />
+    </SectionCard>
+  );
+}
+
+// ─── 3. これまでの歩み ───────────────────────────────────────────────────────
+
+/** 年月と出来事を縦に並べる（古い順）。⚠️ 企業（または運営）が入れた出来事をそのまま出す */
+export function MilestonesSection({ items }: { items: Milestone[] }) {
+  if (items.length === 0) return null;
+  const sorted = sortMilestones(items);
+  return (
+    <SectionCard id="milestones" state="company-milestones" title="これまでの歩み">
+      <ol className="cp-tl">
+        {sorted.map((m, i) => (
+          <li key={`${m.year}-${m.month}-${i}`} className="cp-tl-item">
+            <span className="cp-tl-dot" aria-hidden />
+            <span className="cp-tl-date">{milestoneDateLabel(m)}</span>
+            <span className="cp-tl-event">{m.event}</span>
+          </li>
+        ))}
+      </ol>
     </SectionCard>
   );
 }

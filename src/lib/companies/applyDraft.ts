@@ -9,6 +9,8 @@ import { VALID_COMPANY_REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { normalizeBenefits, serializeBenefits, type Benefit } from "@/lib/companies/benefits";
 import { isEmployeeBand } from "@/lib/constants/employeeBand";
 import { setCompanyBusinessDomains } from "@/lib/companies/setBusinessDomains";
+import { CEO_MESSAGE_MAX, DRAFT_MILESTONES_KEY } from "@/lib/companies/milestones";
+import { replaceCompanyMilestones } from "@/lib/companies/setMilestones";
 import { readDraftBusinessDomains } from "@/lib/companies/companyRequirements";
 import { cleanupCompanyLogoFiles } from "@/lib/companies/logoFiles";
 import { isCompanyStage, isHqCountry, isCapitalType, readDraftCustomers } from "@/lib/companies/classification";
@@ -143,6 +145,12 @@ export async function applyCompanyDraft(
     if (!r.ok) return { ok: false, status: r.status, error: r.error, message: r.error };
   }
 
+  /* ── ①' これまでの歩み（全置換）── 下書きにキーがあるときだけ。⚠️ 不正な行があれば反映を止める（黙って捨てない） */
+  if (d[DRAFT_MILESTONES_KEY] !== undefined) {
+    const r = await replaceCompanyMilestones(companyId, d[DRAFT_MILESTONES_KEY], `${label} これまでの歩み`);
+    if (!r.ok) return { ok: false, status: r.status, error: r.error, message: r.error };
+  }
+
   /* ── ② 本体 ── */
   const mainRes = await mutateOne(
     client
@@ -165,6 +173,10 @@ export async function applyCompanyDraft(
         location:                 s(d.location),
         url:                      s(d.url),
         founded_year:             n(d.founded_year),
+        /* ★資本金・代表メッセージ（2026-11-27）。⚠️ 資本金は 0 以上の整数だけ（DB の CHECK と同じ） */
+        capital_amount_yen:       d.capital_amount_yen === undefined ? undefined
+                                    : (typeof d.capital_amount_yen === "number" && Number.isSafeInteger(d.capital_amount_yen) && d.capital_amount_yen >= 0) ? d.capital_amount_yen : null,
+        ceo_message:              (() => { const v = s(d.ceo_message); return typeof v === "string" ? v.slice(0, CEO_MESSAGE_MAX) : v; })(),
         employee_count:           s(d.employee_count),
         employee_count_band:      bandIn === "" ? null : bandIn,
         employee_count_as_of:     asOfIn === "" ? null : asOfIn,

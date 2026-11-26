@@ -1184,10 +1184,12 @@ export type Database = {
           business_model: string | null
           business_stage: string | null
           canonical_company_id: string | null
+          capital_amount_yen: number | null
           capital_notes: string | null
           capital_type: string | null
           careers_url: string | null
           casual_interview_url: string | null
+          ceo_message: string | null
           ceo_name: string | null
           childcare_leave_rate: string | null
           company_features: Json | null
@@ -1356,10 +1358,12 @@ export type Database = {
           business_model?: string | null
           business_stage?: string | null
           canonical_company_id?: string | null
+          capital_amount_yen?: number | null
           capital_notes?: string | null
           capital_type?: string | null
           careers_url?: string | null
           casual_interview_url?: string | null
+          ceo_message?: string | null
           ceo_name?: string | null
           childcare_leave_rate?: string | null
           company_features?: Json | null
@@ -1528,10 +1532,12 @@ export type Database = {
           business_model?: string | null
           business_stage?: string | null
           canonical_company_id?: string | null
+          capital_amount_yen?: number | null
           capital_notes?: string | null
           capital_type?: string | null
           careers_url?: string | null
           casual_interview_url?: string | null
+          ceo_message?: string | null
           ceo_name?: string | null
           childcare_leave_rate?: string | null
           company_features?: Json | null
@@ -2964,6 +2970,47 @@ export type Database = {
             columns: ["recipient_user_id"]
             isOneToOne: false
             referencedRelation: "ow_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ow_company_milestones: {
+        Row: {
+          company_id: string
+          created_at: string
+          event: string
+          id: string
+          month: number | null
+          sort_order: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          event: string
+          id?: string
+          month?: number | null
+          sort_order?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          event?: string
+          id?: string
+          month?: number | null
+          sort_order?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ow_company_milestones_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "ow_companies"
             referencedColumns: ["id"]
           },
         ]

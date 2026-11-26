@@ -27,6 +27,8 @@ import type { CompanyTool } from "@/lib/supabase/queries";
 import { SecTitle } from "./SecTitle";
 import { DetailHero, HeroChip } from "@/components/detail/DetailHero";
 import { DetailSectionNav } from "@/components/detail/DetailSectionNav";
+import type { Milestone } from "@/lib/companies/milestones";
+import { MilestonesSection } from "./CompanyProfileSections";
 import { BusinessSection, MissionSection, WorkstyleSection, BenefitTagsSection, ExternalLinksSection, PROFILE_CSS,
   hasBusinessSection, hasMissionSection, workstyleBoxes, benefitTags, type ExternalLink } from "./CompanyProfileSections";
 import MeetingFlowNote from "./MeetingFlowNote";
@@ -800,7 +802,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   const companyId = resolvedId;
 
   const [photos, companyArticles, employees, companyPosts, companyTools,
-         articleIdRowsResult, materialItems, companyFlow, reasonRanking, followerCount, similarCompanies, externalLinksResult] = await Promise.all([
+         articleIdRowsResult, materialItems, companyFlow, reasonRanking, followerCount, similarCompanies, externalLinksResult, milestonesResult] = await Promise.all([
     getCompanyPhotosCached(companyId),
     /* ⚠️ 採用担当者はサーバーで引かない（2026-11-26）。人の情報を ISR の HTML に入れないため、
           サイドバーの「話せる人」（CompanyContactsCard）がブラウザで /api/jobseeker/companies/[id]/contacts から取る */
@@ -834,7 +836,12 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
     /* ★公式の発信（2026-11-26）。公開中のリンクだけ（RLS の公開条件と同じ is_published）。会社の情報なのでページに焼いてよい */
     adminSupabase.from("ow_company_external_links").select("id, url, title, source_name, type")
       .eq("company_id", companyId).eq("is_published", true).order("sort_order", { ascending: true }),
+    /* ★これまでの歩み（2026-11-27）。会社の情報なのでページに焼いてよい */
+    adminSupabase.from("ow_company_milestones").select("year, month, event, sort_order").eq("company_id", companyId)
+      .order("sort_order", { ascending: true }),
   ]);
+  if (milestonesResult.error) console.error("[company-detail] milestones:", milestonesResult.error.message);
+  const milestones: Milestone[] = ((milestonesResult.data ?? []) as Milestone[]).map((m) => ({ year: m.year, month: m.month, event: m.event }));
   if (externalLinksResult.error) console.error("[company-detail] external_links:", externalLinksResult.error.message);
   /* ⚠️ http(s) 以外の URL は数えない（ExternalLinksSection が描かないので、タブだけ出るのを防ぐ） */
   const externalLinks: ExternalLink[] = ((externalLinksResult.data ?? []) as ExternalLink[]).filter((l) => /^https?:\/\//i.test(l.url ?? ""));
@@ -956,7 +963,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
 
   /* ★タブと本文の出し分けに使う（中身の無いタブ・セクションは出さない） */
   const hasBusiness = hasBusinessSection(company, detail, photos);
-  const hasMission = hasMissionSection(detail);
+  const hasMission = hasMissionSection(detail) || milestones.length > 0;
   const hasJobs = detail.jobs.some((c) => c.items.length > 0);
   const hasPeople = !!(flowSummary || reasonRanking || employees.current.length > 0 || employees.alumni.length > 0);
   const hasWorkstyle = workstyleBoxes(detail).length > 0;
@@ -1014,7 +1021,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
         {/* ★タブ（2026-11-26）。ヘッダーカードの下に置き、追従は今までどおり（CompanyStickyNav）。
                ⚠️ 新しいルートは作らない（同じページの中のアンカー）。中身の無いタブは出さない */}
         <DetailSectionNav aliases={NAV_ALIASES} items={[
-          ...(hasBusiness || hasMission ? [{ id: hasBusiness ? "business" : "mission", label: "概要" }] : []),
+          ...(hasBusiness || hasMission ? [{ id: hasBusiness ? "business" : hasMissionSection(detail) ? "mission" : "milestones", label: "概要" }] : []),
           /* ⚠️ タブに数字を入れない（2026-11-26） */
           ...(company.job_count > 0 && hasJobs ? [{ id: "jobs", label: "募集" }] : []),
           /* ⚠️ 在籍者が1人でもいれば出す（閲覧者ごとの可視件数はサーバーでは分からない。タブは案内なので許容する） */
@@ -1038,6 +1045,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                      ⚠️ 中身の無いセクションは出さない（タブにも出さない） */}
               <BusinessSection company={company} detail={detail} photos={photos} />
               <MissionSection detail={detail} />
+              <MilestonesSection items={milestones} />
 
               {/* 募集中のポジション */}
               <JobsSection company={company} detail={detail} />
