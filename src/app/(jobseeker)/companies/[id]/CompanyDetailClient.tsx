@@ -12,7 +12,12 @@ import {
 
 // ─── ShareButton ───────────────────────────────────────────────────────────────
 
-export function ShareButton({ companyName, companyId }: { companyName: string; companyId: string }) {
+export function ShareButton({ companyName, companyId, iconOnly = false }: {
+  companyName: string;
+  companyId: string;
+  /** ★企業ページのヘッダー（2026-11-26）。丸いアイコンだけにする（ボタンを減らすため） */
+  iconOnly?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
   const [open, setOpen] = useState(false);
   const [origin, setOrigin] = useState("https://opinio.jp");
@@ -48,7 +53,14 @@ export function ShareButton({ companyName, companyId }: { companyName: string; c
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        style={{
+        aria-label={iconOnly ? (copied ? "URLをコピーしました" : "共有") : undefined}
+        title={iconOnly ? "共有" : undefined}
+        style={iconOnly ? {
+          width: 34, height: 34, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0,
+          background: copied ? "var(--success-soft)" : "#fff",
+          color: copied ? "var(--success-ink)" : "var(--ink-soft)",
+          border: `1px solid ${copied ? "#A7F3D0" : "var(--line)"}`, cursor: "pointer",
+        } : {
           display: "inline-flex", alignItems: "center", gap: 4,
           padding: "5px 11px", borderRadius: 100, fontSize: 12, fontWeight: 600,
           background: copied ? "var(--success-soft)" : "var(--bg-tint)",
@@ -60,7 +72,7 @@ export function ShareButton({ companyName, companyId }: { companyName: string; c
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
         </svg>
-        {copied ? "コピー済み ✓" : "共有"}
+        {!iconOnly && (copied ? "コピー済み ✓" : "共有")}
       </button>
       {open && (
         <div style={{
@@ -163,7 +175,10 @@ export function CompanyStickyNav({ items }: { items: NavItem[] }) {
        OB/OG（#alumni）はタブを持たず「社員・OB/OG」タブの一部なので、そちらを点ける。
        ⚠️ これが無いと、OB/OG を見ている間は直前のタブ（現役社員より上の「働く環境」など）が
           点いたままになる。 */
-    const ALIAS: Record<string, string> = { alumni: "current-employees" };
+    const ALIAS: Record<string, string> = {
+      /* ★2026-11-26 から「働く人」タブは company-people（人の流れ・決め手・現役・OB/OG をまとめた入れ物）を指す */
+      alumni: "company-people", "current-employees": "company-people", "company-flow": "company-people", "company-reasons": "company-people",
+    };
     const ids = items.map((i) => i.id);
     // 別名は「行き先のタブがあり、自分自身はタブに無い」ものだけ見張る
     const watchIds = [...ids, ...Object.keys(ALIAS).filter((k) => ids.includes(ALIAS[k]) && !ids.includes(k))];

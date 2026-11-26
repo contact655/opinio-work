@@ -1,8 +1,9 @@
 "use client";
 
+import type React from "react";
 import Link from "next/link";
 import { DMButton } from "@/components/profile/DMButton";
-import { RELATED_ROLE_LABEL, relatedPeopleTitle, type RelatedPerson } from "@/lib/jobs/relatedPeopleTypes";
+import { RELATED_ROLE_LABEL, relatedPeopleTitle, type RelatedPerson, type RelatedRole } from "@/lib/jobs/relatedPeopleTypes";
 
 /**
  * 求人ページのサイドバー「この募集に関わる人」の見た目（2026-11-26）。データは受け取るだけ（見本 /dev/preview/job-related-people）。
@@ -28,13 +29,28 @@ function Avatar({ url, name }: { url: string | null; name: string }) {
   );
 }
 
-export function JobRelatedPeopleCard({ people, preview, titleTag = "h2" }: { people: RelatedPerson[]; preview: boolean; titleTag?: "h2" | "h3" }) {
+export function JobRelatedPeopleCard({ people, preview, titleTag = "h2", title: titleOverride, roleLabels, renderAction, footer, state = "job-related-people" }: {
+  people: RelatedPerson[];
+  preview: boolean;
+  titleTag?: "h2" | "h3";
+  /* ★ここから下は企業ページの「話せる人」（2026-11-26）が使う。求人ページは渡さない（今までどおり） */
+  /** 見出し。渡すと役割を必ず出す */
+  title?: string;
+  /** 役割の呼び方を差し替える（企業ページでは manager を「採用中のマネージャー」） */
+  roleLabels?: Partial<Record<RelatedRole, string>>;
+  /** 各人の下のボタン。渡すとメッセージのボタンの代わりに出す */
+  renderAction?: (p: RelatedPerson) => React.ReactNode;
+  /** カードの一番下 */
+  footer?: React.ReactNode;
+  state?: string;
+}) {
   if (people.length === 0) return null;
-  const title = relatedPeopleTitle(people);
-  const onlyRecruiters = title === "採用担当";
+  const title = titleOverride ?? relatedPeopleTitle(people);
+  const onlyRecruiters = !titleOverride && title === "採用担当";
+  const label = (r: RelatedRole) => roleLabels?.[r] ?? RELATED_ROLE_LABEL[r];
   const Title = titleTag;
   return (
-    <div className="jd-card jd-side-card" data-state="job-related-people">
+    <div className="jd-card jd-side-card" data-state={state}>
       <Title style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{title}</Title>
       <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
         {people.map((p, i) => {
@@ -45,7 +61,7 @@ export function JobRelatedPeopleCard({ people, preview, titleTag = "h2" }: { peo
               <span style={{ minWidth: 0 }}>
                 {!onlyRecruiters && (
                   <span data-state="related-role" style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "var(--ink-mute)", lineHeight: 1.5 }}>
-                    {p.roles.map((r) => RELATED_ROLE_LABEL[r]).join("／")}
+                    {p.roles.map(label).join("／")}
                   </span>
                 )}
                 <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: "var(--ink)", overflowWrap: "anywhere" }}>{p.name}</span>
@@ -58,18 +74,19 @@ export function JobRelatedPeopleCard({ people, preview, titleTag = "h2" }: { peo
               {linkToProfile
                 ? <Link href={`/u/${p.userId}`} style={{ textDecoration: "none", color: "inherit" }}>{body}</Link>
                 : body}
-              {p.canMessage && !preview && (
+              {renderAction ? renderAction(p) : p.canMessage && !preview && (
                 <DMButton targetUserId={p.userId} targetName={p.name} variant="card" label="メッセージを送る" />
               )}
             </li>
           );
         })}
       </ul>
-      {people.some((p) => p.roles.includes("manager")) && (
+      {!renderAction && people.some((p) => p.roles.includes("manager")) && (
         <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
           配属先マネージャーとのメッセージは2人だけのもので、会社には共有されません。
         </p>
       )}
+      {footer}
     </div>
   );
 }

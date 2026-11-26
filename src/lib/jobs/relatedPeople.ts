@@ -1,7 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCompanyRecruiters, getRoleTree } from "@/lib/supabase/queries";
-import { getPublicJobManagers } from "@/lib/nextManager/server";
+import { getPublicCompanyManagers, getPublicJobManagers } from "@/lib/nextManager/server";
 import { expandWithAncestors } from "@/lib/roles/jobRoles";
 import { isRegisteredUser } from "@/lib/users/registered";
 import type { RelatedPerson, RelatedRole } from "@/lib/jobs/relatedPeopleTypes";
@@ -41,21 +41,10 @@ export async function loadJobRelatedPeople(job: Job, viewer: { loggedIn: boolean
   const companyIsTest = co?.is_test === true;
 
   /* 採用担当・マネージャーの公開範囲（getCompanyRecruiters / getPublicJobManagers は visibility を返さないので引く） */
-  const staffIds = Array.from(new Set([...recruiters.map((r) => r.user_id), ...managers.map((m) => m.userId)]));
-  const userInfo = new Map<string, { auth_id: string | null; visibility: string | null; is_system: boolean | null; headline: string | null }>();
-  if (staffIds.length > 0) {
-    const { data, error } = await db.from("ow_users").select("id, auth_id, visibility, is_system, headline").in("id", staffIds);
-    if (error) { console.error("[relatedPeople] staff users:", error.message); return []; }
-    for (const u of data ?? []) {
-      userInfo.set(u.id as string, {
-        auth_id: (u.auth_id as string | null) ?? null, visibility: (u.visibility as string | null) ?? null,
-        is_system: (u.is_system as boolean | null) ?? null, headline: (u.headline as string | null) ?? null,
-      });
-    }
-  }
+  const userInfo = await loadStaffInfo(db, [...recruiters.map((r) => r.user_id), ...managers.map((m) => m.userId)]);
+  if (!userInfo) return [];
   const visible = (visibility: string | null, authId: string | null, isSystem: boolean | null) =>
-    isRegisteredUser({ auth_id: authId }) && isSystem !== true && visibility !== "private"
-    && (viewer.loggedIn || visibility === "public");
+    isVisibleTo(viewer, visibility, authId, isSystem);
 
   const out: RelatedPerson[] = [];
   const byId = new Map<string, RelatedPerson>();
@@ -144,6 +133,72 @@ async function loadMembers(db: ReturnType<typeof createAdminClient>, job: Job, c
     if (!name) continue;
     seen.add(u.id);
     out.push({ userId: u.id, name, avatarUrl: u.avatar_url, roleTitle: r.role_title, authId: u.auth_id, visibility: u.visibility, isSystem: u.is_system });
+  }
+  return out;
+}
+
+type StaffInfo = { auth_id: string | null; visibility: string | null; is_system: boolean | null };
+
+/** 担当者・マネージャーの公開範囲を引く。⚠️ 取れなければ null（呼び出し側は誰も出さない向きに倒す） */
+async function loadStaffInfo(db: ReturnType<typeof createAdminClient>, ids: string[]): Promise<Map<string, StaffInfo> | null> {
+  const out = new Map<string, StaffInfo>();
+  const uniq = Array.from(new Set(ids));
+  if (uniq.length === 0) return out;
+  const { data, error } = await db.from("ow_users").select("id, auth_id, visibility, is_system").in("id", uniq);
+  if (error) { console.error("[relatedPeople] staff users:", error.message); return null; }
+  for (const u of data ?? []) {
+    out.set(u.id as string, {
+      auth_id: (u.auth_id as string | null) ?? null, visibility: (u.visibility as string | null) ?? null,
+      is_system: (u.is_system as boolean | null) ?? null,
+    });
+  }
+  return out;
+}
+
+/** ★見せてよいか。本人が登録済み・システムでない・非公開でない。未ログインには「公開」の人だけ */
+function isVisibleTo(viewer: { loggedIn: boolean }, visibility: string | null, authId: string | null, isSystem: boolean | null): boolean {
+  return isRegisteredUser({ auth_id: authId }) && isSystem !== true && visibility !== "private"
+    && (viewer.loggedIn || visibility === "public");
+}
+
+/**
+ * ★企業ページの「話せる人」（2026-11-26 / 柴さんの指示）。並び: Hiring Manager → 採用担当。
+ *   Hiring Manager … getPublicCompanyManagers（担当者で採用中の人＋申告の採用中）
+ *   採用担当       … getCompanyRecruiters（求人ページと同じ）
+ *   ⚠️ 見せてよいかの判定は求人ページと同じ（isVisibleTo）。ゆるめない。
+ *   ⚠️★それまで企業ページは採用担当をサーバーで描いており、「ログインユーザーのみ」の人の名前が未ログインの HTML に入っていた。
+ */
+export async function loadCompanyContactPeople(companyId: string, viewer: { loggedIn: boolean }): Promise<RelatedPerson[]> {
+  const db = createAdminClient();
+  const [managers, recruiters] = await Promise.all([
+    getPublicCompanyManagers(companyId, db),
+    getCompanyRecruiters(companyId),
+  ]);
+  const info = await loadStaffInfo(db, [...managers.map((m) => m.userId), ...recruiters.map((r) => r.user_id)]);
+  if (!info) return [];
+  const out: RelatedPerson[] = [];
+  const byId = new Map<string, RelatedPerson>();
+  const add = (p: Omit<RelatedPerson, "roles"> & { role: RelatedRole }) => {
+    const u = info.get(p.userId);
+    if (!u || !isVisibleTo(viewer, u.visibility, u.auth_id, u.is_system)) return;
+    const prev = byId.get(p.userId);
+    if (prev) {
+      if (!prev.roles.includes(p.role)) prev.roles.push(p.role);
+      prev.title = prev.title ?? p.title;
+      return;
+    }
+    const { role, ...rest } = p;
+    const row: RelatedPerson = { ...rest, roles: [role] };
+    byId.set(p.userId, row);
+    out.push(row);
+  };
+  for (const m of managers) add({ userId: m.userId, name: m.name, avatarUrl: m.avatarUrl, title: m.headline, role: "manager", canMessage: true });
+  for (const r of recruiters) {
+    add({
+      userId: r.user_id, name: r.name, avatarUrl: r.avatar_url,
+      title: [r.department, r.role_title].filter(Boolean).join(" ・ ") || null,
+      role: "recruiter", canMessage: true,
+    });
   }
   return out;
 }

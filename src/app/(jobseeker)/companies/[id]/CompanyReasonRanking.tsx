@@ -12,11 +12,7 @@ import { JOIN_DECISION_RANKING_NOTE } from "@/lib/joinDecision/constants";
 export function CompanyReasonRanking({ labels }: { labels: string[] }) {
   return (
     <section id="company-reasons" data-state="company-reasons" style={{ marginBottom: "var(--space-8)", scrollMarginTop: 120 }}>
-      <SecTitle iconColor="default" icon={
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-        </svg>
-      }>
+      <SecTitle>
         この会社に決めた理由
       </SecTitle>
       <ol style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 8 }}>

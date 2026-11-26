@@ -252,13 +252,6 @@ export function CurrentEmployeesSection({
   const orderedEmployees = groups.flatMap((g) => [...g.direct, ...g.children.flatMap((c) => c.emps)])
     .filter((e) => !roleSel || roleLabelOf(e) === roleSel);
 
-  const SECTION_ICON = (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
 
   return (
     <>
@@ -266,21 +259,13 @@ export function CurrentEmployeesSection({
     <style>{JOB_PEOPLE_CSS}</style>
     <section
       id="current-employees"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
+      className="cd-sec"
     >
       {/* Section header */}
       <div style={{
         padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
-        borderBottom: "1px solid var(--line-soft)",
       }}>
-        <SecTitle icon={SECTION_ICON}>
+        <SecTitle>
           現役社員
           <span
             style={{
@@ -537,28 +522,13 @@ export function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni:
   return (
     <section
       id="alumni"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
+      className="cd-sec"
     >
       {/* Section header */}
       <div style={{
         padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
-        borderBottom: "1px solid var(--line-soft)",
       }}>
-        <SecTitle
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          }
-        >
+        <SecTitle>
           OB・OG社員
           <span
             style={{
@@ -681,11 +651,14 @@ export function CompanyEmployeeSections({
       {/* ⚠️★掲載設定パネル（`ListingStatusPanel`）は 2026-09-12 に企業詳細から外した（柴さんの指示）。
              **部品と型は消していない** ——`/dev/preview/listing-status` が3状態を描くのに使う。
              戻すときはここに1行足すだけでよい。 */}
-      <CurrentEmployeesSection
-        employees={data.current}
-        hiddenCount={data.hiddenCurrentCount}
-        totalCount={data.totalCurrentCount}
-      />
+      {/* ★現役が0人（伏せている人もいない）ときは見出しごと出さない（2026-11-26。「現役社員 (0名)」を出さない） */}
+      {(data.current.length > 0 || data.hiddenCurrentCount > 0) && (
+        <CurrentEmployeesSection
+          employees={data.current}
+          hiddenCount={data.hiddenCurrentCount}
+          totalCount={data.totalCurrentCount}
+        />
+      )}
       {showAlumni && (
         <AlumniSection
           alumni={data.alumni}

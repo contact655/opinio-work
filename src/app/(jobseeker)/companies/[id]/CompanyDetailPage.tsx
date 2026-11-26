@@ -10,7 +10,7 @@ import { respondingCompanyIds } from "@/lib/jobs/respondingJobs";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cache } from "react";
+import { cache, Fragment } from "react";
 import type React from "react";
 import { permanentRedirect } from "next/navigation";
 import {
@@ -18,7 +18,6 @@ import {
   getTestCompanyBySlugOrId, getCompanyForPreview,
   getListedCompanyParams,
   getCompanyPhotosCached,
-  getCompanyRecruitersCached,
   getArticlesByCompanyCached,
   getCompanyEmployeesCached,
   getCompanyToolsCached,
@@ -32,15 +31,14 @@ import { CompanyEmployeeSections } from "./CompanyEmployeeSections";
 import { CompanyConnections } from "@/components/companies/CompanyConnections";
 import ToolsSectionClient from "./ToolsSectionClient";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getStageCfg } from "@/lib/utils/stageCfg";
-import { companyStageLabel } from "@/lib/companies/classification";
-import { LocationsCapitalSection } from "@/components/companies/LocationsCapitalSection";
-import { CompanyInfoBox } from "@/components/companies/CompanyInfoBox";
-import { RecruitersSection } from "@/components/companies/RecruitersSection";
+import { CompanyInfoTable } from "@/components/companies/CompanyInfoBox";
+import { CompanyContactsCard } from "@/components/companies/CompanyContactsCard";
+import { CompanyUpdatesList, type CompanyUpdateItem } from "@/components/companies/CompanyUpdatesList";
+import { getSimilarCompanies } from "@/lib/companies/similar";
+import { storyCategoryLabel } from "@/lib/companyStories/shared";
+import { shortAddress } from "@/lib/jobs/heroFacts";
 import { CompanyStoriesStaffCta } from "@/components/companies/CompanyStoriesStaffCta";
 import type { CompanyPhoto } from "@/lib/supabase/queries";
-import type { Article } from "@/app/articles/mockArticleData";
-import { TYPE_BADGE, TYPE_EYECATCH_ICON } from "@/app/articles/mockArticleData";
 import type { Company } from "@/app/companies/mockCompanies";
 import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
@@ -51,7 +49,6 @@ import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import { BenefitsList } from "@/components/companies/BenefitsList";
 /* ⚠️ 2026-08-31 にページから切り出した。`/dev/preview/products` から見るため */
 import { ProductsClientsSection } from "@/components/companies/ProductsClientsSection";
-import { ShowMoreButton } from "./ShowMoreButton";
 
 /*
   各セクションの**初期表示の上限**（2026-08-13）。
@@ -77,8 +74,6 @@ import { cleanEnName } from "@/lib/companies/displayName";
       `orderedBusinessDomains` を持つ。混同しないこと。 */
 import { primaryBusinessDomain } from "@/types/genre";
 import { Markdown } from "@/components/common/Markdown";
-import { CompanyStoryCard } from "@/components/companies/CompanyStoryCard";
-import { StoryViewObserver } from "@/components/views/StoryViewObserver";
 import { MEETING_CTA_BG, MEETING_CTA_FG, MEETING_CTA_SHADOW_RGB } from "@/lib/constants/meetingCta";
 import { getPublicMaterialItemsCached, type PublicMaterialItem } from "@/lib/companyMaterials/server";
 import { MATERIAL_CATEGORIES, MATERIAL_CATEGORY_LABELS } from "@/lib/constants/companyMaterials";
@@ -322,312 +317,178 @@ export async function generateMetadata({
       各ボタンが useCompanyViewerState で自分で取る。
       ここに閲覧者依存の props を足すと、それを作るためにサーバーで
       認証を読むことになり、ページの ISR が壊れる。 */
-function Hero({
+/**
+ * ★ヘッダーカード（2026-11-26 / 柴さんの指示。求人ページのヘッダーカードと同じ見た目）。
+ *   カバー（あるときだけ）→ ロゴ（88px）と右のボタン → 社名・英語名 → キャッチコピー → メタ情報2行。
+ *
+ * ⚠️ カバーが無い会社では帯を描かずロゴから始める（2026-11-26 時点で掲載中の全社がカバー無し）。
+ * ⚠️ メタ情報は値があるものだけを「・」でつなぐ。フォロワー数は1人以上のときだけ。
+ * ⚠️ 事業領域・ジャンル・事業ステージのチップはここから外した（同じものが右の「会社概要」の表にある）。
+ * ⚠️ `data-cd-hero` は下の固定バー（CtaReveal）が見ている。外さないこと。
+ * ⚠️ ボタンの並び（デスクトップ右／767px 以下は本文の下で折り返す）は下の style タグ。インラインに戻さないこと。
+ */
+function CompanyHeader({
   company,
   detail,
   coverPhotoUrl,
+  followerCount,
   isOwnCompany = false,
 }: {
   company: Company;
   detail: CompanyDetail;
   coverPhotoUrl?: string | null;
+  followerCount: number;
   /** ★運営会社か（2026-10-10）。判定は `getOwnCompanyId()` */
   isOwnCompany?: boolean;
 }) {
-  const displayBrand = (company.brand_name ?? company.name_en ?? company.name)
-    .replace(/^(株式会社|有限会社|合同会社|一般社団法人|一般財団法人)\s*/, "").trim();
-  const initial = displayBrand.charAt(0).toUpperCase() || company.name.charAt(0).toUpperCase();
-  const freshLabel = formatUpdated(company.updated_days_ago);
+  const cover = coverPhotoUrl && /^https:\/\/[a-z]+\.supabase\.co\//.test(coverPhotoUrl) ? coverPhotoUrl : null;
+  /* ⚠️ 表示名は `@/lib/companies/displayName` に集約した（2026-08-13）。正規表現をここに書き戻さないこと。 */
+  const enName = cleanEnName(company.name_en);
+  const industryLeaf = detail.industryPath ? detail.industryPath.split(/\s*[›>＞]\s*/).pop() ?? null : null;
+  const meta1 = [
+    industryLeaf,
+    detail.hq || null,
+    formatEmployeeSize(company.employee_count_band, null, { compact: true }),
+    followerCount > 0 ? `フォロワー ${followerCount}人` : null,
+  ].filter((v): v is string => !!v);
   const isFresh = company.updated_days_ago <= 30;
+  const meta2 = [
+    company.job_count > 0 ? `採用中 ${company.job_count}件` : null,
+    isFresh ? formatUpdated(company.updated_days_ago) : null,
+  ].filter((v): v is string => !!v);
+  const siteHref = detail.url ? (detail.url.startsWith("http") ? detail.url : `https://${detail.url}`) : null;
+  const ghost: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", gap: 5, minHeight: 34,
+    padding: "6px 14px", borderRadius: 100, fontSize: 12.5, fontWeight: 700,
+    border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", textDecoration: "none", whiteSpace: "nowrap",
+  };
+  const iconLink: React.CSSProperties = {
+    width: 34, height: 34, borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center",
+    border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", textDecoration: "none", flexShrink: 0,
+  };
 
   return (
-    <section data-cd-hero style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
-      {/* Gradient cover band
-          ⚠️ 高さは CSS（.cd-cover。下の style）。スマホは 120px（2026-10-17）。インラインに戻さないこと */}
-      <div className="cd-cover" style={{
-        background: (coverPhotoUrl && /^https:\/\/[a-z]+\.supabase\.co\//.test(coverPhotoUrl)) ? `url(${coverPhotoUrl}) center/cover no-repeat` : company.gradient,
-        position: "relative", overflow: "hidden",
-      }}>
-        <div style={{ position: "absolute", inset: 0, background: (coverPhotoUrl && /^https:\/\/[a-z]+\.supabase\.co\//.test(coverPhotoUrl)) ? "linear-gradient(160deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.5) 100%)" : "linear-gradient(160deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.32) 100%)" }} />
-        {/* Decorative circles + large initial watermark (gradient only) */}
-        {!(coverPhotoUrl && /^https:\/\/[a-z]+\.supabase\.co\//.test(coverPhotoUrl)) && <>
-          <div style={{ position: "absolute", right: -60, top: -60, width: 280, height: 280, borderRadius: "50%", background: "rgba(255,255,255,0.06)", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", left: -30, bottom: -80, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
-          {/* ⑩ Large initial watermark */}
-          <div style={{
-            position: "absolute", right: 24, top: "50%", transform: "translateY(-50%)",
-            fontSize: 120, fontWeight: 900, color: "rgba(255,255,255,0.10)",
-            fontFamily: "var(--font-inter), var(--font-noto)", lineHeight: 1, userSelect: "none", pointerEvents: "none",
-            letterSpacing: "-0.05em",
-          }}>
-            {initial}
-          </div>
-        </>}
-      </div>
-      <div
-        style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
-        className="px-5 pb-7 md:px-12"
-      >
-        <div
-          style={{
-            display: "flex",
-            gap: "var(--space-8)",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-          }}
-        >
-          {/* Left: logo + info
-              ⚠️ 並べ方（横並び／縦積み）は下の <style> の .cd-hero-main で決める。
-                 インラインに display / flexDirection を書き戻さないこと（767px 以下で縦に積めなくなる）。 */}
-          <div className="cd-hero-main">
-            {/* Logo — overlaps cover band */}
-            <CompanyLogo
-              name={company.name}
-              logoUrl={company.logo_url}
-              logoLetter={company.logo_letter}
-              logoGradient={company.gradient}
-              companyUrl={company.url}
-              size={96}
-              borderRadius={18}
-              style={{
-                marginTop: -56,
-                position: "relative",
-                zIndex: 1,
-                border: "4px solid #fff",
-                boxShadow: "0 8px 28px rgba(0,0,0,0.18)",
-              }}
-            />
-            <div className="cd-hero-info">
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--ink-mute)",
-                  marginBottom: "var(--space-2)",
-                  fontWeight: 700,
-                  letterSpacing: "0.13em",
-                  textTransform: "uppercase" as const,
-                  fontFamily: "var(--font-inter), var(--font-noto)",
-                }}
-              >
-                {/* ⚠️ 値が無いときは**要素ごと出さない。** 2026-08-25 まで無条件に
-                       描いており、空の div の marginBottom だけが残っていた。 */}
-                {primaryBusinessDomain(company.business_domains)?.name}
-              </div>
-              {(() => {
-                /* ⚠️ 表示名は `@/lib/companies/displayName` に集約した（2026-08-13）。
-                      ここには末尾 " Japan" の除去が無く、一覧カードでは「HPE」なのに
-                      詳細ページでは「HPE Japan」と出ていた。
-                      正規表現をここに書き戻さないこと。 */
-                const enName = cleanEnName(company.name_en);
-                return (
-                  <>
-                    <h1
-                      style={{
-                        fontFamily: enName ? "var(--font-inter), var(--font-noto)" : 'var(--font-noto-serif)',
-                        fontWeight: 800,
-                        fontSize: "clamp(26px, 3vw, 40px)",
-                        color: "var(--ink)",
-                        marginBottom: enName ? "var(--space-1)" : "var(--space-2)",
-                        letterSpacing: "-0.02em",
-                        lineHeight: 1.18,
-                      }}
-                    >
-                      {enName ?? company.name}
-                    </h1>
-                    {enName && (
-                      <div style={{ fontSize: "var(--text-sm)", color: "var(--ink-mute)", marginBottom: "var(--space-2)", fontWeight: 400 }}>
-                        {company.name}
-                      </div>
-                    )}
-                    {/* ★運営会社の開示（2026-10-10）。社名のすぐ下に1行 */}
-                    {isOwnCompany && <OwnCompanyNote style={{ marginBottom: "var(--space-2)" }} />}
-                  </>
-                );
-              })()}
-              <p
-                style={{
-                  fontSize: "var(--text-md)",
-                  color: "#1e293b",
-                  lineHeight: 1.75,
-                  letterSpacing: "0.01em",
-                  marginBottom: "var(--space-4)",
-                  maxWidth: 560,
-                  fontWeight: 500,
-                }}
-              >
-                {company.tagline}
-              </p>
-              {/* Row 1: ジャンルチップ + フェーズバッジ + 採用中 + 更新日 */}
-              {(company.genres.length > 0 || company.phase || company.job_count > 0 || isFresh) && (
-                <div style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap", alignItems: "center", marginBottom: "var(--space-2)" }}>
-                  {company.genres.map((g) => (
-                    <span
-                      key={g.id}
-                      style={{
-                        display: "inline-flex", alignItems: "center",
-                        padding: "var(--space-1) var(--space-2)", borderRadius: 999,
-                        fontSize: "var(--text-xs)", fontWeight: 700,
-                        background: "var(--royal-50)",
-                        color: "var(--royal)",
-                        border: "1px solid var(--royal-100)",
-                        letterSpacing: "0.02em",
-                      }}
-                    >
-                      {g.name}
-                    </span>
-                  ))}
-                  {(() => {
-                    /* ★事業ステージ（新7段。2026-10-12）があればそれをグレーの文字で出す（バッジにしない）。
-                          空の会社だけ旧 phase のバッジに落とす（2つの語彙を同時に出さない） */
-                    const stage = companyStageLabel(detail.companyStage);
-                    if (stage) return <span data-state="hero-stage" style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontWeight: 600 }}>{stage}</span>;
-                    const sc = getStageCfg(company.phase);
-                    if (!sc) return null;
-                    return (
-                      <span style={{
-                        display: "inline-flex", alignItems: "center",
-                        padding: "var(--space-1) var(--space-2)", borderRadius: 999,
-                        fontSize: "var(--text-xs)", fontWeight: sc.fontWeight ?? 700,
-                        background: sc.bg, color: sc.color,
-                        border: `1px solid ${sc.border}`,
-                        letterSpacing: "0.02em",
-                      }}>
-                        {sc.label}
-                      </span>
-                    );
-                  })()}
-                  {company.job_count > 0 && (
-                    <span style={{
-                      display: "inline-flex", alignItems: "center", gap: "var(--space-1)",
-                      padding: "var(--space-1) var(--space-2)", borderRadius: 999,
-                      fontSize: "var(--text-xs)", fontWeight: 600,
-                      /* ⚠️ 緑にしない（2026-08-23）。緑は金銭的にプラスの条件だけ。 */
-                      background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)",
-                    }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--royal)", flexShrink: 0 }} />
-                      採用中 {company.job_count}件
-                    </span>
-                  )}
-                  {isFresh && (
-                    <span style={{
-                      display: "inline-flex", alignItems: "center", gap: "var(--space-1)",
-                      padding: "var(--space-1) var(--space-2)", borderRadius: 999,
-                      fontSize: "var(--text-xs)", fontWeight: 500,
-                      background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)",
-                    }}>
-                      {freshLabel}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Row 2: アクションボタン（話を聞く dominant + 気になる + フォロー ghost） */}
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                {company.accepting_casual_meetings && (
-                  <Link href={`/companies/${company.id}/casual-meeting`}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 7,
-                      padding: "10px 22px", borderRadius: 100, fontSize: 14, fontWeight: 800,
-                      background: MEETING_CTA_BG, color: MEETING_CTA_FG,
-                      textDecoration: "none",
-                      boxShadow: `0 3px 10px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
-                    }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: MEETING_CTA_FG, animation: "cta-pulse 1.8s ease-in-out infinite", display: "inline-block", flexShrink: 0 }} />
-                    <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
-                  </Link>
-                )}
-                {/* ★「話を聞いてみたい」（2026-10-27）。押せない会社・未ログインでは何も描かない（CompanyInterestButton の中で判定） */}
-                <CompanyInterestButton companyId={company.id} />
-                <BookmarkButton
-                  companyName={company.name}
-                  companyId={company.id}
-                  variant="pill"
-                />
-                <FollowButton companyId={company.id} />
-                {/* ★スマホだけの「…」（2026-10-17）。下の行（公式サイト・採用情報・SNS・共有）をここにまとめる */}
-                <CompanyMoreMenu
-                  companyName={company.name}
-                  companyId={company.id}
-                  links={[
-                    ...(detail.url ? [{ label: "公式サイト", href: detail.url }] : []),
-                    ...(company.careers_url ? [{ label: "採用情報", href: company.careers_url }] : []),
-                    ...(company.x_url ? [{ label: "X (Twitter)", href: company.x_url }] : []),
-                    ...(company.linkedin_url ? [{ label: "LinkedIn", href: company.linkedin_url }] : []),
-                  ]}
-                />
-              </div>
-
-              {/* ⑨ Perk chips removed — work style info is shown in stats strip below */}
-
-              {/* ③ SNS リンク + 共有ボタン（1行に統合） */}
-              {(company.x_url || company.linkedin_url || detail.url || company.careers_url) && (
-                /* ⚠️ スマホ（767px 以下）では出さない（.cd-links-row）。「…」の中に同じものがある */
-                <div className="cd-links-row" style={{ gap: 6, marginTop: "var(--space-3)", flexWrap: "wrap", alignItems: "center" }}>
-                  {/* X: icon-only circle */}
-                  {company.x_url && (
-                    <a href={company.x_url} target="_blank" rel="noopener noreferrer" title="X (Twitter)"
-                      style={{ width: 30, height: 30, borderRadius: "50%", background: "#000", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none", flexShrink: 0 }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.263 5.632 5.9-5.632zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                    </a>
-                  )}
-                  {/* LinkedIn: icon-only circle */}
-                  {company.linkedin_url && (
-                    <a href={company.linkedin_url} target="_blank" rel="noopener noreferrer" title="LinkedIn"
-                      style={{ width: 30, height: 30, borderRadius: "50%", background: "#0A66C2", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none", flexShrink: 0 }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
-                    </a>
-                  )}
-                  {detail.url && (
-                    <a href={detail.url} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 8, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)", textDecoration: "none", fontSize: 12, fontWeight: 600 }}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                      公式サイト
-                    </a>
-                  )}
-                  {company.careers_url && (
-                    <a href={company.careers_url} target="_blank" rel="noopener noreferrer"
-                      /* ⚠️ 黄色は使わない（2026-08-23）。隣の「公式サイト」ピルと同じニュートラルに揃える。 */
-                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 8, background: "var(--bg-tint)", color: "var(--ink-soft)", border: "1px solid var(--line)", textDecoration: "none", fontSize: 12, fontWeight: 700 }}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
-                      採用情報
-                    </a>
-                  )}
-                  {/* 共有: ShareButtonをここに統合 */}
-                  <div style={{ width: 1, height: 20, background: "var(--line)", flexShrink: 0, marginLeft: 4 }} />
-                  <ShareButton companyName={company.name} companyId={company.id} />
-                </div>
-              )}
-            </div>
-          </div>
-
+    <header className="jd-card cd-head" data-cd-hero data-state="company-header">
+      {cover && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={cover} alt="" className="cd-cover-img" />
+      )}
+      <div className="cd-head-body">
+        <div className={cover ? "cd-head-logo cd-head-logo--over" : "cd-head-logo"}>
+          <CompanyLogo
+            name={company.name}
+            logoUrl={company.logo_url}
+            logoLetter={company.logo_letter}
+            logoGradient={company.gradient}
+            companyUrl={company.url}
+            size={88}
+            borderRadius={16}
+            style={{ border: "3px solid #fff", boxShadow: "0 1px 4px rgba(15,23,42,0.12)" }}
+          />
         </div>
 
+        <div className="cd-head-actions" data-state="company-header-actions">
+          {company.accepting_casual_meetings && (
+            <Link href={`/companies/${company.id}/casual-meeting`} data-state="cta-meeting"
+              style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: 40,
+                padding: "8px 20px", borderRadius: 10, fontSize: 14, fontWeight: 700,
+                background: MEETING_CTA_BG, color: MEETING_CTA_FG, textDecoration: "none", whiteSpace: "nowrap",
+                boxShadow: `0 3px 10px rgba(${MEETING_CTA_SHADOW_RGB},0.3)`,
+              }}>
+              話を聞く
+            </Link>
+          )}
+          {/* ★「話を聞いてみたい」（2026-10-27）。押せない会社・未ログインでは何も描かない（CompanyInterestButton の中で判定） */}
+          <CompanyInterestButton companyId={company.id} />
+          <FollowButton companyId={company.id} tone="primary" />
+          <BookmarkButton companyName={company.name} companyId={company.id} variant="pill" />
+          {/* 共有は小さいアイコン（767px 以上）。767px 以下は「…」の中にある */}
+          <span className="cd-links-row"><ShareButton companyName={company.name} companyId={company.id} iconOnly /></span>
+          {siteHref && (
+            <a href={siteHref} target="_blank" rel="noopener noreferrer" style={ghost} data-state="company-site">
+              公式サイト <span aria-hidden>↗</span>
+            </a>
+          )}
+          {(company.x_url || company.linkedin_url || company.careers_url) && (
+            /* ⚠️ 767px 以下は出さない（.cd-links-row）。「…」の中に同じものがある */
+            <span className="cd-links-row" style={{ gap: 6, alignItems: "center" }}>
+              {company.careers_url && (
+                <a href={company.careers_url} target="_blank" rel="noopener noreferrer" style={ghost}>採用情報 <span aria-hidden>↗</span></a>
+              )}
+              {company.x_url && (
+                <a href={company.x_url} target="_blank" rel="noopener noreferrer" title="X (Twitter)" aria-label="X (Twitter)" style={iconLink}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.263 5.632 5.9-5.632zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+              )}
+              {company.linkedin_url && (
+                <a href={company.linkedin_url} target="_blank" rel="noopener noreferrer" title="LinkedIn" aria-label="LinkedIn" style={iconLink}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+                </a>
+              )}
+            </span>
+          )}
+          {/* ★スマホだけの「…」（2026-10-17）。公式サイト以外のリンクと共有をここにまとめる */}
+          <CompanyMoreMenu
+            companyName={company.name}
+            companyId={company.id}
+            links={[
+              ...(company.careers_url ? [{ label: "採用情報", href: company.careers_url }] : []),
+              ...(company.x_url ? [{ label: "X (Twitter)", href: company.x_url }] : []),
+              ...(company.linkedin_url ? [{ label: "LinkedIn", href: company.linkedin_url }] : []),
+            ]}
+          />
+        </div>
 
+        <div className="cd-head-info">
+          <h1 className="cd-title">{enName ?? company.name}</h1>
+          {enName && <p style={{ margin: "2px 0 0", fontSize: 14, color: "var(--ink-mute)", overflowWrap: "anywhere" }}>{company.name}</p>}
+          {/* ★運営会社の開示（2026-10-10）。社名のすぐ下に1行 */}
+          {isOwnCompany && <OwnCompanyNote style={{ marginTop: 4 }} />}
+          {company.tagline && (
+            <p style={{ margin: "10px 0 0", fontSize: 15, color: "var(--ink)", lineHeight: 1.75, maxWidth: 640 }}>{company.tagline}</p>
+          )}
+          {meta1.length > 0 && <MetaLine items={meta1} state="company-meta" />}
+          {meta2.length > 0 && <MetaLine items={meta2} state="company-meta2" />}
+        </div>
       </div>
-      {/* ⚠️ 767px 以下はロゴを上、社名以下を全幅で下に積む（2026-10-03）。
-             横並びのままだと、ロゴ 96px＋余白のぶん左が空き、本文が右側の狭い列
-             （390px 幅で約250px）に押し込まれていた。 */}
+      {/* ⚠️ style タグの中に不等号・バッククォート・引用符を書かない（サーバーだけが実体参照に変えてハイドレーションが壊れる） */}
       <style>{`
-        .cd-hero-main { display: flex; gap: var(--space-4); align-items: flex-start; }
-        .cd-hero-info { padding-top: var(--space-3); min-width: 0; }
-        .cd-cover { height: 200px; }
-        .cd-links-row { display: flex; }
+        .cd-head { overflow: hidden; }
+        .cd-cover-img { display: block; width: 100%; height: 200px; object-fit: cover; }
+        .cd-head-body { padding: 24px 32px 24px; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 16px; align-items: end; }
+        .cd-head-logo { grid-column: 1; grid-row: 1; }
+        .cd-head-logo--over { margin-top: -68px; }
+        .cd-head-actions { grid-column: 2; grid-row: 1; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }
+        .cd-head-info { grid-column: 1 / -1; grid-row: 2; margin-top: 14px; min-width: 0; }
+        .cd-title { margin: 0; font-size: 28px; font-weight: 700; color: var(--ink); line-height: 1.4; overflow-wrap: anywhere; }
+        .cd-links-row { display: inline-flex; }
         .cd-more { display: none; }
         @media (max-width: 767px) {
-          .cd-hero-main { flex-direction: column; gap: var(--space-3); }
-          .cd-hero-info { padding-top: 0; width: 100%; }
-          /* 2026-10-17: スマホはカバーを低くし、リンク類は「…」へまとめる（LinkedIn型） */
-          .cd-cover { height: 120px; }
+          .cd-head-body { padding: 18px 18px 20px; grid-template-columns: minmax(0, 1fr); }
+          .cd-cover-img { height: 120px; }
+          .cd-head-logo--over { margin-top: -56px; }
+          .cd-head-actions { grid-column: 1; grid-row: 3; justify-content: flex-start; margin-top: 16px; }
+          .cd-title { font-size: 22px; }
           .cd-links-row { display: none; }
           .cd-more { display: block; }
         }
       `}</style>
-    </section>
+    </header>
   );
 }
 
-// TabsBar removed — replaced by CompanyStickyNav (scroll-spy version)
+/** メタ情報の1行。項目の中では折り返さない（「51〜200名」などが途中で切れないように）。
+ *  ⚠️ 区切りの「・」は折り返せる側に置く（項目ごと nowrap に入れると、行が折り返せず 375px ではみ出した。2026-11-26） */
+function MetaLine({ items, state }: { items: string[]; state: string }) {
+  return (
+    <p data-state={state} style={{ margin: "8px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7 }}>
+      {items.map((m, i) => (
+        <Fragment key={m}>{i > 0 && <span aria-hidden style={{ margin: "0 8px" }}>・</span>}<span style={{ whiteSpace: "nowrap" }}>{m}</span></Fragment>
+      ))}
+    </p>
+  );
+}
 
 function AboutSection({
   detail,
@@ -636,58 +497,27 @@ function AboutSection({
   detail: CompanyDetail;
   photos: CompanyPhoto[];
 }) {
+  /* ⚠️ 中身が1つも無ければ見出しごと出さない */
+  if (!detail.about && !detail.culture_description && photos.length === 0) return null;
   return (
-    <section
-      id="about"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
-    >
-      {/* Section header with subtle gradient */}
-      <div style={{
-        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
-        borderBottom: "1px solid var(--line-soft)",
-      }}>
-        <SecTitle
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-          }
-        >
-          企業について
-        </SecTitle>
-      </div>
-      <div style={{ padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-6)" }}>
-
+    <section id="about" className="cd-sec cd-sec-pad" data-state="company-about">
+      <SecTitle>企業について</SecTitle>
+      <div style={{ marginTop: 14, display: "grid", gap: 16 }}>
         {/* オフィス写真グリッド */}
         <PhotoCarousel photos={photos} />
 
-        {/* ① 会社概要 */}
         {/* ⚠️ **markdown として描画する（2026-08-26）。** 入力欄が markdown エディタなので
                描画も合わせる。片方だけだと `##` が記号のまま出る。
             ⚠️ 既存データは空行区切りに正規化済み（migration 20260826200000）。
                単一改行を段落として扱う独自処理は入れない。 */}
-        {detail.about && (
-          <div style={{ marginBottom: detail.culture_description ? "var(--space-4)" : "var(--space-6)" }}>
-            <Markdown>{detail.about}</Markdown>
-          </div>
-        )}
+        {detail.about && <Markdown>{detail.about}</Markdown>}
 
-        {/* ② 組織文化の説明文（見出しなし、本文直後に統合） */}
+        {/* 組織文化の説明文（見出しなし、本文直後に統合） */}
         {detail.culture_description && (
-          <p style={{ margin: 0, marginBottom: "var(--space-6)", fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, fontFamily: "var(--font-inter), var(--font-noto)" }}>
+          <p style={{ margin: 0, fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9 }}>
             {detail.culture_description}
           </p>
         )}
-
-
       </div>
     </section>
   );
@@ -705,27 +535,13 @@ function BenefitsSection({ detail }: { detail: CompanyDetail }) {
   return (
     <section
       id="benefits"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
+      className="cd-sec"
     >
       {/* Section header */}
       <div style={{
         padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
-        borderBottom: "1px solid var(--line-soft)",
       }}>
-        <SecTitle
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-          }
-        >
+        <SecTitle>
           福利厚生
         </SecTitle>
       </div>
@@ -778,23 +594,10 @@ function CompanyMaterialsSection({ items }: { items: PublicMaterialItem[] }) {
   return (
     <section
       id="company-materials"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
+      className="cd-sec"
     >
-      <div style={{ padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
-        <SecTitle
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
-            </svg>
-          }
-        >
+      <div style={{ padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)" }}>
+        <SecTitle>
           企業からの情報
         </SecTitle>
         <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.7 }}>
@@ -827,26 +630,12 @@ function ToolsSection({ tools }: { tools: CompanyTool[] }) {
   return (
     <section
       id="tools"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
+      className="cd-sec"
     >
       <div style={{
         padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
-        borderBottom: "1px solid var(--line-soft)",
       }}>
-        <SecTitle
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-            </svg>
-          }
-        >
+        <SecTitle>
           ツール
         </SecTitle>
       </div>
@@ -857,332 +646,118 @@ function ToolsSection({ tools }: { tools: CompanyTool[] }) {
   );
 }
 
-function JobEmbedCard({
-  job,
-  catName,
-  companyHQ,
-}: {
-  job: import("@/app/companies/[id]/mockDetailData").JobItem;
-  catName: string;
-  companyHQ: string;
-}) {
-  const hasSalary = (job.salaryMin && job.salaryMin > 0) || (job.salaryMax && job.salaryMax > 0);
-  const salaryDisplay = hasSalary
-    ? (job.salaryMin && job.salaryMax
-      ? `${fmtMan(job.salaryMin)}〜${fmtMan(job.salaryMax)}万円`
-      : job.salaryMin ? `${fmtMan(job.salaryMin)}万円〜` : `〜${fmtMan(job.salaryMax)}万円`)
-    : null;
-  /* ★金額が無いとき（2026-10-10）: 企業が「要相談」を選んだなら「報酬：要相談」、そうでなければ「給与非公開」。
-        ⚠️ それまでは金額が無いだけで「応相談」と出しており、企業が選んでいない「要相談」を名乗っていた */
-  const noAmountText = job.salaryNegotiable ? payNegotiableText(job.employmentType) : "給与非公開";
+/** 7日以内に掲載した募集に「新着」を付ける */
+const NEW_JOB_DAYS = 7;
+/** 職種ごとの見出しを付けるのは、募集がこの件数以上の会社だけ */
+const JOB_GROUP_HEADERS_MIN = 6;
 
-  // Location: hide if same city as company HQ
-  const jobLoc = job.location?.trim() || "";
-  const showLoc = jobLoc && jobLoc !== companyHQ && !companyHQ.includes(jobLoc) && !jobLoc.includes(companyHQ);
-  const isRemote = jobLoc.includes("リモート") || jobLoc.includes("在宅") || jobLoc.includes("フルリモート");
-
-  // Days-ago badge
-  function daysAgoBadge(): string | null {
-    if (job.publishedAt) {
-      const d = Math.floor((Date.now() - new Date(job.publishedAt).getTime()) / (1000 * 60 * 60 * 24));
-      if (d === 0) return "今日";
-      if (d <= 7) return `${d}日前`;
-      return null;
-    }
-    if (job.is_new) return "新着";
-    return null;
-  }
-  const badge = daysAgoBadge();
-
-  const href = job.id ? jobPath(job.slug ?? job.id) : "#jobs";
-
-  return (
-    <Link
-      href={href}
-      style={{ textDecoration: "none", display: "block" }}
-      className="job-embed-card"
-    >
-      {/* ★375px でタイトルが1行7〜8文字に痩せていた（2026-10-29）。767px 以下は
-             縦線と矢印を消し、年収をタイトルの下へ回して全幅にする。
-          ⚠️ 余白・縦線・見出し行の並びは globals.css の .jec-* が持つ。インラインに戻さないこと
-             （幅で変えられなくなる。1024px 以上の見た目は 2026-10-29 以前と同じ） */}
-      <div className="jec-card" style={{
-        border: "1px solid var(--line)",
-        borderRadius: 12,
-        background: "#fff",
-        transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s",
-        gap: 12,
-        alignItems: "flex-start",
-      }}>
-        {/* Left accent bar by category */}
-        <div className="jec-bar" style={{ width: 3, borderRadius: 2, background: "var(--royal)", flexShrink: 0, alignSelf: "stretch", opacity: 0.5 }} />
-        {/* Content */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Title row */}
-          <div className="jec-head" style={{ marginBottom: 5 }}>
-            <div className="jec-title" style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4, flex: 1, minWidth: 0 }}>
-              {job.title}
-            </div>
-            {/* Salary */}
-            <div className="jec-salary" style={{ flexShrink: 0 }}>
-              {hasSalary ? (
-                <span style={{ fontSize: 13, fontWeight: 800, color: "var(--success-ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                  {salaryDisplay}
-                </span>
-              ) : (
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>{noAmountText}</span>
-              )}
-            </div>
-          </div>
-          {/* Catch copy / description fallback */}
-          {(job.catchCopy || job.description) && (
-            <p style={{
-              margin: "0 0 7px", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.55,
-              overflow: "hidden", display: "-webkit-box",
-              WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const,
-            }}>
-              {job.catchCopy || (job.description ? job.description.slice(0, 100) : "")}
-            </p>
-          )}
-          {/* Meta pills */}
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
-            <span style={{
-              fontSize: 12, padding: "2px 8px", borderRadius: 4,
-              background: "var(--royal-50)", color: "var(--royal)",
-              border: "1px solid var(--royal-100)", fontWeight: 600,
-            }}>{catName}</span>
-            {showLoc && (
-              <span style={{
-                display: "inline-flex", alignItems: "center", gap: 3,
-                fontSize: 12, padding: "2px 7px", borderRadius: 4,
-                /* ⚠️ リモートを緑にしない（2026-08-23）。緑は金銭的にプラスの条件だけ。
-                      勤務地はアイコン（🏠/📍）で既に区別が付いている。 */
-                background: "var(--bg-tint)",
-                color: "var(--ink-mute)",
-                border: "1px solid var(--line)",
-                fontWeight: 500,
-              }}>
-                {isRemote ? "🏠" : "📍"} {jobLoc}
-              </span>
-            )}
-            {/* ④ 勤務形態 + 雇用形態 */}
-            {job.workStyle && (() => {
-              const WS: Record<string, string> = { full_remote: "フルリモート", hybrid: "ハイブリッド", on_site: "出社" };
-              const label = WS[job.workStyle] ?? job.workStyle;
-              return (
-                /* ⚠️ 勤務形態は緑にしない（2026-08-23）。「ハイブリッド」だけが緑で、
-                      同じ行の年収（緑＝金銭条件）と意味が衝突していた。 */
-                <span style={{ fontSize: 12, padding: "2px 7px", borderRadius: 4, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)", fontWeight: 600 }}>{label}</span>
-              );
-            })()}
-            {job.employmentType && (
-              <span style={{ fontSize: 12, padding: "2px 7px", borderRadius: 4, background: "var(--bg-tint)", color: "var(--ink-mute)", border: "1px solid var(--line)", fontWeight: 500 }}>{job.employmentType}</span>
-            )}
-            {job.urgency === "hot" && (
-              <span style={{
-                fontSize: 12, padding: "2px 7px", borderRadius: 4,
-                background: "#FEE2E2", color: "var(--error-ink)",
-                border: "1px solid #FECACA", fontWeight: 700,
-              }}>🔥 HOT</span>
-            )}
-            {badge && (
-              <span style={{
-                fontSize: 12, padding: "2px 7px", borderRadius: 4,
-                background: "var(--bg-tint)", color: "var(--ink-mute)",
-                border: "1px solid var(--line)", fontWeight: 700,
-              }}>{badge}</span>
-            )}
-          </div>
-        </div>
-        {/* Arrow */}
-        <svg className="jec-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" style={{ flexShrink: 0, marginTop: 3 }}>
-          <polyline points="9 18 15 12 9 6"/>
-        </svg>
-      </div>
-    </Link>
-  );
+/** 年収の表示。⚠️ 数字の途中で折り返さないよう、呼び出し側で nowrap の塊にする */
+function jobPayText(job: import("@/app/companies/[id]/mockDetailData").JobItem): string {
+  const min = job.salaryMin && job.salaryMin > 0 ? job.salaryMin : null;
+  const max = job.salaryMax && job.salaryMax > 0 ? job.salaryMax : null;
+  if (min && max) return `${fmtMan(min)}〜${fmtMan(max)}万円`;
+  if (min) return `${fmtMan(min)}万円〜`;
+  if (max) return `〜${fmtMan(max)}万円`;
+  /* ⚠️ 金額が無いときは「給与非公開」。企業が「要相談」を選んだときだけ要相談の文言（2026-10-10） */
+  return job.salaryNegotiable ? payNegotiableText(job.employmentType) : "給与非公開";
 }
 
-function JobsSection({
-  company,
-  detail,
-}: {
-  company: Company;
-  detail: CompanyDetail;
-}) {
-  const totalJobs = detail.jobs.reduce((sum, cat) => sum + cat.total, 0);
+function isNewJob(job: import("@/app/companies/[id]/mockDetailData").JobItem): boolean {
+  if (job.publishedAt) return Date.now() - new Date(job.publishedAt).getTime() <= NEW_JOB_DAYS * 24 * 60 * 60 * 1000;
+  return job.is_new === true;
+}
+
+/**
+ * ★募集中のポジション（2026-11-26 / 柴さんの指示）。1件1行: 左にタイトルと「職種 ・ 勤務地 ・ 雇用形態」、右に年収。
+ *   7日以内に掲載したものに「新着」。初期表示は3件で、4件以上なら「すべての募集を見る（N件）」（/jobs?company=）。
+ *
+ * ⚠️ 0件ならセクションごと出さない（「現在、公開中の募集はありません」は出さない。値が無いものは出さない決まり）。
+ * ⚠️ 職種ごとの見出しは6件以上の会社だけ。少ない会社では見出しなしで並べる。
+ * ⚠️ `/companies/[id]/jobs` には戻さないこと（2026-07-01 に削除済みで 404）。
+ * ⚠️ 年収のある募集を先に並べる（それまでと同じ）。
+ */
+function JobsSection({ company, detail }: { company: Company; detail: CompanyDetail }) {
+  const total = detail.jobs.reduce((sum, cat) => sum + cat.items.length, 0);
+  if (total === 0) return null;
+  const hasPay = (j: import("@/app/companies/[id]/mockDetailData").JobItem) => ((j.salaryMin ?? 0) > 0 || (j.salaryMax ?? 0) > 0) ? 1 : 0;
+  const cats = detail.jobs.map((c) => ({ cat: c.cat, items: [...c.items].sort((a, b) => hasPay(b) - hasPay(a)) }));
+  const grouped = total >= JOB_GROUP_HEADERS_MIN && cats.length > 1;
+  const flat = cats.flatMap((c) => c.items.map((job) => ({ job, cat: c.cat })));
+  const shown = flat.slice(0, JOBS_LIMIT);
   const companyHQ = detail.hq || "";
 
-  // Sort items: salary-disclosed first
-  function sortItems(items: typeof detail.jobs[0]["items"]) {
-    return [...items].sort((a, b) => {
-      const aHas = (a.salaryMin && a.salaryMin > 0) || (a.salaryMax && a.salaryMax > 0) ? 1 : 0;
-      const bHas = (b.salaryMin && b.salaryMin > 0) || (b.salaryMax && b.salaryMax > 0) ? 1 : 0;
-      return bHas - aHas;
-    });
-  }
-
-  // ── 0 件 ────────────────────────────────────────────────────────────────────
-  if (totalJobs === 0) {
+  const row = (job: import("@/app/companies/[id]/mockDetailData").JobItem, cat: string, first: boolean) => {
+    /* ⚠️ 勤務地は求人ページと同じく短くする（番地まで出さない） */
+    const loc = shortAddress(job.location) || companyHQ || null;
+    const meta = [cat, loc, job.employmentType || null].filter((v): v is string => !!v);
     return (
-      <section
-        id="jobs"
-        style={{
-          background: "#fff",
-          border: "1px solid var(--line)",
-          borderRadius: 18,
-          overflow: "hidden",
-          marginBottom: "var(--space-6)",
-          boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-        }}
-      >
-        <div style={{ padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)", borderBottom: "1px solid var(--line-soft)" }}>
-          <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>}>
-            {/* ⚠️ 見出しは0件ブランチでも「募集中の求人」。ここだけ「募集中の案件」で、
-                   本文も「公開中の募集」になっており、1つのセクションに3つの語彙があった（2026-08-13 統一）。 */}
-            募集中のポジション
-          </SecTitle>
-        </div>
-        <div style={{ padding: "var(--space-6)", textAlign: "center" }}>
-          <p style={{ fontSize: "var(--text-base)", color: "var(--ink-soft)", padding: "24px 0", margin: 0 }}>
-            現在、公開中の募集はありません。
-          </p>
-          {company.accepting_casual_meetings && (
-            <Link href={`/companies/${company.id}/casual-meeting`} style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "10px 22px", borderRadius: 8, fontSize: 13, fontWeight: 700,
-              background: MEETING_CTA_BG, color: MEETING_CTA_FG,
-              textDecoration: "none", boxShadow: `0 2px 8px rgba(${MEETING_CTA_SHADOW_RGB},0.3)`,
-            }}>
-              カジュアル面談でまず話してみる
-            </Link>
-          )}
-        </div>
-      </section>
+      <li key={job.id ?? job.title} style={{ borderTop: first ? undefined : "1px solid var(--line-soft)" }}>
+        <Link href={job.id ? jobPath(job.slug ?? job.id) : "#jobs"} className="cd-job-row" data-state="company-job-row">
+          <span style={{ minWidth: 0, flex: 1 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 15.5, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5, overflowWrap: "anywhere" }}>{job.title}</span>
+              {isNewJob(job) && (
+                <span data-state="job-new" style={{ fontSize: 11.5, fontWeight: 700, padding: "1px 8px", borderRadius: 100, background: "var(--royal-50)", color: "var(--royal)", border: "1px solid var(--royal-100)", whiteSpace: "nowrap" }}>新着</span>
+              )}
+            </span>
+            {meta.length > 0 && (
+              <span style={{ display: "block", marginTop: 3, fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.6 }}>
+                {meta.map((m, i) => (
+                  <Fragment key={i}>{i > 0 && <span aria-hidden style={{ margin: "0 6px" }}>・</span>}<span style={{ whiteSpace: "nowrap" }}>{m}</span></Fragment>
+                ))}
+              </span>
+            )}
+          </span>
+          <span className="cd-job-pay" style={{ fontSize: 14, fontWeight: 700, color: hasPay(job) ? "var(--ink)" : "var(--ink-mute)", whiteSpace: "nowrap" }}>{jobPayText(job)}</span>
+        </Link>
+      </li>
     );
+  };
+
+  /* 職種ごとの見出しを付けるときは、表示する3件だけをその職種の見出しの下に並べる */
+  const groups: { cat: string; items: typeof shown }[] = [];
+  for (const s of shown) {
+    const last = groups[groups.length - 1];
+    if (last && last.cat === s.cat) last.items.push(s); else groups.push({ cat: s.cat, items: [s] });
   }
-
-  /*
-    初期表示は**求人3件**まで（2026-08-13）。それまでは「上位3カテゴリ × 各3件」で
-    最大9件出ており、求人の多い1社だけセクションが突出して長かった。
-
-    ⚠️ **カテゴリ単位ではなく求人の件数で切る。** カテゴリ単位だと
-       「1カテゴリに5件」の企業で上限が効かない。
-    ⚠️ **件数は削らない。** 全カテゴリ・全求人をノード化し、
-       畳む位置（3件目の求人の直後）を添字で渡すだけ。
-  */
-  const allCats = detail.jobs.map(cat => ({ ...cat, displayItems: sortItems(cat.items) }));
-  const showCatHeaders = detail.jobs.length > 1;
-  const jobNodes: React.ReactNode[] = [];
-  let shownJobs = 0;
-  let limitIndex = -1;
-  allCats.forEach((cat, ci) => {
-    if (showCatHeaders) {
-      jobNodes.push(
-        <div key={`h-${cat.cat}`} style={{
-          display: "flex", alignItems: "center", gap: 8,
-          /* 先頭以外は前のカテゴリとの間を空ける（元の marginBottom: 20 相当） */
-          marginTop: ci === 0 ? 0 : 14, marginBottom: 4,
-        }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
-            {cat.cat}
-          </span>
-          <span style={{
-            fontSize: 12, fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)",
-            color: "var(--ink-mute)", background: "var(--bg-tint)",
-            border: "1px solid var(--line)", padding: "1px 7px", borderRadius: 100,
-          }}>
-            {cat.total}件
-          </span>
-          <div style={{ flex: 1, height: 1, background: "var(--line-soft)" }} />
-        </div>
-      );
-    }
-        cat.displayItems.forEach((job, ji) => {
-      jobNodes.push(
-        <JobEmbedCard
-          key={job.id ?? `${ci}-${ji}`}
-          job={job}
-          catName={cat.cat}
-          companyHQ={companyHQ}
-        />
-      );
-      shownJobs += 1;
-      if (shownJobs === JOBS_LIMIT) limitIndex = jobNodes.length;
-    });
-  });
-  /* 3件に満たない企業は切る位置が無い（limitIndex が立たないので全件が上限） */
-  if (limitIndex < 0) limitIndex = jobNodes.length;
 
   return (
-    <>
-    <section
-      id="jobs"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
-    >
-      {/* Section header
-          ⚠️ ここにあった「すべての求人を検索（N件）」は 2026-08-13 に削除した。
-             リンク先の /companies/[id]/jobs は 2026-07-01（ca81d23a）に
-             「orphan page」として**ルートごと削除**されており 404 だった。
-             同じ理由で 2026-08-08 に下部の「N件すべての求人を見る」が消されているが、
-             このヘッダー側が取りこぼされていた。
-          ⚠️ **ヘッダー側に代替リンクを作らない。** d8304fd2 で求人セクションはその場で
-             全件展開するようになり、ヘッダーから別ページへ送る役割は無い。
-             セクション下部の「N件すべての求人を見る」（`/jobs?company=`）が
-             2026-08-15 に復活しているので、導線としてはそちらで足りている。
-          ⚠️ `/companies/[id]/jobs` は**いまも 404**。戻さないこと。 */}
-      <div style={{
-        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
-        borderBottom: "1px solid var(--line-soft)",
-      }}>
-        <SecTitle icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>} iconColor="default">
-          募集中のポジション
-          <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-mute)", fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)" }}>
-            {company.job_count}件
-          </span>
-        </SecTitle>
+    <section id="jobs" className="cd-sec cd-sec-pad" data-state="company-jobs">
+      <SecTitle>
+        募集中のポジション
+        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink-mute)" }}>{company.job_count}件</span>
+      </SecTitle>
+      <div style={{ marginTop: 10 }}>
+        {grouped ? groups.map((g) => (
+          <div key={g.cat} style={{ marginTop: 10 }}>
+            <h3 style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 700, color: "var(--ink-soft)" }}>
+              {g.cat}<span style={{ marginLeft: 6, fontWeight: 600, color: "var(--ink-mute)" }}>{cats.find((c) => c.cat === g.cat)?.items.length ?? 0}件</span>
+            </h3>
+            <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>{g.items.map((s, i) => row(s.job, s.cat, i === 0))}</ul>
+          </div>
+        )) : (
+          <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>{shown.map((s, i) => row(s.job, s.cat, i === 0))}</ul>
+        )}
       </div>
-
-      {/* ⚠️ 余白は globals.css の .jec-list（767px 以下で左右を詰める）。インラインに戻さないこと */}
-      <div className="jec-list" style={{ background: "var(--bg-tint)" }}>
-        {/* ⚠️ **その場で開くボタンは出さない。残すのは「N件すべての求人を見る」の方**
-               （2026-08-23 に柴さんが確認。ボタンが2つ縦に並んで読みにくいので1つにする、
-                という判断で、**残す側は遷移**）。
-            ⚠️ 一度これを逆に実装して戻している（`9fa1a943` → 本コミット）。
-               「展開だけ残す」に**再度変えないこと。**
-            ⚠️ 初期表示3件は 2026-08-13 の判断のまま維持する
-               （求人の多い1社だけセクションが突出して長くなるのを防いでいる）。
-            ⚠️ **黙って隠していない。** 下のボタンのラベルが総数を出しており、
-               残りはそこから `/jobs?company=` で見る。
-            ⚠️ 切る位置はカテゴリ見出しの手前ではなく**3件目の求人の直後**なので、
-               見出しだけが取り残されることはない（見出しは必ず求人より前に積まれる）。 */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {jobNodes.slice(0, limitIndex)}
-        </div>
-
-        {/* ⚠️ 濃紺の塗り＝主要な遷移。ここは**別ページ（求人一覧）へ行く**ので塗りのまま。
-            ⚠️ `/companies/[id]/jobs` には戻さないこと（2026-07-01 に削除済みで 404）。
-            ⚠️ 値は slug 優先・UUID も可（JobsClient が両方受ける）。 */}
-        <ShowMoreButton
-          variant="navigate"
-          label={`${company.job_count}件すべての募集を見る`}
-          href={`/jobs?company=${encodeURIComponent(company.slug ?? company.id)}`}
-          wrapperStyle={{ marginTop: 20, paddingBottom: 8 }}
-        />
-      </div>
+      {total > JOBS_LIMIT && (
+        /* ⚠️ 値は slug 優先・UUID も可（JobsClient が両方受ける） */
+        <Link href={`/jobs?company=${encodeURIComponent(company.slug ?? company.id)}`} data-state="company-jobs-all"
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: 12, minHeight: 44, borderRadius: 10, border: "1px solid var(--line)", fontSize: 14, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>
+          すべての募集を見る（{company.job_count}件）
+        </Link>
+      )}
+      <style>{`
+        .cd-job-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 14px 0; text-decoration: none; }
+        .cd-job-row:hover .cd-job-pay { color: var(--royal); }
+        @media (max-width: 640px) {
+          .cd-job-row { flex-direction: column; gap: 4px; }
+        }
+      `}</style>
     </section>
-    </>
   );
 }
 
-// ─── Company Posts Section ────────────────────────────────────────────────────
+// ─── Company Posts（企業からの投稿） ──────────────────────────────────────────
 
 type CompanyPost = {
   id: string;
@@ -1192,289 +767,6 @@ type CompanyPost = {
   cover_image_url: string | null;
   published_at: string | null;
 };
-
-/* ★種類名は lib/companyStories/shared.ts の1か所（CompanyStoryCard が使う）。⚠️ ここに表を戻さないこと */
-function CompanyPostsSection({ posts, countViews }: { posts: CompanyPost[]; countViews: boolean }) {
-  if (posts.length === 0) return null;
-  return (
-    <section
-      id="posts"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
-    >
-      <div style={{
-        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
-        borderBottom: "1px solid var(--line-soft)",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-      }}>
-        <SecTitle
-          iconColor="default"
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          }
-        >
-          企業からの投稿
-        </SecTitle>
-        <span style={{
-          fontSize: 12, fontWeight: 700, color: "var(--ink-mute)",
-          background: "var(--bg-tint)", border: "1px solid var(--line)",
-          padding: "2px 10px", borderRadius: 100, fontFamily: "var(--font-inter), var(--font-noto)",
-          flexShrink: 0,
-        }}>
-          {posts.length}件
-        </span>
-      </div>
-      <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: 12 }}>
-        {posts.map((post) => (
-          /* ★閲覧数（2026-10-12）。⚠️ 検証用（/t/）と担当者のプレビューでは数えない */
-          <StoryViewObserver key={post.id} id={post.id} enabled={countViews}>
-            <CompanyStoryCard
-              title={post.title}
-              body={post.body}
-              category={post.category}
-              coverImageUrl={post.cover_image_url}
-              publishedAt={post.published_at}
-            />
-          </StoryViewObserver>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// ─── Company Articles Section ─────────────────────────────────────────────────
-
-function CompanyArticlesSection({ articles, company, hasPosts }: { articles: Article[]; company: Company; hasPosts: boolean }) {
-  const displayed = articles.slice(0, 3);
-
-  /* ★0件のときは求職者・未ログインには何も出さない（2026-10-29 / 柴さんの指示）。
-        それまでは「まだ取材記事がありません／OPINIO編集部による取材記事が順次公開されます」を全員に出し、
-        「OPINIO が書くのを待つ場所」に読めていた（公開中の取材記事は全体で0件＝掲載中の全社に出ていた）。
-        ⚠️ 企業の投稿も0件のときだけ、その会社の担当者に「記事を書く」を出す（CompanyStoriesStaffCta）。 */
-  if (articles.length === 0) {
-    return hasPosts ? null : <CompanyStoriesStaffCta companyId={company.id} />;
-  }
-
-  return (
-    <section
-      id="articles"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
-    >
-      {/* Section header */}
-      <div style={{
-        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
-        borderBottom: "1px solid var(--line-soft)",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-      }}>
-        <SecTitle
-          iconColor="default"
-          icon={
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
-            </svg>
-          }
-        >
-          {/* ★見出し（2026-10-29 / 柴さんの選択）。このセクションは各企業が自分のことを発信する場所で、
-                 OPINIO 編集部の記事は例外。それまでの「OPINIO 取材記事」は OPINIO が書く場所に読めていた */}
-          この会社からの発信
-        </SecTitle>
-        {articles.length > 0 && (
-          <span style={{
-            fontSize: 12, fontWeight: 700, color: "var(--royal)",
-            background: "var(--royal-50)", border: "1px solid var(--royal-100)",
-            padding: "2px 10px", borderRadius: 100, fontFamily: "var(--font-inter), var(--font-noto)",
-            flexShrink: 0,
-          }}>
-            {articles.length}件
-          </span>
-        )}
-      </div>
-      <div style={{ padding: "var(--space-6)" }}>
-        {(
-          <>
-            {articles.length === 1 ? (
-              /* ── 1件の時: 左60%記事 + 右40% CTAパネル ── */
-              (() => {
-                const article = articles[0];
-                const badge = TYPE_BADGE[article.type];
-                const authorName = article.subject?.name ?? article.subjects?.[0]?.name;
-                return (
-                  <div style={{ display: "flex", gap: 14, alignItems: "stretch" }}>
-                    {/* 左: 記事カード (60%) */}
-                    <Link key={article.slug} href={`/articles/${article.slug}`} style={{ textDecoration: "none", display: "block", flex: "0 0 60%", minWidth: 0 }}>
-                      <div className="article-card" style={{
-                        border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden",
-                        background: "#fff", transition: "border-color 0.15s, box-shadow 0.15s", height: "100%",
-                      }}>
-                        <div style={{
-                          height: 140,
-                          background: article.eyecatch_gradient,
-                          display: "flex", flexDirection: "column", justifyContent: "flex-end",
-                          padding: "12px 16px",
-                          position: "relative",
-                        }}>
-                          <div style={{ position: "absolute", inset: 0, background: "rgba(0,15,60,0.50)" }} />
-                          <div style={{ position: "absolute", top: 12, left: 14, zIndex: 1 }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", padding: "3px 10px", borderRadius: 100, background: badge.bg, color: badge.color, fontSize: 12, fontWeight: 700 }}>
-                              {badge.label}
-                            </span>
-                          </div>
-                          {/* ⚠️ 未入力なら div ごと出さない（「 min」だけ残さない） */}
-                          {article.read_min ? (
-                            <div style={{ position: "absolute", top: 12, right: 14, fontSize: 12, color: "rgba(255,255,255,0.75)", fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 600, zIndex: 1 }}>
-                              {article.read_min} min
-                            </div>
-                          ) : null}
-                          <p style={{ position: "relative", zIndex: 1, margin: 0, fontFamily: "var(--font-noto-serif)", fontSize: 14, fontWeight: 800, lineHeight: 1.55, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.35)" }}>
-                            {article.title}
-                          </p>
-                        </div>
-                        <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                          {authorName ? (
-                            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--royal-50)", border: "2px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--royal)", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                                {authorName.slice(0, 1)}
-                              </div>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>{authorName}</span>
-                            </div>
-                          ) : <div />}
-                          <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 7, background: "var(--royal)", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                            記事を読む
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                    {/* 右: もっと知るパネル (40%) */}
-                    <div style={{ flex: "0 0 40%", minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-inter), var(--font-noto)", marginBottom: 2 }}>
-                        もっと知る
-                      </div>
-                      {/* ⚠️ 面談の行は accepting_casual_meetings で出し分ける（2026-08-11）。
-                             ここだけ無条件だったため、記事が1件の企業（Ubie / Sansan / PKSHA）で
-                             他のCTAを全部消したあとも、この行だけ申込ページへ誘導し続けていた。 */}
-                      {[
-                        { href: "#jobs", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>, label: "募集を見る", sub: `${company.job_count > 0 ? company.job_count + "件掲載中" : ""}` },
-                        ...(company.accepting_casual_meetings
-                          ? [{ href: `/companies/${company.id}/casual-meeting`, icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, label: "カジュアル面談", sub: "選考なし・無料" }]
-                          : []),
-                        { href: "/articles", icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, label: "他の取材記事", sub: "OPINIO記事一覧" },
-                      ].map(({ href, icon, label, sub }) => (
-                        <a key={label} href={href} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10, padding: "11px 12px", borderRadius: 10, background: "#fff", border: "1px solid var(--line)", transition: "border-color 0.15s, background 0.15s" }} className="article-side-cta">
-                          <div style={{ width: 28, height: 28, borderRadius: 7, background: "var(--royal-50)", border: "1px solid var(--royal-100)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--royal)", flexShrink: 0 }}>
-                            {icon}
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>{label}</div>
-                            {sub && <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginTop: 1 }}>{sub}</div>}
-                          </div>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2.5} strokeLinecap="round" style={{ marginLeft: "auto", flexShrink: 0 }}><polyline points="9 18 15 12 9 6"/></svg>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()
-            ) : (
-              /* ── 2件以上: リスト表示 ── */
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {displayed.map((article) => {
-                  const badge = TYPE_BADGE[article.type];
-                  const icon  = TYPE_EYECATCH_ICON[article.type];
-                  return (
-                    <Link key={article.slug} href={`/articles/${article.slug}`} style={{ textDecoration: "none" }}>
-                      <div
-                        style={{
-                          border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden",
-                          background: "#fff", transition: "border-color 0.15s, box-shadow 0.15s",
-                          display: "flex", flexDirection: "row", alignItems: "stretch",
-                        }}
-                        className="article-card"
-                      >
-                        <div style={{
-                          width: 110, flexShrink: 0,
-                          background: article.eyecatch_gradient,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          position: "relative",
-                        }}>
-                          {/* Royal overlay */}
-                          <div style={{ position: "absolute", inset: 0, background: "rgba(0,35,102,0.18)", mixBlendMode: "multiply" }} />
-                          <span style={{ fontSize: 32, opacity: 0.3, position: "relative", zIndex: 1 }}>{icon}</span>
-                          {/* ⚠️ 未入力なら div ごと出さない（「 min」だけ残さない） */}
-                          {article.read_min ? (
-                            <div style={{ position: "absolute", bottom: 7, right: 7, fontSize: 12, color: "rgba(255,255,255,0.8)", fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 500, zIndex: 1 }}>
-                              {article.read_min} min
-                            </div>
-                          ) : null}
-                        </div>
-                        <div style={{ padding: "12px 16px", flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 8px", borderRadius: 100, background: badge.bg, color: badge.color, fontSize: 12, fontWeight: 700, letterSpacing: "0.05em", flexShrink: 0 }}>
-                              {badge.label}
-                            </span>
-                          </div>
-                          <p style={{ margin: 0, fontFamily: "var(--font-noto-serif)", fontSize: 13, fontWeight: 700, lineHeight: 1.6, color: "var(--ink)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
-                            {article.title}
-                          </p>
-                          {(article.subject?.name ?? (article.subjects && article.subjects[0]?.name)) && (
-                            <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
-                              {article.subject?.name ?? article.subjects?.[0]?.name}
-                            </p>
-                          )}
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", paddingRight: 14, color: "var(--ink-mute)", flexShrink: 0 }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                            <polyline points="9 18 15 12 9 6"/>
-                          </svg>
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-            {articles.length > 1 && (
-              <div style={{ marginTop: "var(--space-4)", textAlign: "right" }}>
-                <Link href="/articles" style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "7px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700,
-                  background: "var(--royal-50)", color: "var(--royal)",
-                  border: "1px solid var(--royal-100)",
-                  textDecoration: "none", fontFamily: "var(--font-inter), var(--font-noto)",
-                }}>
-                  記事一覧を見る ({articles.length}件)
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </Link>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </section>
-  );
-}
 
 // ─── MobileBottomCTA ── サイドバーが消える幅（< 1024px）の固定底部バー ────────
 /**
@@ -1567,202 +859,18 @@ function MobileBottomCTA({ company }: { company: Company }) {
   );
 }
 
-/*
-  ⚠️ 2026-08-06 に currentEmployees / allEmployees を削除した。
-     渡してはいたが使っていなかった。社員・OB/OG の表示は本文カラム側の
-     CurrentEmployeesSection / AlumniSection が担当しており、
-     そちらが本来の経路。サイドバーにも出そうとしてやめた名残だった。
-*/
-function Sidebar({
-  company,
-  detail,
-}: {
-  company: Company;
-  detail: CompanyDetail;
-}) {
-  return (
-    <aside
-      style={{
-        position: "sticky",
-        top: 132,
-        alignSelf: "start",
-        flexDirection: "column",
-        gap: "var(--space-4)",
-      }}
-      className="hidden lg:flex"
-    >
-      {/* CTA card ── γ-2: 修正① CTA 優先順位逆転 */}
-      {(() => {
-        const hasMeeting = company.accepting_casual_meetings === true;
-        const hasJobs = company.job_count > 0;
-        return (
-          <div
-            style={{
-              background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
-              color: "#fff",
-              padding: "var(--space-6)",
-              borderRadius: 16,
-              boxShadow: "0 12px 32px rgba(0,35,102,0.2)",
-            }}
-          >
-            {/* Eyebrow */}
-            <div
-              style={{
-                fontSize: "var(--text-xs)",
-                fontWeight: 600,
-                opacity: 0.72,
-                marginBottom: 6,
-                letterSpacing: "0.06em",
-              }}
-            >
-              {company.name}
-            </div>
-
-            {/* Heading */}
-            {/* ⚠️ `text-balance`（text-wrap: balance）を付ける。カード幅272pxでは
-                   「現在、受付中の募集・面談はありません」が
-                   「…ありませ / ん」と**1文字だけ2行目に落ちていた**（2026-08-13 実測）。
-                   balance で「現在、受付中の募集・ / 面談はありません」に分かれる。 */}
-            <div
-              className="text-balance"
-              style={{
-                fontFamily: "var(--font-noto-serif)",
-                fontSize: "var(--text-md)",
-                fontWeight: 500,
-                /* ⚠️ 募集も面談も無いときは**見出しがカードの最後の要素**になる。
-                      下マージンを残すと底に余白だけがぶら下がる（2026-08-13）。 */
-                marginBottom: hasMeeting || hasJobs ? "var(--space-4)" : 0,
-                lineHeight: 1.55,
-              }}
-            >
-              {hasMeeting
-                ? "対話から、はじめよう。"
-                : hasJobs
-                  ? `${company.job_count}件の募集を、見てみませんか？`
-                  : "現在、受付中の募集・面談はありません"}
-            </div>
-
-            {/* ── case 1 & 2: accepting_casual_meetings = true ── */}
-            {hasMeeting && (
-              <>
-                {/* 1st (Primary): 話を聞く（カジュアル面談） */}
-                <Link
-                  href={`/companies/${company.id}/casual-meeting`}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "var(--space-2)",
-                    width: "100%",
-                    padding: "14px 0",
-                    background: MEETING_CTA_BG,
-                    color: MEETING_CTA_FG,
-                    borderRadius: 8,
-                    fontSize: "var(--text-base)",
-                    fontWeight: 700,
-                    textAlign: "center",
-                    textDecoration: "none",
-                    boxShadow: `0 4px 16px rgba(${MEETING_CTA_SHADOW_RGB},0.4)`,
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: "#fff",
-                      flexShrink: 0,
-                      animation: "cta-pulse 1.8s ease-in-out infinite",
-                    }}
-                  />
-                  <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
-                </Link>
-                {/* ⚠️ 補足文は置かない（2026-08-11）。
-                       ここには「人事担当者が直接対応します」と書いてあったが、**全社で事実と違った**。
-                       宛先を持つ企業でも、受け取るのは ow_company_admins の担当者であって
-                       人事とは限らない（セールスフォース・ジャパンで対応できる1名は現役の
-                       Enterprise AE）。誰が対応するかは企業ごとに違い、OPINIO 側で保証できない。
-                       保証できないことをボタンの直下で約束しないこと。 */}
-                {/* 2nd (Secondary): 募集を見て応募する — job_count > 0 の時のみ */}
-                {hasJobs && (
-                  <a
-                    href="#jobs"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginTop: 4,
-                      padding: "9px 0",
-                      background: "rgba(255,255,255,0.08)",
-                      color: "#fff",
-                      border: "1px solid rgba(255,255,255,0.28)",
-                      borderRadius: 8,
-                      fontSize: "var(--text-xs)",
-                      fontWeight: 600,
-                      textDecoration: "none",
-                    }}
-                  >
-                    募集を見て応募する
-                  </a>
-                )}
-              </>
-            )}
-
-            {/* ── case 3: accepting_casual_meetings = false, job_count > 0 ── */}
-            {!hasMeeting && hasJobs && (
-              <a
-                href="#jobs"
-                style={{
-                  display: "block",
-                  width: "100%",
-                  padding: "11px 0",
-                  background: "rgba(255,255,255,0.12)",
-                  color: "#fff",
-                  border: "1px solid rgba(255,255,255,0.28)",
-                  borderRadius: 8,
-                  fontSize: "var(--text-sm)",
-                  fontWeight: 600,
-                  textAlign: "center",
-                  textDecoration: "none",
-                }}
-              >
-                募集を見て応募する
-              </a>
-            )}
-
-            {/* ── case 4: accepting_casual_meetings = false, job_count = 0 ──
-                   **見出しだけを出す。** 以前はここに
-                   「現在募集中の情報がありません」という `<p>` を置いていたが、
-                   見出しの「現在、受付中の募集・面談はありません」と**同じことを
-                   2回言っていた**ので削除した（2026-08-13）。
-
-                ⚠️ この `<p>` は `globals.css` の `p { color: #334155 }` が
-                   親のインライン `color: "#fff"` からの継承より強いため、
-                   **紺色のカードの上で読めなくなっていた**（実測コントラスト比 1.42）。
-                   重複に気づけなかったのは、そもそも見えていなかったから。
-                   → `.claude/rules/ui-debugging.md`「インラインstyleとCSSの優先順位」の①
-
-                ⚠️ **暗い背景のカードに `<p>` を置くときは必ず `color` を明示すること。** */}
-          </div>
-        );
-      })()}
-
-      {/* ★「この会社の話を聞ける人」ウィジェットは 2026-10-16 に撤去した（面談OKの撤去 / 柴さんの判断）。
-             話を聞かれる側に時間を作る理由が無く、運用に乗らなかったため。
-             ⚠️ 現役社員・OB/OG（職歴から作る事実）は本文の CompanyEmployeeSections に残している。 */}
-
-      {/* 申し込みの流れ — コンパクト1行表示。
-             ⚠️★**本文（1023px 以下）と同じ部品**（2026-10-09 に切り出した）。複製を作らないこと。 */}
-      {company.accepting_casual_meetings === true && <MeetingFlowNote />}
-
-      {/* 企業情報ボックス。⚠️★**本文（モバイル）と同じ部品を使う**（2026-09-07 に切り出した）。
-             サイドバーは `hidden lg:flex` で 1023px 以下では消えるので、
-             ここだけに置くと**モバイルで中身が丸ごと消える**。複製を作らないこと。
-             実体は components/companies/CompanyInfoBox.tsx（切り出した理由もそこに書いてある）。 */}
-      <CompanyInfoBox company={company} detail={detail} />
-    </aside>
-  );
+/**
+ * ★フォロワー数（2026-11-26）。検証用アカウントのフォローは数えない。⚠️ 取れなければ 0（＝出さない）
+ */
+async function countCompanyFollowers(companyId: string): Promise<number> {
+  const db = createAdminClient();
+  const { data, error } = await db.from("ow_company_follows").select("follower_user_id").eq("company_id", companyId);
+  if (error) { console.error("[CompanyDetailPage] followers:", error.message); return 0; }
+  const ids = Array.from(new Set((data ?? []).map((r) => r.follower_user_id as string)));
+  if (ids.length === 0) return 0;
+  const { count, error: uErr } = await db.from("ow_users").select("id", { count: "exact", head: true }).in("id", ids).eq("is_test", false);
+  if (uErr) { console.error("[CompanyDetailPage] followers users:", uErr.message); return 0; }
+  return count ?? 0;
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -1804,10 +912,11 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   // Phase 2: 残りのデータを companyId（UUID）で並列取得
   const companyId = resolvedId;
 
-  const [photos, recruiters, companyArticles, employees, companyPosts, companyTools,
-         articleIdRowsResult, materialItems, companyFlow, reasonRanking] = await Promise.all([
+  const [photos, companyArticles, employees, companyPosts, companyTools,
+         articleIdRowsResult, materialItems, companyFlow, reasonRanking, followerCount, similarCompanies] = await Promise.all([
     getCompanyPhotosCached(companyId),
-    getCompanyRecruitersCached(companyId),
+    /* ⚠️ 採用担当者はサーバーで引かない（2026-11-26）。人の情報を ISR の HTML に入れないため、
+          サイドバーの「話せる人」（CompanyContactsCard）がブラウザで /api/jobseeker/companies/[id]/contacts から取る */
     /* ⚠️ ここから4本は 2026-08-09 にキャッシュ版へ差し替えた。
           このページは認証を読むためルート単位では毎回再レンダリングされるが、
           企業単位の公開データは閲覧者によって変わらないのでキャッシュしてよい。
@@ -1831,6 +940,10 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
     getCompanyFlowCached(companyId),
     /* ★入社の決め手の上位3つ（2026-11-02）。毎月1日のバッチの結果を読むだけ。順位だけで人数は持たない。10人未満の会社は null */
     getCompanyReasonRanking(companyId),
+    /* ★フォロワー数（2026-11-26）。ヘッダーのメタ情報に1人以上のときだけ出す。会社の情報なのでページに焼いてよい（最大300秒古い） */
+    countCompanyFollowers(companyId),
+    /* ★似ている企業（2026-11-26）。会社の情報だけ */
+    getSimilarCompanies(companyId),
   ]);
   /* ★人の流れの件数だけの形（2026-10-27）。出せる項目が無ければ null（見出しごと出さない） */
   const flowSummary = hasAnyFlowItem(companyFlow) ? toFlowSummary(companyFlow!) : null;
@@ -1895,26 +1008,67 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
       // 非公開にした記事の「公開しました」も出さない（2026-10-20）
       && isArticlePostAlive({ post_type: p.post_type, ref_article: p.ow_articles }));
 
-  // Group posts by (YYYY-MM-DD, post_type) for 更新情報 display
-  type ActivityGroup = { date: string; dateLabel: string; post_type: string; posts: ActivityPost[] };
-  const allActivityGroups: ActivityGroup[] = (() => {
+  /* ★記事・更新情報（2026-11-26）。企業からの投稿・取材記事・更新情報を日付の新しい順に1本へ。
+        ⚠️ 取材記事の「公開しました」は記事そのものの行と重なるので、更新情報からは外す */
+  const articleSlugs = new Set(companyArticles.map((a) => a.slug));
+  const activityForList = activityPosts.filter((p) => !(p.post_type === "article_published" && p.ow_articles?.slug && articleSlugs.has(p.ow_articles.slug)));
+  const activityGroups = (() => {
     const map = new Map<string, ActivityPost[]>();
-    for (const post of activityPosts) {
-      const dateKey = post.created_at.slice(0, 10);
-      const key = `${dateKey}__${post.post_type}`;
+    for (const post of activityForList) {
+      const key = `${post.created_at.slice(0, 10)}__${post.post_type}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(post);
     }
-    const groups: ActivityGroup[] = Array.from(map.entries()).map(([key, posts]) => {
-      const dateKey = key.split("__")[0];
-      const dateLabel = new Date(dateKey + "T00:00:00").toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
-      return { date: dateKey, dateLabel, post_type: posts[0].post_type, posts };
-    });
-    return groups.sort((a, b) => b.date.localeCompare(a.date));
+    return Array.from(map.entries()).map(([key, posts]) => ({ date: key.split("__")[0], post_type: posts[0].post_type, posts }));
   })();
-  const activityGroups = allActivityGroups.slice(0, 5);
-  const hasMoreActivity = allActivityGroups.length > 5;
+  const updateItems: CompanyUpdateItem[] = [
+    ...companyPosts.map((p): CompanyUpdateItem => ({
+      key: `story-${p.id}`,
+      date: (p.published_at ?? "").slice(0, 10),
+      text: p.title,
+      storyId: p.id,
+      /* ⚠️ 投稿には別のページが無いので、本文は行を押すとその場で開く（CompanyUpdatesList） */
+      body: (
+        <div style={{ display: "grid", gap: 10 }}>
+          {p.cover_image_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={p.cover_image_url} alt="" style={{ width: "100%", maxHeight: 240, objectFit: "cover", borderRadius: 8, display: "block" }} />
+          )}
+          {p.category && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--royal)" }}>{storyCategoryLabel(p.category)}</span>}
+          {p.body && <Markdown>{p.body}</Markdown>}
+        </div>
+      ),
+    })),
+    ...companyArticles.map((a): CompanyUpdateItem => ({
+      key: `article-${a.slug}`, date: a.date, text: `記事「${a.title}」`, href: `/articles/${a.slug}`,
+    })),
+    ...activityGroups.map((g): CompanyUpdateItem => {
+      const n = g.posts.length;
+      const post = g.posts[0];
+      if (g.post_type === "job_posted") {
+        return n > 1
+          ? { key: `act-${g.date}-${g.post_type}`, date: g.date, text: `募集を ${n} 件追加しました`, href: "#jobs" }
+          : { key: `act-${post.id}`, date: g.date, text: post.ow_jobs?.title ? `「${post.ow_jobs.title}」の募集を開始しました` : post.content, href: post.ref_job_id ? jobPath(post.ref_job_id) : "#jobs" };
+      }
+      if (g.post_type === "article_published") {
+        return n > 1
+          ? { key: `act-${g.date}-${g.post_type}`, date: g.date, text: `記事を ${n} 件公開しました`, href: null }
+          : { key: `act-${post.id}`, date: g.date, text: post.ow_articles?.title ? `記事「${post.ow_articles.title}」を公開しました` : post.content, href: post.ow_articles?.slug ? `/articles/${post.ow_articles.slug}` : null };
+      }
+      return n > 1
+        ? { key: `act-${g.date}-${g.post_type}`, date: g.date, text: `投稿を ${n} 件しました`, href: null }
+        : { key: `act-${post.id}`, date: g.date, text: post.content, href: null };
+    }),
+  ].filter((it) => it.date && it.text).sort((a, b) => b.date.localeCompare(a.date));
 
+  /* ★タブと本文の出し分けに使う（中身の無いタブ・セクションは出さない） */
+  const hasAbout = !!(detail.about || detail.culture_description || photos.length > 0);
+  const hasJobs = detail.jobs.some((c) => c.items.length > 0);
+  const hasPeople = !!(flowSummary || reasonRanking || employees.current.length > 0 || employees.alumni.length > 0);
+  const hasBenefits = !!detail.benefits?.length;
+  const hasOrgTeams = !!(detail.orgTeams && detail.orgTeams.length > 0);
+  const hasWorkEnv = hasBenefits || materialItems.length > 0 || hasOrgTeams || companyTools.length > 0;
+  const workEnvFirstId = hasBenefits ? "benefits" : materialItems.length > 0 ? "company-materials" : hasOrgTeams ? "org-teams" : "tools";
   return (
     <>
       {/* ★検証用アカウントにだけ（2026-10-12）。⚠️ 検証用の会社の閲覧は数えない */}
@@ -1934,14 +1088,9 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
             "@context": "https://schema.org",
             "@type": "Organization",
             name: company.name,
-            /* ⚠️ `??` ではなく `||`。`mapCompany` が先に `?? ""` で潰しているので
-                  **`?? undefined` は一度も発火せず、空文字がそのまま出ていた**
-                  （2026-08-28 に本番で `description: ""` を確認）。
-                  CLAUDE.md「`?? ""` を挟んだ後の `?? フォールバック` は永久に効かない」。 */
+            /* ⚠️ `??` ではなく `||`。`mapCompany` が先に `?? ""` で潰しているため（2026-08-28） */
             description: company.tagline || undefined,
             url: `https://opinio.jp/companies/${companySlug ?? companyId}`,
-            /* ⚠️ 2026-08-28 まで `employee_count`（text）を数と比べていて、numberOfEmployees は
-                  一度も出力されていなかった。2026-10-10 から帯の列を使う。 */
             /* ★2026-10-10 から帯の下限・上限で出す（自由記述の原文は使わない） */
             numberOfEmployees: (() => {
               const r = employeeBandRange(company.employee_count_band);
@@ -1954,374 +1103,167 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
         }}
       />
       <RecentlyViewedTracker id={companySlug ?? companyId} name={company.name} logoUrl={company.logo_url ?? null} logoLetter={company.logo_letter ?? undefined} />
-      <Breadcrumb items={[{ label: "OPINIO", href: "/" }, { label: "企業", href: "/companies" }, { label: company.name }]} />
-      <Hero company={company} detail={detail} coverPhotoUrl={photos[0]?.image_url ?? null} isOwnCompany={ownCompanyId !== null && ownCompanyId === resolvedId} />
 
-      <div style={{ background: "var(--bg-tint)", minHeight: "60vh" }}>
+      <div className="cd-page">
+        {/* ★パンくずは「企業 ＞ 会社名」（2026-11-26 / 柴さんの指示） */}
+        <Breadcrumb items={[{ label: "企業", href: "/companies" }, { label: company.name }]} />
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-4 pt-3 md:px-12">
+          <CompanyHeader
+            company={company}
+            detail={detail}
+            coverPhotoUrl={photos[0]?.image_url ?? detail.headerImageUrl ?? null}
+            followerCount={followerCount}
+            isOwnCompany={ownCompanyId !== null && ownCompanyId === resolvedId}
+          />
+        </div>
+
+        {/* ★タブ（2026-11-26）。ヘッダーカードの下に置き、追従は今までどおり（CompanyStickyNav）。
+               ⚠️ 新しいルートは作らない（同じページの中のアンカー）。中身の無いタブは出さない */}
         <CompanyStickyNav items={[
-          /* ★人の流れを先頭に（2026-10-27 / 柴さんの決定）。⚠️ 出せる項目が1つも無い会社では出さない */
-          ...(flowSummary ? [{ id: "company-flow", label: "人の流れ" }] : []),
-          { id: "about", label: "企業概要" },
-          /* ★本文の並びに合わせて企業概要の次（2026-10-19）。⚠️ 在籍者が1人でもいればタブを出す。閲覧者ごとの可視件数はサーバーでは
-                分からない（絞り込みはクライアント側のAPIが行うため）。
-                未ログインには中身が空になりうるが、タブは案内なので許容する。 */
-          ...(employees.current.length > 0 || employees.alumni.length > 0 ? [{ id: "current-employees", label: "社員・OB/OG" }] : []),
-          ...((detail.main_products?.length || detail.customer_cases?.length || detail.main_customers?.length) ? [{ id: "products-clients", label: "事業" }] : []),
-          ...(company.job_count > 0 ? [{ id: "jobs", label: "募集", count: company.job_count }] : []),
-          ...(detail.benefits?.length || (detail.orgTeams && detail.orgTeams.length > 0) || companyTools.length > 0 ? [{ id: "benefits", label: "働く環境" }] : []),
-          /* ⚠️ 行き先は実際に描かれる最初のセクション（2026-10-29）。取材記事が0件のときは #articles を描かないので、
-                固定で "articles" を指すと押しても何も起きない */
-          ...(companyPosts.length > 0 || companyArticles.length > 0 || activityGroups.length > 0
-            ? [{ id: companyPosts.length > 0 ? "posts" : companyArticles.length > 0 ? "articles" : "activity", label: "記事・更新情報" }]
-            : []),
+          ...(hasAbout ? [{ id: "about", label: "概要" }] : []),
+          ...(company.job_count > 0 && hasJobs ? [{ id: "jobs", label: "募集", count: company.job_count }] : []),
+          /* ⚠️ 在籍者が1人でもいれば出す（閲覧者ごとの可視件数はサーバーでは分からない。タブは案内なので許容する） */
+          ...(hasPeople ? [{ id: "company-people", label: "働く人" }] : []),
+          ...(hasWorkEnv ? [{ id: workEnvFirstId, label: "働く環境" }] : []),
+          ...(updateItems.length > 0 ? [{ id: "updates", label: "記事・更新情報" }] : []),
         ]} />
+
         <div
-          style={{ maxWidth: "var(--max-w-wide)", margin: "0 auto" }}
-          /* ★`cd-body` はカードの左右の余白（`--cd-pad-x`）を決める（2026-10-09）。globals.css を参照 */
-          className="cd-body px-5 md:px-12 py-7 grid gap-7 [grid-template-columns:minmax(0,1fr)] lg:[grid-template-columns:minmax(0,1fr)_320px]"
+          style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }}
+          /* ★`cd-body` はカードの左右の余白（`--cd-pad-x`）と見出しの位置合わせ（scroll-margin）を決める。globals.css を参照 */
+          className="cd-body px-4 md:px-12 pt-5 pb-10 md:pb-12"
         >
-          {/* ⚠️ 固定底部バー（`MobileBottomCTA`）の逃げは**ここに付けない**（2026-10-03）。
-                 本文の後ろにフッターがあり、最下部でバーの裏に来るのはフッターの方。
-                 逃げは globals.css の `body:has(.company-mobile-cta)` が body の末尾に取る。
-                 （以前は pb-48 md:pb-36 lg:pb-0 をここに付けていた） */}
-          <main>
-            {/* ★人の流れ（2026-10-27 / 柴さんの決定。ページの一番上）。
-                   ⚠️ ページ（ISR）には件数だけを渡す。内訳はログインしている人にだけ部品が API から取る。
-                   ⚠️ 出せる項目が1つも無い会社では描かない（見出しごと出さない） */}
-            {flowSummary && <CompanyFlowSection companyId={companyId} summary={flowSummary} />}
-            {reasonRanking && <CompanyReasonRanking labels={reasonRanking} />}
+          {/* ⚠️ 1fr ではなく minmax(0,1fr)。サイドバーは追従させない（sticky にしない） */}
+          <div className="cd-cols">
+            <article className="jd-card cd-body-card" data-state="company-body">
+              {/* 1. 企業について → 事業（製品・営業先・事例） */}
+              <AboutSection detail={detail} photos={photos} />
+              <ProductsClientsSection detail={detail} />
 
-            {/* ★企業情報（モバイルのみ）。⚠️ **サイドバーと同じ部品**を使う（2026-09-07）。
-                   サイドバーは `hidden lg:flex` で 1023px 以下では消えるため、ここが無いと
-                   **事業領域（83社すべてが持つ唯一の分類）がモバイルで1文字も出ない**。
-                ⚠️★**`lg:hidden` はサイドバーの `hidden lg:flex` と必ず対にすること。**
-                   ずらすと 1024px 付近で「両方出る」か「両方消える」帯ができる
-                   （`MobileBottomCTA` が 768〜1023px でまさにそれを起こしていた。2026-08-13）。
-                ⚠️ 見出しだけ `SecTitle` を渡して隣のセクションに揃える。
-                   渡さないとサイドバー用の小さい見出しが出る（既定はデスクトップ向け）。 */}
-            {/* ⚠️★`var(--space-7)`（**未定義＝0**）で、次のセクションと接していた
-                   （2026-09-17 に直した）。スケールに 28 は無いので、
-                   セクション間の値 32px（`--space-8`）に寄せる。 */}
-            <div className="lg:hidden" style={{ marginBottom: "var(--space-8)" }}>
-              <CompanyInfoBox
-                company={company}
-                detail={detail}
-                title={
-                  <SecTitle
-                    iconColor="default"
-                    icon={
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                        <polyline points="9 22 9 12 15 12 15 22" />
-                      </svg>
-                    }
-                  >
-                    企業情報
-                  </SecTitle>
-                }
-              />
-            </div>
+              {/* 2. 募集中のポジション */}
+              <JobsSection company={company} detail={detail} />
 
-            {/* 1. 企業概要 */}
-            <AboutSection
-              detail={detail}
-              photos={photos}
-            />
-
-            {/* ★1-2. 社員・OB/OG（current-employees → alumni）。2026-10-19 に企業概要のすぐ下へ移した（柴さんの判断）。
-                   それまでは製品・事例・組織・福利厚生・ツールのあと（スマホで約8画面下）で、OPINIO の強み
-                   （実際にいる人・いた人）がほとんど読まれない位置にあった。⚠️ 下へ戻さないこと。タブの並びも合わせてある
-                ⚠️ 閲覧者によって出し分けるためクライアント側で取る（2026-08-09）。
-                   ここでサーバーから渡すと `auth.getUser()` が要り、
-                   ページが動的化して `revalidate = 300` が効かなくなる。
-                   絞り込みは /api/jobseeker/companies/[id]/employees が行う。 */}
-            {/* ★つながり（2026-10-16 / フェーズ3）。閲覧者と相互フォローで在籍中・表示を許可した人だけ。
-                   ⚠️ 閲覧者ごとに違うのでクライアントから取る（ページは ISR のまま）。0人なら何も出ない */}
-            <CompanyConnections companyId={company.id} />
-
-            <CompanyEmployeeSections
-              companyId={company.id}
-            />
-
-            {/* 2. 製品・導入事例 */}
-            <ProductsClientsSection detail={detail} />
-
-
-            {/* 3. 求人 → 給与データ */}
-            <JobsSection company={company} detail={detail} />
-
-            {/* 4. 働く環境（benefits → org-teams） */}
-            <BenefitsSection detail={detail} />
-
-            {/* ★企業が公開を確定した情報（2026-10-09 / 依頼②）。0件ならセクションごと出さない */}
-            <CompanyMaterialsSection items={materialItems} />
-
-            {/* Mid-page CTA after Benefits */}
-            {company.accepting_casual_meetings && (
-              /* ⚠️ 背景で目立たせないこと（2026-08-23）。オレンジは
-                    「カジュアル面談」だけの色で、面はCTAボタンが担う。
-                    黄色の面を足すと、同じ意味の色が2重になって主従が消える。 */
-              <div style={{
-                display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
-                padding: "14px 20px", borderRadius: 12, marginBottom: "var(--space-6)",
-                background: "#fff",
-                border: "1px solid var(--line)",
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>
-                    働く環境を読んだら、次は実際の声を聞いてみませんか？
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-mute)", marginTop: 2 }}>選考なし・完全無料のカジュアル面談</div>
-                </div>
-                <Link href={`/companies/${company.id}/casual-meeting`} style={{
-                  display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0,
-                  padding: "8px 18px", borderRadius: 8, fontSize: 12, fontWeight: 700,
-                  background: MEETING_CTA_BG, color: MEETING_CTA_FG,
-                  textDecoration: "none", whiteSpace: "nowrap",
-                  boxShadow: `0 2px 8px rgba(${MEETING_CTA_SHADOW_RGB},0.3)`,
-                }}>
-                  話を聞く →
-                </Link>
-                {/* ★申し込みの流れ（2026-10-09）。右の列と同じ部品。1023px 以下だけ出す
-                       （1024px 以上は右の列に同じものがある）。⚠️ display をインラインに書かない */}
-                <div className="lg:hidden" style={{ flexBasis: "100%" }}>
-                  <MeetingFlowNote />
-                </div>
-              </div>
-            )}
-
-            <OrgTeamsSectionClient detail={detail} companyId={company.id} jobCount={company.job_count} />
-
-            <ToolsSection tools={companyTools} />
-
-            {/* ⚠️ 社員・OB/OG は 2026-10-19 に企業概要のすぐ下へ移した（上の「1-2」） */}
-
-            {/* 5-2. 拠点・資本関係
-                    ⚠️ サイドバーでは 172px しかなく3行に折り返していた項目をここに集める。
-                       モバイル（1024px 未満）はサイドバーごと非表示なので、
-                       **このセクションが唯一の表示先**になる。
-
-                    ⚠️ 置き場所は「記事・更新情報の直前」。2026-08-14 に
-                       企業概要の直後（1-2）からここへ下げた。事業の話（製品・求人・
-                       働く環境・社員）を先に読ませ、住所や資本といった参照情報は
-                       後ろにまとめるため。
-                    ⚠️ 「取材記事の直前」ではなく「企業からの投稿の直前」に置いている。
-                       投稿↔取材記事↔更新情報はスティッキーナビの `articles` タブが
-                       まとめて指す1グループなので、間に別セクションを挟まない。 */}
-            <LocationsCapitalSection
-              detail={detail}
-              /* ⚠️ 見出しはこのページの SecTitle。切り出し前と同じアイコン・文言。 */
-              title={
-                <SecTitle
-                  icon={
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                  }
-                >
-                  拠点・資本関係
-                </SecTitle>
-              }
-            />
-
-            {/* 6. 記事・更新情報（posts → articles → activity） */}
-            <CompanyPostsSection posts={companyPosts} countViews={!testMode && !preview} />
-            <CompanyArticlesSection articles={companyArticles} company={company} hasPosts={companyPosts.length > 0} />
-
-            {/* ── 更新情報 ── */}
-            {activityGroups.length > 0 && (
-              <div id="activity" style={{ background: "#fff", borderRadius: 16, padding: "28px var(--cd-pad-x, 32px)", marginBottom: "var(--space-6)", border: "1px solid var(--line)" }}>
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4, fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                    ACTIVITY
-                  </div>
-                  {/* ★見出しの形をほかの節とそろえた（明朝体 18px。2026-11-25） */}
-                  <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-serif)", letterSpacing: "0.01em" }}>
-                    更新情報
-                  </h2>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  {activityGroups.map((group, idx) => {
-                    const isLast = idx === activityGroups.length - 1;
-                    const { dateLabel, post_type, posts } = group;
-                    const isAggregated = posts.length > 1;
-                    const icon = post_type === "job_posted" ? "💼"
-                      : post_type === "article_published" ? "📝"
-                      : "💬";
-
-                    let text: string;
-                    let href: string | null;
-                    if (isAggregated) {
-                      if (post_type === "job_posted") {
-                        text = `募集を ${posts.length} 件追加しました`;
-                        href = "#jobs";
-                      } else if (post_type === "article_published") {
-                        text = `記事を ${posts.length} 件公開しました`;
-                        href = "#articles";
-                      } else {
-                        text = `投稿を ${posts.length} 件しました`;
-                        href = null;
-                      }
-                    } else {
-                      const post = posts[0];
-                      if (post_type === "job_posted") {
-                        const title = post.ow_jobs?.title;
-                        text = title ? `「${title}」の募集を開始しました` : post.content;
-                        href = post.ref_job_id ? jobPath(post.ref_job_id) : "#jobs";
-                      } else if (post_type === "article_published") {
-                        const title = post.ow_articles?.title;
-                        text = title ? `記事「${title}」を公開しました` : post.content;
-                        href = post.ow_articles?.slug ? `/articles/${post.ow_articles.slug}` : "#articles";
-                      } else {
-                        text = post.content;
-                        href = null;
-                      }
-                    }
-
-                    return (
-                      <div key={`${group.date}__${post_type}`} style={{
-                        display: "flex", gap: 14, paddingBottom: isLast ? 0 : 16,
-                        marginBottom: isLast ? 0 : 16,
-                        borderBottom: isLast ? "none" : "1px solid var(--line-soft)",
-                        alignItems: "flex-start",
-                      }}>
-                        <div style={{
-                          width: 36, height: 36, borderRadius: "50%", background: "var(--bg-tint)",
-                          border: "1px solid var(--line)", display: "flex", alignItems: "center",
-                          justifyContent: "center", fontSize: 16, flexShrink: 0,
-                        }}>
-                          {icon}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", marginBottom: 3, fontFamily: "var(--font-inter), var(--font-noto)" }}>{dateLabel}</div>
-                          {href ? (
-                            <Link href={href} style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600, textDecoration: "none", lineHeight: 1.5, display: "block" }}
-                              className="hover:underline">
-                              {text}
-                            </Link>
-                          ) : (
-                            <div style={{ fontSize: 14, color: "var(--ink)", fontWeight: 600, lineHeight: 1.5 }}>{text}</div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {hasMoreActivity && (
-                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--line-soft)", textAlign: "center" }}>
-                    {/* ★/feed は /home にまとめた（2026-11-03）。⚠️ /home はログイン必須（未ログインはログイン画面へ） */}
-                    <Link href="/home" style={{ fontSize: 13, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
-                      ホームのタイムラインで見る →
-                    </Link>
+              {/* 3. この会社で働く人: つながり → 人の流れ → 入社の決め手 → 現役・OB/OG（2026-11-26 にここへ集めた）
+                     ⚠️ 社員・つながりは閲覧者で変わるのでブラウザで取る（ページは ISR のまま）。0人なら何も出ない */}
+              <div id="company-people" className="cd-people">
+                <div className="cd-optional"><CompanyConnections companyId={company.id} /></div>
+                {(flowSummary || reasonRanking) && (
+                  <div className="cd-sec cd-sec-pad">
+                    {flowSummary && <CompanyFlowSection companyId={companyId} summary={flowSummary} />}
+                    {reasonRanking && <CompanyReasonRanking labels={reasonRanking} />}
                   </div>
                 )}
+                <CompanyEmployeeSections companyId={company.id} />
               </div>
-            )}
 
-            {/* ── ページ末尾CTA ── */}
-            {company.accepting_casual_meetings && (
-              <div style={{
-                background: "#fff",
-                borderRadius: 18,
-                padding: "28px var(--cd-pad-x, 32px)",
-                marginBottom: "var(--space-6)",
-                display: "flex",
-                flexDirection: "column",
-                gap: 16,
-                border: "1px solid var(--line)",
-                boxShadow: "0 4px 24px rgba(15,23,42,0.08)",
-              }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, fontFamily: "var(--font-inter), var(--font-noto)" }}>
-                    NEXT STEP
+              {/* 4. 働く環境（福利厚生 → 企業が公開した情報 → 組織体制 → ツール）。1つも無ければ何も出ない */}
+              <BenefitsSection detail={detail} />
+              <CompanyMaterialsSection items={materialItems} />
+              <OrgTeamsSectionClient detail={detail} companyId={company.id} jobCount={company.job_count} />
+              <ToolsSection tools={companyTools} />
+
+              {/* 5. 記事・更新情報（企業からの投稿・取材記事・募集開始などを日付順に1本） */}
+              {updateItems.length > 0 && (
+                <section id="updates" className="cd-sec cd-sec-pad" data-state="company-updates">
+                  <SecTitle>記事・更新情報</SecTitle>
+                  <div style={{ marginTop: 6 }}>
+                    <CompanyUpdatesList items={updateItems} countViews={!testMode && !preview} />
                   </div>
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "var(--ink)", fontFamily: "var(--font-inter), var(--font-noto)", lineHeight: 1.4 }}>
-                    気になったら、気軽に話してみませんか？
-                  </h3>
-                  <p style={{ margin: "5px 0 0", fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-                    選考なし・完全無料。転職意欲がなくても大丈夫です。
-                  </p>
-                </div>
-                {/* ⚠️ 色は役割で固定する（2026-08-23）。
-                       オレンジ＝カジュアル面談だけ / 濃紺の塗り＝主要な遷移（求人一覧へ）。
-                       以前は逆に当たっていて、面談が濃紺のアウトライン、求人がオレンジだった。 */}
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {/* ⚠️ ここは**ページ内の求人セクションへの錨**。求人一覧への遷移は
-                         セクション下の「N件すべての求人を見る」が担うので、行き先を分ける
-                         （両方を `/jobs?company=` にすると同じ場所への入口が2つになる）。 */}
-                  {company.job_count > 0 && (
-                    <a
-                      href="#jobs"
-                      style={{
-                        display: "inline-flex", alignItems: "center", gap: 8,
-                        padding: "12px 24px", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                        background: "var(--royal)", color: "#fff",
-                        textDecoration: "none",
-                        boxShadow: "0 3px 12px rgba(0,35,102,0.25)",
-                      }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" style={{ flexShrink: 0 }}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
-                      募集を見る ({company.job_count}件)
-                    </a>
-                  )}
-                  <Link
-                    href={`/companies/${company.id}/casual-meeting`}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      padding: "12px 22px", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                      background: MEETING_CTA_BG, color: MEETING_CTA_FG,
-                      textDecoration: "none",
-                      boxShadow: `0 3px 12px rgba(${MEETING_CTA_SHADOW_RGB},0.35)`,
-                    }}
-                  >
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: MEETING_CTA_FG, animation: "cta-pulse 1.8s ease-in-out infinite", flexShrink: 0, display: "inline-block" }} />
-                    <span>話を聞く<span style={{ whiteSpace: "nowrap" }}>（カジュアル面談）</span></span>
-                  </Link>
-                </div>
-              </div>
-            )}
+                </section>
+              )}
+              {/* ★企業の投稿が0件のときだけ、その会社の担当者に「記事を書く」を出す（担当者にしか見えない） */}
+              {companyPosts.length === 0 && <div className="cd-optional"><CompanyStoriesStaffCta companyId={company.id} /></div>}
 
-            {recruiters.length > 0 && (
-              <RecruitersSection
-                recruiters={recruiters}
-                /* ★申し込めない企業では null（ボタンも「連絡が届きます」も出さない。2026-10-29） */
+              {/* 6. 締めのブロック ——ページで唯一の申し込みを促す場所（2026-11-26）。
+                     ⚠️ 途中の誘導バナー・NEXT STEP・サイドバーの申込カードはここにまとめた */}
+              {company.accepting_casual_meetings && (
+                <section className="cd-sec cd-sec-pad" data-state="company-closing">
+                  <div style={{ background: "var(--bg-tint)", borderRadius: 12, padding: "22px 20px", textAlign: "center" }}>
+                    <p style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "var(--ink)" }}>気になったら、まずは話を聞いてみませんか</p>
+                    <p style={{ margin: "6px 0 0", fontSize: 14, color: "var(--ink-soft)" }}>選考とは別の、カジュアルな面談です</p>
+                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, marginTop: 16 }}>
+                      <Link href={`/companies/${company.id}/casual-meeting`} data-state="cta-meeting"
+                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: 44, padding: "10px 22px", borderRadius: 10, fontSize: 15, fontWeight: 700, background: MEETING_CTA_BG, color: MEETING_CTA_FG, textDecoration: "none", whiteSpace: "nowrap", boxShadow: `0 3px 10px rgba(${MEETING_CTA_SHADOW_RGB},0.3)` }}>
+                        話を聞く
+                      </Link>
+                      {/* ⚠️ ここはページ内の募集セクションへの錨（一覧ページへの遷移は募集セクションの「すべての募集を見る」） */}
+                      {company.job_count > 0 && hasJobs && (
+                        <a href="#jobs" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: 44, padding: "10px 22px", borderRadius: 10, fontSize: 15, fontWeight: 700, background: "#fff", color: "var(--royal)", border: "1.5px solid var(--royal)", textDecoration: "none", whiteSpace: "nowrap" }}>
+                          募集を見る（{company.job_count}件）
+                        </a>
+                      )}
+                    </div>
+                    {/* ★申し込みの流れ（2026-10-09）。⚠️ 部品は1つ（複製を作らない） */}
+                    <div style={{ marginTop: 14, textAlign: "left" }}><MeetingFlowNote /></div>
+                  </div>
+                </section>
+              )}
+            </article>
+
+            {/* ── サイドバー（1023px 以下は本文カードの下に a → b → c の順で並ぶ）── */}
+            <aside className="cd-side" aria-label="この会社の担当者と会社概要">
+              {/* a. 話せる人（ブラウザで取る。0人ならカードを出さず、担当者の入口だけ） */}
+              <CompanyContactsCard
+                companyId={company.id}
                 meetingHref={company.accepting_casual_meetings ? `/companies/${company.id}/casual-meeting` : null}
-                /* ★面談を受け付けない企業: 募集があれば募集への導線、0件ならカードごと出さない（2026-10-29） */
-                closedCta={company.job_count > 0
-                  ? { note: "募集に応募すると、上記担当者に届きます。", href: "#jobs", label: "募集を見る" }
-                  : null}
-                /* ⚠️ 見出しはこのページの SecTitle。切り出し前と同じアイコン・文言。 */
-                title={
-                  <SecTitle
-                    iconColor="default"
-                    icon={
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                      </svg>
-                    }
-                  >
-                    採用担当者
-                  </SecTitle>
-                }
+                jobsHref={company.job_count > 0 && hasJobs ? "#jobs" : null}
+                staffEntry={!testMode && !preview && !(ownCompanyId !== null && ownCompanyId === resolvedId)
+                  ? <CompanyStaffEntry companyId={company.id} compact />
+                  : undefined}
               />
-            )}
-
-            {/* ★この会社の担当者の入口（2026-10-17）。運営会社・検証用・担当者のプレビューでは出さない */}
-            {!testMode && !preview && !(ownCompanyId !== null && ownCompanyId === resolvedId) && (
-              <CompanyStaffEntry companyId={company.id} />
-            )}
-          </main>
-
-          <Sidebar company={company} detail={detail} />
+              {/* b. 会社概要（拠点・資本関係もここ） */}
+              <CompanyInfoTable company={company} detail={detail} />
+              {/* c. 似ている企業 */}
+              {similarCompanies.length > 0 && (
+                <div className="jd-card jd-side-card" data-state="similar-companies">
+                  <h2 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>似ている企業</h2>
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+                    {similarCompanies.map((s, i) => (
+                      <li key={s.id} style={{ borderTop: i === 0 ? undefined : "1px solid var(--line-soft)" }}>
+                        <Link href={companyPath(s.slug ?? s.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", textDecoration: "none" }}>
+                          <CompanyLogo name={s.name} logoUrl={s.logoUrl} logoLetter={s.logoLetter} size={40} borderRadius={10} />
+                          <span style={{ minWidth: 0 }}>
+                            <span style={{ display: "block", fontSize: 14, fontWeight: 700, color: "var(--ink)", overflowWrap: "anywhere" }}>{s.name}</span>
+                            {(s.domainName || s.jobCount > 0) && (
+                              <span style={{ display: "block", fontSize: 12.5, color: "var(--ink-mute)" }}>
+                                {[s.domainName, s.jobCount > 0 ? `採用中 ${s.jobCount}件` : null].filter(Boolean).map((t, j) => (
+                                  <Fragment key={j}>{j > 0 && <span aria-hidden style={{ margin: "0 6px" }}>・</span>}<span style={{ whiteSpace: "nowrap" }}>{t}</span></Fragment>
+                                ))}
+                              </span>
+                            )}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </aside>
+          </div>
         </div>
       </div>
 
-      {/* γ-7: モバイル固定底部バー (< 768px) */}
+      {/* モバイル固定底部バー（1023px 以下） */}
       <MobileBottomCTA company={company} />
 
+      {/* ⚠️ style タグの中に不等号・バッククォートを書かない（ハイドレーションが壊れる） */}
+      <style>{`
+        .cd-page { background: var(--bg-tint); }
+        .cd-cols { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+        .cd-body-card { overflow: hidden; }
+        .cd-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+        .cd-body-card .cd-sec { border-top: 1px solid var(--line); }
+        .cd-body-card .cd-sec:first-child { border-top: 0; }
+        .cd-sec-pad { padding: 28px var(--cd-pad-x, 32px); }
+        .cd-optional { padding: 0 var(--cd-pad-x, 32px); }
+        .cd-optional:empty, .cd-people:empty { display: none; }
+        @media (max-width: 1023px) {
+          .cd-cols { grid-template-columns: minmax(0, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .cd-sec-pad { padding: 22px var(--cd-pad-x, 18px); }
+        }
+      `}</style>
     </>
   );
 }

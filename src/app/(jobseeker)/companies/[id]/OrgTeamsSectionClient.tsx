@@ -193,28 +193,12 @@ export default function OrgTeamsSectionClient({ detail, companyId, jobCount = 0 
       `}</style>
     <section
       id="org-teams"
-      style={{
-        background: "#fff",
-        border: "1px solid var(--line)",
-        borderRadius: 18,
-        overflow: "hidden",
-        marginBottom: "var(--space-6)",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.07), 0 4px 16px rgba(15,23,42,0.07)",
-      }}
+      className="cd-sec"
     >
       {/* Section header */}
-      <div style={{ padding: "22px 28px 18px", borderBottom: "1px solid var(--line-soft)" }}>
+      <div style={{ padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <SecTitle
-            icon={
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-                <rect x="3" y="3" width="7" height="7" rx="1"/>
-                <rect x="14" y="3" width="7" height="7" rx="1"/>
-                <rect x="3" y="14" width="7" height="7" rx="1"/>
-                <rect x="14" y="14" width="7" height="7" rx="1"/>
-              </svg>
-            }
-          >
+          <SecTitle>
             組織体制・チームのミッション
           </SecTitle>
           <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-soft)", fontFamily: "var(--font-inter), var(--font-noto)" }}>
