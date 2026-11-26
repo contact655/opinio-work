@@ -27,30 +27,28 @@ import type { CompanyTool } from "@/lib/supabase/queries";
 import { SecTitle } from "./SecTitle";
 import { DetailHero, HeroChip } from "@/components/detail/DetailHero";
 import { DetailSectionNav } from "@/components/detail/DetailSectionNav";
+import { BusinessSection, MissionSection, WorkstyleSection, BenefitTagsSection, ExternalLinksSection, PROFILE_CSS,
+  hasBusinessSection, hasMissionSection, workstyleBoxes, benefitTags, type ExternalLink } from "./CompanyProfileSections";
 import MeetingFlowNote from "./MeetingFlowNote";
 import ViewBeacon from "@/components/views/ViewBeacon";
 import { CompanyEmployeeSections } from "./CompanyEmployeeSections";
 import { CompanyConnections } from "@/components/companies/CompanyConnections";
 import ToolsSectionClient from "./ToolsSectionClient";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { CompanyInfoTable } from "@/components/companies/CompanyInfoBox";
+import { CompanyInfoTable, companyTypeLabel, fundingStageLabel } from "@/components/companies/CompanyInfoBox";
 import { CompanyContactsCard } from "@/components/companies/CompanyContactsCard";
 import { CompanyUpdatesList, type CompanyUpdateItem } from "@/components/companies/CompanyUpdatesList";
 import { getSimilarCompanies } from "@/lib/companies/similar";
 import { storyCategoryLabel } from "@/lib/companyStories/shared";
 import { shortAddress } from "@/lib/jobs/heroFacts";
 import { CompanyStoriesStaffCta } from "@/components/companies/CompanyStoriesStaffCta";
-import type { CompanyPhoto } from "@/lib/supabase/queries";
 import type { Company } from "@/app/companies/mockCompanies";
 import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
-import { PhotoCarousel } from "./PhotoCarousel";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import BookmarkButton, { RecentlyViewedTracker, ShareButton, FollowButton, CompanyMoreMenu, CtaReveal } from "./CompanyDetailClient";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
-import { BenefitsList } from "@/components/companies/BenefitsList";
 /* ⚠️ 2026-08-31 にページから切り出した。`/dev/preview/products` から見るため */
-import { ProductsClientsSection } from "@/components/companies/ProductsClientsSection";
 
 /*
   各セクションの**初期表示の上限**（2026-08-13）。
@@ -344,10 +342,16 @@ function CompanyHeader({
   /* ⚠️ 表示名は `@/lib/companies/displayName` に集約した（2026-08-13）。正規表現をここに書き戻さないこと。 */
   const enName = cleanEnName(company.name_en);
   const industryLeaf = detail.industryPath ? detail.industryPath.split(/\s*[›>＞]\s*/).pop() ?? null : null;
-  /* ★要点チップ（事実だけ）とメタ行。値があるものだけ。⚠️ フェーズ2で中身を「企業タイプ／従業員数／設立／資金調達ステージ」に変える */
+  /* ★要点チップ（2026-11-26 / 柴さんの指示）: 企業タイプ／従業員数／設立／資金調達ステージ。事実だけ・値があるものだけ。
+     ⚠️ company_features と評価の言葉は出さない（2026-11-26 時点の company_features はすべて一括投入で、企業の入力ではない） */
+  const typeLabel = companyTypeLabel(company, detail);
+  const fundingLabel = fundingStageLabel(detail);
   const chips = [
-    detail.hq || null,
+    typeLabel,
     formatEmployeeSize(company.employee_count_band, null, { compact: true }),
+    detail.established ? `${detail.established}設立` : null,
+    /* ⚠️ 企業タイプにすでに同じ語（「上場企業」など）が入っていれば出さない（同じことを2回言わない） */
+    fundingLabel && !(typeLabel ?? "").includes(fundingLabel) ? fundingLabel : null,
   ].filter((v): v is string => !!v);
   const isFresh = company.updated_days_ago <= 30;
   const meta = [
@@ -453,91 +457,6 @@ function CompanyHeader({
   );
 }
 
-function AboutSection({
-  detail,
-  photos,
-}: {
-  detail: CompanyDetail;
-  photos: CompanyPhoto[];
-}) {
-  /* ⚠️ 中身が1つも無ければ見出しごと出さない */
-  if (!detail.about && !detail.culture_description && photos.length === 0) return null;
-  return (
-    <section id="about" className="cd-sec cd-sec-pad" data-state="company-about">
-      <SecTitle>企業について</SecTitle>
-      <div style={{ marginTop: 14, display: "grid", gap: 16 }}>
-        {/* オフィス写真グリッド */}
-        <PhotoCarousel photos={photos} />
-
-        {/* ⚠️ **markdown として描画する（2026-08-26）。** 入力欄が markdown エディタなので
-               描画も合わせる。片方だけだと `##` が記号のまま出る。
-            ⚠️ 既存データは空行区切りに正規化済み（migration 20260826200000）。
-               単一改行を段落として扱う独自処理は入れない。 */}
-        {detail.about && <Markdown>{detail.about}</Markdown>}
-
-        {/* 組織文化の説明文（見出しなし、本文直後に統合） */}
-        {detail.culture_description && (
-          <p style={{ margin: 0, fontSize: 15, color: "var(--ink-soft)", lineHeight: 1.9 }}>
-            {detail.culture_description}
-          </p>
-        )}
-      </div>
-    </section>
-  );
-}
-
-// ─── ProductsCultureSection ────────────────────────────────────────────────────
-
-
-function BenefitsSection({ detail }: { detail: CompanyDetail }) {
-  // UNSET_STYLE removed — replaced by inline "カジュアル面談でご確認ください" badges
-
-  const hasBenefits = !!(detail.benefits && detail.benefits.length > 0);
-  if (!hasBenefits) return null;
-
-  return (
-    <section
-      id="benefits"
-      className="cd-sec"
-    >
-      {/* Section header */}
-      <div style={{
-        padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
-      }}>
-        <SecTitle>
-          福利厚生
-        </SecTitle>
-      </div>
-      <div style={{ padding: "var(--space-6)" }}>
-
-      {/* ── 福利厚生 ── */}
-      {/* ⚠️★中身は共通部品に移した（2026-08-30）。求人詳細と**同じデータ・同じ見せ方**にするため。
-             アイコン判定・カテゴリ・上限は @/components/companies/BenefitsList にある。
-             ⚠️ ここに分岐を書き戻さないこと。求人詳細と食い違う（それが移した理由）。
-          ⚠️ 空状態（カジュアル面談でご確認ください）は**この画面だけ**が出す。
-             求人詳細はセクションごと出さないので、部品には持たせていない。 */}
-      <div>
-        {detail.benefits && detail.benefits.length > 0 ? (
-          <BenefitsList benefits={detail.benefits} />
-        ) : (
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "8px 14px", borderRadius: 8,
-            background: "var(--bg-tint)", border: "1px solid var(--line)",
-            fontSize: "var(--text-xs)", color: "var(--ink-soft)",
-          }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-            </svg>
-            カジュアル面談でご確認ください
-          </div>
-        )}
-      </div>
-
-      </div>
-    </section>
-  );
-}
 
 // ─── Company Materials Section ───────────────────────────────────────────────
 
@@ -599,7 +518,7 @@ function ToolsSection({ tools }: { tools: CompanyTool[] }) {
         padding: "var(--space-6) var(--cd-pad-x, 32px) var(--space-4)",
       }}>
         <SecTitle>
-          ツール
+          導入ツール
         </SecTitle>
       </div>
       <div style={{ padding: "var(--space-6)" }}>
@@ -881,7 +800,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   const companyId = resolvedId;
 
   const [photos, companyArticles, employees, companyPosts, companyTools,
-         articleIdRowsResult, materialItems, companyFlow, reasonRanking, followerCount, similarCompanies] = await Promise.all([
+         articleIdRowsResult, materialItems, companyFlow, reasonRanking, followerCount, similarCompanies, externalLinksResult] = await Promise.all([
     getCompanyPhotosCached(companyId),
     /* ⚠️ 採用担当者はサーバーで引かない（2026-11-26）。人の情報を ISR の HTML に入れないため、
           サイドバーの「話せる人」（CompanyContactsCard）がブラウザで /api/jobseeker/companies/[id]/contacts から取る */
@@ -912,7 +831,12 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
     countCompanyFollowers(companyId),
     /* ★似ている企業（2026-11-26）。会社の情報だけ */
     getSimilarCompanies(companyId),
+    /* ★公式の発信（2026-11-26）。公開中のリンクだけ（RLS の公開条件と同じ is_published）。会社の情報なのでページに焼いてよい */
+    adminSupabase.from("ow_company_external_links").select("id, url, title, source_name, type")
+      .eq("company_id", companyId).eq("is_published", true).order("sort_order", { ascending: true }),
   ]);
+  if (externalLinksResult.error) console.error("[company-detail] external_links:", externalLinksResult.error.message);
+  const externalLinks: ExternalLink[] = (externalLinksResult.data ?? []) as ExternalLink[];
   /* ★人の流れの件数だけの形（2026-10-27）。出せる項目が無ければ null（見出しごと出さない） */
   const flowSummary = hasAnyFlowItem(companyFlow) ? toFlowSummary(companyFlow!) : null;
 
@@ -1030,13 +954,15 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   ].filter((it) => it.date && it.text).sort((a, b) => b.date.localeCompare(a.date));
 
   /* ★タブと本文の出し分けに使う（中身の無いタブ・セクションは出さない） */
-  const hasAbout = !!(detail.about || detail.culture_description || photos.length > 0);
+  const hasBusiness = hasBusinessSection(company, detail, photos);
+  const hasMission = hasMissionSection(detail);
   const hasJobs = detail.jobs.some((c) => c.items.length > 0);
   const hasPeople = !!(flowSummary || reasonRanking || employees.current.length > 0 || employees.alumni.length > 0);
-  const hasBenefits = !!detail.benefits?.length;
+  const hasWorkstyle = workstyleBoxes(detail).length > 0;
+  const hasBenefits = benefitTags(detail).length > 0;
   const hasOrgTeams = !!(detail.orgTeams && detail.orgTeams.length > 0);
-  const hasWorkEnv = hasBenefits || materialItems.length > 0 || hasOrgTeams || companyTools.length > 0;
-  const workEnvFirstId = hasBenefits ? "benefits" : materialItems.length > 0 ? "company-materials" : hasOrgTeams ? "org-teams" : "tools";
+  const hasWorkEnv = hasWorkstyle || hasBenefits || companyTools.length > 0 || externalLinks.length > 0 || hasOrgTeams || materialItems.length > 0;
+  const workEnvFirstId = hasWorkstyle ? "workstyle" : hasBenefits ? "benefits" : companyTools.length > 0 ? "tools" : externalLinks.length > 0 ? "official-links" : hasOrgTeams ? "org-teams" : "company-materials";
   return (
     <>
       {/* ★検証用アカウントにだけ（2026-10-12）。⚠️ 検証用の会社の閲覧は数えない */}
@@ -1087,7 +1013,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
         {/* ★タブ（2026-11-26）。ヘッダーカードの下に置き、追従は今までどおり（CompanyStickyNav）。
                ⚠️ 新しいルートは作らない（同じページの中のアンカー）。中身の無いタブは出さない */}
         <DetailSectionNav aliases={NAV_ALIASES} items={[
-          ...(hasAbout ? [{ id: "about", label: "概要" }] : []),
+          ...(hasBusiness || hasMission ? [{ id: hasBusiness ? "business" : "mission", label: "概要" }] : []),
           /* ⚠️ タブに数字を入れない（2026-11-26） */
           ...(company.job_count > 0 && hasJobs ? [{ id: "jobs", label: "募集" }] : []),
           /* ⚠️ 在籍者が1人でもいれば出す（閲覧者ごとの可視件数はサーバーでは分からない。タブは案内なので許容する） */
@@ -1105,11 +1031,14 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                  サイドバーは一番上の行動カードだけ貼り付く（.dt-action） */}
           <div className="dt-cols">
             <div className="dt-stack" data-state="company-body">
-              {/* 1. 企業について → 事業（製品・営業先・事例） */}
-              <AboutSection detail={detail} photos={photos} />
-              <ProductsClientsSection detail={detail} />
+              <style>{PROFILE_CSS}</style>
+              {/* ★並び（2026-11-26 / 柴さんの指示。フェーズ2）: 事業内容 → ミッション・カルチャー → 募集 → 働く人（現役社員・OB/OG）
+                     → 働き方 → 福利厚生 → 導入ツール → 公式の発信 → 組織体制（入力がある会社だけ）→ 企業が公開した情報 → 記事・更新情報。
+                     ⚠️ 中身の無いセクションは出さない（タブにも出さない） */}
+              <BusinessSection company={company} detail={detail} photos={photos} />
+              <MissionSection detail={detail} />
 
-              {/* 2. 募集中のポジション */}
+              {/* 募集中のポジション */}
               <JobsSection company={company} detail={detail} />
 
               {/* 3. この会社で働く人: つながり → 人の流れ → 入社の決め手 → 現役・OB/OG（2026-11-26 にここへ集めた）
@@ -1122,14 +1051,18 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                     {reasonRanking && <CompanyReasonRanking labels={reasonRanking} />}
                   </div>
                 )}
-                <CompanyEmployeeSections companyId={company.id} />
+                {/* ★最大6名。残りは一覧ページ（2026-11-26） */}
+                <CompanyEmployeeSections companyId={company.id} limit={6} listHref={`${companyPath(companySlug ?? companyId)}/people`} />
               </div>
 
-              {/* 4. 働く環境（福利厚生 → 企業が公開した情報 → 組織体制 → ツール）。1つも無ければ何も出ない */}
-              <BenefitsSection detail={detail} />
-              <CompanyMaterialsSection items={materialItems} />
-              <OrgTeamsSectionClient detail={detail} companyId={company.id} jobCount={company.job_count} />
+              {/* 働く環境: 働き方 → 福利厚生 → 導入ツール → 公式の発信 → 組織体制 → 企業が公開した情報。1つも無ければ何も出ない */}
+              <WorkstyleSection detail={detail} />
+              <BenefitTagsSection detail={detail} />
               <ToolsSection tools={companyTools} />
+              <ExternalLinksSection links={externalLinks} />
+              {/* ⚠️ 組織体制は org_teams に入力がある会社だけ（部品の中で判定） */}
+              <OrgTeamsSectionClient detail={detail} companyId={company.id} jobCount={company.job_count} />
+              <CompanyMaterialsSection items={materialItems} />
 
               {/* 5. 記事・更新情報（企業からの投稿・取材記事・募集開始などを日付順に1本） */}
               {updateItems.length > 0 && (

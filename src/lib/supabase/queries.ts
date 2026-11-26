@@ -436,6 +436,7 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     listedExchange: (row.listed_exchange as string | null) ?? null,
     capitalNotes: (row.capital_notes as string | null) ?? null,
     globalEmployeeCount: (row.global_employee_count as string | null) ?? null,
+    fundingStage: typeof row.funding_stage === "string" && row.funding_stage.trim() ? row.funding_stage.trim() : null,
     // ⑧ 拠点・勤務地
     headquartersAddress: (row.headquarters_address as string | null) ?? null,
     branchLocations: Array.isArray(row.branch_locations) && (row.branch_locations as string[]).length > 0
@@ -722,7 +723,7 @@ const COMPANY_DETAIL_COLS = [
   "location", "url", "company_features", "why_join",
   // Numbers section (Commit AA)
   "avg_salary", "avg_age", "paid_leave_rate",
-  "avg_overtime_hours", "female_ratio", "funding_total",
+  "avg_overtime_hours", "female_ratio", "funding_total", "funding_stage",
   // Benefits section (Commit BB)
   "nearest_station", "work_time_system", "workstyle_description",
   "benefits", "evaluation_system",

@@ -20,7 +20,7 @@ import { SecTitle } from "./SecTitle";
 import { EmployeeAvatarImg } from "./CompanyDetailClient";
 import { AVATAR_COLOR } from "@/lib/avatarColor";
 import type { CompanyEmployee } from "@/lib/supabase/queries";
-import { PeopleCardRow, JOB_PEOPLE_CSS } from "@/components/jobs/JobPeopleCards";
+import { JOB_PEOPLE_CSS } from "@/components/jobs/JobPeopleCards";
 import { formatMonths } from "@/lib/profile/tenure";
 
 /*
@@ -114,6 +114,24 @@ function EmployeeCard({ employee }: { employee: CompanyEmployee; showEndedAt?: b
   return <PersonCard employee={employee} title={employee.roleTitle ?? employee.roleCategoryName ?? null} />;
 }
 
+/**
+ * ★カードの並べ方（2026-11-26）。`limit` があれば先頭からその人数だけ出し、残りは `moreHref` への「すべて見る」。
+ *   ⚠️ 人数は絞り込み後の人数（職種で絞っているときはその職種の人数）。
+ */
+function EmployeeGrid({ count, limit, moreHref, moreLabel, children }: {
+  count: number; limit?: number; moreHref?: string; moreLabel: string; children: React.ReactNode[];
+}) {
+  const shown = limit ? children.slice(0, limit) : children;
+  return (
+    <>
+      <div className="emp-grid">{shown}</div>
+      {limit && moreHref && count > limit && (
+        <a href={moreHref} className="emp-more" data-state="employees-more">{moreLabel}（{count}名）→</a>
+      )}
+    </>
+  );
+}
+
 // person-card-grid: 全人物カードセクション共通（現役社員/OBOG）
 const EMPLOYEE_GRID_CSS = `
   /* 人物カードのグリッドは 1fr ではなく minmax(0, 1fr) を使う（2026-08-08）。
@@ -129,6 +147,14 @@ const EMPLOYEE_GRID_CSS = `
   @media (max-width: 767px) {
     .person-card-grid { grid-template-columns: minmax(0, 1fr); }
   }
+  /* ★企業ページの現役社員・OB/OG（2026-11-26 / 柴さんの指示）。1280px 以上は1行に6名、それ未満は3列（6名なら3×2）。
+     ⚠️ 横スクロール（PeopleCardRow）はやめた。企業ページでは最大6名だけ出し、残りは一覧ページ（/companies/[id]/people）へ。 */
+  .emp-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+  .emp-grid .jpc-card { padding: 14px 8px 12px; }
+  @media (max-width: 1279px) {
+    .emp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  .emp-more { display: inline-block; margin-top: 14px; font-size: 14px; font-weight: 700; color: var(--royal); text-decoration: none; }
   /* ⚠️ .employee-grid / .alumni-grid は 2026-10-03 に廃止した（区切り線のリストへ）。
      リストの見た目は globals.css の .person-list / .person-row*。 */
 `;
@@ -179,10 +205,15 @@ export function CurrentEmployeesSection({
   employees,
   hiddenCount = 0,
   totalCount,
+  limit,
+  moreHref,
 }: {
   employees: CompanyEmployee[];
   hiddenCount?: number;
   totalCount?: number;
+  /** ★企業ページでは6。一覧ページでは渡さない（全員） */
+  limit?: number;
+  moreHref?: string;
 }) {
   // ⑨ 0名でも empty state を表示するため早期 return を削除
   const [roleSel, setRoleSel] = useState<string | null>(null);
@@ -288,12 +319,14 @@ export function CurrentEmployeesSection({
                 「どんな職種の人が載っているか」は一目で分かるほうがよく、
                 バーは1行なので場所を取らない。**分割と同じしきい値にしないこと。**
              ⚠️ ラベルは親職種。親が無い人は子、どちらも無ければ「その他」。 */}
-      {employees.length >= 3 && groups.length >= 2 && (() => {
+      {/* ★職種ごとの人数は1名からでも出す（2026-11-26 / 柴さんの指示）。構成バーは従来どおり3名以上・職種2種類以上のときだけ */}
+      {employees.length > 0 && (() => {
         const entries = roleEntries(employees);
         const total = employees.length;
+        const showBar = employees.length >= 3 && groups.length >= 2;
         return (
-          <div style={{ marginBottom: "var(--space-6)" }}>
-            <div style={{ display: "flex", height: 8, borderRadius: 100, overflow: "hidden", marginBottom: "var(--space-3)", gap: 2 }}>
+          <div style={{ marginBottom: "var(--space-5)" }}>
+            {showBar && <div style={{ display: "flex", height: 8, borderRadius: 100, overflow: "hidden", marginBottom: "var(--space-3)", gap: 2 }}>
               {entries.map(([name, count], i) => (
                 <div
                   key={name}
@@ -306,9 +339,9 @@ export function CurrentEmployeesSection({
                   }}
                 />
               ))}
-            </div>
+            </div>}
             {/* ★凡例が絞り込みのボタンを兼ねる（2026-10-21） */}
-            <RoleFilterChips entries={entries} selected={roleSel} onSelect={setRoleSel} colored />
+            <RoleFilterChips entries={entries} selected={roleSel} onSelect={setRoleSel} colored={showBar} />
           </div>
         );
       })()}
@@ -342,11 +375,11 @@ export function CurrentEmployeesSection({
           )}
         </div>
       ) : (
-        <PeopleCardRow key={roleSel ?? "all"} count={orderedEmployees.length}>
+        <EmployeeGrid count={orderedEmployees.length} limit={limit} moreHref={moreHref} moreLabel="現役社員をすべて見る">
           {orderedEmployees.map((emp) => (
             <EmployeeCard key={emp.userId} employee={emp} />
           ))}
-        </PeopleCardRow>
+        </EmployeeGrid>
       )}
 
       {/* ⚠️ 「在籍・職種はご本人の登録内容です。OPINIO は在籍確認を行っていません。」は 2026-10-01 に削除した。
@@ -514,7 +547,11 @@ export function ListingStatusPanel({
   );
 }
 
-export function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni: CompanyEmployee[]; hiddenCount?: number; totalCount?: number }) {
+export function AlumniSection({ alumni, hiddenCount = 0, totalCount, limit, moreHref }: {
+  alumni: CompanyEmployee[]; hiddenCount?: number; totalCount?: number;
+  /** ★企業ページでは6。一覧ページでは渡さない（全員） */
+  limit?: number; moreHref?: string;
+}) {
   /* ★職種で絞る（2026-10-21。現役社員と同じ。3名以上・職種が2種類以上のときだけ） */
   const [roleSel, setRoleSel] = useState<string | null>(null);
   const alumniRoles = roleEntries(alumni);
@@ -546,6 +583,7 @@ export function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni:
       {/* ⚠️ 余白は globals.css の .person-section-body（767px 以下だけ左右を詰める） */}
       <div className="person-section-body">
       <style>{JOB_PEOPLE_CSS}</style>
+      <style>{EMPLOYEE_GRID_CSS}</style>
       {alumni.length > 0 ? (
         <>
           {alumni.length >= 3 && alumniRoles.length >= 2 && (
@@ -553,11 +591,11 @@ export function AlumniSection({ alumni, hiddenCount = 0, totalCount }: { alumni:
               <RoleFilterChips entries={alumniRoles} selected={roleSel} onSelect={setRoleSel} colored={false} />
             </div>
           )}
-          <PeopleCardRow key={roleSel ?? "all"} count={shownAlumni.length}>
+          <EmployeeGrid count={shownAlumni.length} limit={limit} moreHref={moreHref} moreLabel="OB・OGをすべて見る">
             {shownAlumni.map((emp) => (
               <AlumniCard key={emp.userId} employee={emp} />
             ))}
-          </PeopleCardRow>
+          </EmployeeGrid>
         </>
       ) : (
         <div style={{
@@ -625,8 +663,14 @@ export type EmployeesResponse = {
  */
 export function CompanyEmployeeSections({
   companyId,
+  limit,
+  listHref,
 }: {
   companyId: string;
+  /** ★企業ページでは6（2026-11-26）。一覧ページ（/companies/[id]/people）では渡さない */
+  limit?: number;
+  /** 「すべて見る」の行き先（一覧ページ） */
+  listHref?: string;
 }) {
   /* ⚠️★**素の `fetch` に戻さないこと**（2026-09-07）。企業IDごとに1本へ束ねるのは
         `useCompanyEmployees` の役目。失敗時のログもあちらが出す。 */
@@ -657,6 +701,8 @@ export function CompanyEmployeeSections({
           employees={data.current}
           hiddenCount={data.hiddenCurrentCount}
           totalCount={data.totalCurrentCount}
+          limit={limit}
+          moreHref={listHref ? `${listHref}#current-employees` : undefined}
         />
       )}
       {showAlumni && (
@@ -664,6 +710,8 @@ export function CompanyEmployeeSections({
           alumni={data.alumni}
           hiddenCount={data.hiddenAlumniCount}
           totalCount={data.totalAlumniCount}
+          limit={limit}
+          moreHref={listHref ? `${listHref}#alumni` : undefined}
         />
       )}
     </PageCompanyIdContext.Provider>

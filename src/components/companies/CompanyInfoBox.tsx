@@ -10,6 +10,7 @@ import { splitParenTail } from "@/lib/utils/parenSuffix";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 import { DefinitionRows, specLines, type DefinitionRow } from "@/components/detail/DefinitionRows";
 import { getStageCfg } from "@/lib/utils/stageCfg";
+import { phaseLabel } from "@/lib/constants/phase";
 
 /**
  * 「企業情報」ボックス。**サイドバー（デスクトップ）と本文（モバイル）の両方が使う。**
@@ -249,29 +250,43 @@ export function CompanyInfoBox({
  * ⚠️ 事業ステージ（新）が無い会社だけ、旧 phase の名前を資本区分の後ろに付ける（ヘッダーのバッジにあったもの）。
  * ⚠️ /companies の分割表示のペイン（CompanyPane）は従来の CompanyInfoBox のまま。こちらは企業ページだけ。
  */
-export function CompanyInfoTable({ company, detail }: { company: Company; detail: CompanyDetail }) {
+/** ★企業タイプの文言（外資系（米国）・大企業 など）。企業情報の表と冒頭の要点チップで同じものを使う（2026-11-26） */
+export function companyTypeLabel(company: Company, detail: CompanyDetail): string | null {
   const stageFallback = !detail.companyStage ? getStageCfg(company.phase)?.label ?? null : null;
-  const typeText = [companyTypeText(detail.capitalType, detail.hqCountry, detail.companyStage), stageFallback].filter(Boolean).join("・");
+  return [companyTypeText(detail.capitalType, detail.hqCountry, detail.companyStage), stageFallback].filter(Boolean).join("・") || null;
+}
+
+/** ★資金調達ステージの表示（phase の語彙なら日本語に、それ以外は入力どおり） */
+export function fundingStageLabel(detail: CompanyDetail): string | null {
+  return detail.fundingStage ? phaseLabel(detail.fundingStage) ?? detail.fundingStage : null;
+}
+
+export function CompanyInfoTable({ company, detail }: { company: Company; detail: CompanyDetail }) {
+  const typeText = companyTypeLabel(company, detail);
   const urlHref = detail.url ? (detail.url.startsWith("http") ? detail.url : `https://${detail.url}`) : null;
+  /* ★行の並び（2026-11-26 / 柴さんの指示）: 業界／事業領域／企業タイプ／親会社／従業員数／従業員数（世界）／設立／
+        代表者／本社／拠点／資本金／資金調達／公式サイト。値が無い行は DefinitionRows が落とす。
+     ⚠️ リモートは本文の「働き方」、顧客の業界・ジャンルは出さない（2026-11-26 に外した） */
+  const fundingStage = fundingStageLabel(detail);
   const rows: DefinitionRow[] = [
-    { label: "業種", value: detail.industryPath ?? null },
+    { label: "業界", value: detail.industryPath ?? null },
     { label: "事業領域", value: orderedBusinessDomains(company.business_domains).map((d) => d.name).join("／") },
-    { label: "顧客の業界", value: customersText({ allIndustries: detail.customerAllIndustries === true, industryNames: detail.customerIndustryNames ?? [], servesConsumers: detail.servesConsumers === true }) },
+    { label: "企業タイプ", value: specLines([{ value: typeText || null }, { value: detail.capitalNotes ?? null }]) },
+    { label: "親会社", value: detail.parentCompanyName ? detail.parentCompanyName + (detail.parentCompanyCountry ? `（${detail.parentCompanyCountry}）` : "") : null },
+    { label: "従業員数", value: formatEmployeeSize(company.employee_count_band, company.employee_count_as_of) },
+    { label: "従業員数（世界）", value: detail.globalEmployeeCount ? formatEmployeeCount(detail.globalEmployeeCount) : null },
     { label: "設立", value: detail.established },
-    { label: "従業員数", value: specLines([
-      { value: formatEmployeeSize(company.employee_count_band, company.employee_count_as_of) },
-      { label: "世界", value: detail.globalEmployeeCount ? formatEmployeeCount(detail.globalEmployeeCount) : null },
-    ]) },
     { label: "代表者", value: detail.ceo },
     { label: "本社", value: specLines([
       { value: detail.headquartersAddress || detail.hq },
       { value: detail.headquartersAddress ? detail.nearestStation : null },
     ]) },
     { label: "拠点", value: detail.branchLocations && detail.branchLocations.length > 0 ? detail.branchLocations.join("・") : null },
-    { label: "資本区分", value: specLines([{ value: typeText || null }, { value: detail.capitalNotes ?? null }]) },
-    { label: "親会社", value: detail.parentCompanyName ? detail.parentCompanyName + (detail.parentCompanyCountry ? `（${detail.parentCompanyCountry}）` : "") : null },
-    { label: "リモート", value: detail.remoteWorkStatus ? WORK_STYLE_LABELS[detail.remoteWorkStatus] ?? detail.remoteWorkStatus : null },
-    { label: "ジャンル", value: company.genres.map((g) => g.name).join("、") },
+    { label: "資本金", value: detail.capitalAmountText ?? null },
+    { label: "資金調達", value: specLines([
+      { label: "ステージ", value: fundingStage },
+      { label: "累計", value: detail.numbers?.fundingTotal ?? null },
+    ]) },
     { label: "公式サイト", value: urlHref ? (
       <a href={urlHref} target="_blank" rel="noopener noreferrer" style={{ color: "var(--royal)", textDecoration: "underline", minWidth: 0, overflowWrap: "anywhere" }}>
         {splitUrlForWrap(formatUrlForDisplay(detail.url)).map((seg, i, arr) => (
@@ -283,7 +298,7 @@ export function CompanyInfoTable({ company, detail }: { company: Company; detail
   if (!rows.some((r) => r.value)) return null;
   return (
     <div className="jd-card jd-side-card" data-state="company-info-table">
-      <h2 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>会社概要</h2>
+      <h2 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>企業情報</h2>
       <DefinitionRows rows={rows} ariaLabel="会社概要" compact />
     </div>
   );
