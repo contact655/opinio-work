@@ -8,7 +8,7 @@ import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { formatUrlForDisplay, splitUrlForWrap } from "@/lib/utils/url";
 import { splitParenTail } from "@/lib/utils/parenSuffix";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
-import { SpecTable, specLines, type SpecRow } from "@/components/common/SpecTable";
+import { DefinitionRows, specLines, type DefinitionRow } from "@/components/detail/DefinitionRows";
 import { getStageCfg } from "@/lib/utils/stageCfg";
 
 /**
@@ -241,9 +241,9 @@ export function CompanyInfoBox({
 }
 
 /**
- * ★企業ページのサイドバー「会社概要」（2026-11-26 / 柴さんの指示）。求人ページの表（SpecTable）と同じ見た目。
+ * ★企業ページのサイドバー「会社概要」（2026-11-26 / 柴さんの指示）。求人ページの表（DefinitionRows）と同じ見た目。
  *   行: 業種／事業領域／顧客の業界／設立／従業員数（世界）／代表者／本社（住所・最寄駅）／拠点／資本区分（注記）／
- *       親会社／リモート状況／ジャンル／公式サイト。値が無い行は SpecTable が落とす。
+ *       親会社／リモート状況／ジャンル／公式サイト。値が無い行は DefinitionRows が落とす。
  *
  * ⚠️ それまで本文にあった「拠点・資本関係」（LocationsCapitalSection）の中身はここに移した（本社の住所・最寄駅・拠点・資本の注記）。
  * ⚠️ 事業ステージ（新）が無い会社だけ、旧 phase の名前を資本区分の後ろに付ける（ヘッダーのバッジにあったもの）。
@@ -253,7 +253,7 @@ export function CompanyInfoTable({ company, detail }: { company: Company; detail
   const stageFallback = !detail.companyStage ? getStageCfg(company.phase)?.label ?? null : null;
   const typeText = [companyTypeText(detail.capitalType, detail.hqCountry, detail.companyStage), stageFallback].filter(Boolean).join("・");
   const urlHref = detail.url ? (detail.url.startsWith("http") ? detail.url : `https://${detail.url}`) : null;
-  const rows: SpecRow[] = [
+  const rows: DefinitionRow[] = [
     { label: "業種", value: detail.industryPath ?? null },
     { label: "事業領域", value: orderedBusinessDomains(company.business_domains).map((d) => d.name).join("／") },
     { label: "顧客の業界", value: customersText({ allIndustries: detail.customerAllIndustries === true, industryNames: detail.customerIndustryNames ?? [], servesConsumers: detail.servesConsumers === true }) },
@@ -284,7 +284,7 @@ export function CompanyInfoTable({ company, detail }: { company: Company; detail
   return (
     <div className="jd-card jd-side-card" data-state="company-info-table">
       <h2 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>会社概要</h2>
-      <SpecTable rows={rows} ariaLabel="会社概要" compact />
+      <DefinitionRows rows={rows} ariaLabel="会社概要" compact />
     </div>
   );
 }

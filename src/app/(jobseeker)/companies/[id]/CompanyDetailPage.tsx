@@ -25,6 +25,8 @@ import {
 } from "@/lib/supabase/queries";
 import type { CompanyTool } from "@/lib/supabase/queries";
 import { SecTitle } from "./SecTitle";
+import { DetailHero, HeroChip } from "@/components/detail/DetailHero";
+import { DetailSectionNav } from "@/components/detail/DetailSectionNav";
 import MeetingFlowNote from "./MeetingFlowNote";
 import ViewBeacon from "@/components/views/ViewBeacon";
 import { CompanyEmployeeSections } from "./CompanyEmployeeSections";
@@ -44,7 +46,7 @@ import { formatUpdated } from "@/app/companies/mockCompanies";
 import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import { PhotoCarousel } from "./PhotoCarousel";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import BookmarkButton, { CompanyStickyNav, RecentlyViewedTracker, ShareButton, FollowButton, CompanyMoreMenu, CtaReveal } from "./CompanyDetailClient";
+import BookmarkButton, { RecentlyViewedTracker, ShareButton, FollowButton, CompanyMoreMenu, CtaReveal } from "./CompanyDetailClient";
 import OrgTeamsSectionClient from "./OrgTeamsSectionClient";
 import { BenefitsList } from "@/components/companies/BenefitsList";
 /* ⚠️ 2026-08-31 にページから切り出した。`/dev/preview/products` から見るため */
@@ -330,29 +332,26 @@ export async function generateMetadata({
 function CompanyHeader({
   company,
   detail,
-  coverPhotoUrl,
   followerCount,
   isOwnCompany = false,
 }: {
   company: Company;
   detail: CompanyDetail;
-  coverPhotoUrl?: string | null;
   followerCount: number;
   /** ★運営会社か（2026-10-10）。判定は `getOwnCompanyId()` */
   isOwnCompany?: boolean;
 }) {
-  const cover = coverPhotoUrl && /^https:\/\/[a-z]+\.supabase\.co\//.test(coverPhotoUrl) ? coverPhotoUrl : null;
   /* ⚠️ 表示名は `@/lib/companies/displayName` に集約した（2026-08-13）。正規表現をここに書き戻さないこと。 */
   const enName = cleanEnName(company.name_en);
   const industryLeaf = detail.industryPath ? detail.industryPath.split(/\s*[›>＞]\s*/).pop() ?? null : null;
-  const meta1 = [
-    industryLeaf,
+  /* ★要点チップ（事実だけ）とメタ行。値があるものだけ。⚠️ フェーズ2で中身を「企業タイプ／従業員数／設立／資金調達ステージ」に変える */
+  const chips = [
     detail.hq || null,
     formatEmployeeSize(company.employee_count_band, null, { compact: true }),
-    followerCount > 0 ? `フォロワー ${followerCount}人` : null,
   ].filter((v): v is string => !!v);
   const isFresh = company.updated_days_ago <= 30;
-  const meta2 = [
+  const meta = [
+    followerCount > 0 ? `フォロワー ${followerCount}人` : null,
     company.job_count > 0 ? `採用中 ${company.job_count}件` : null,
     isFresh ? formatUpdated(company.updated_days_ago) : null,
   ].filter((v): v is string => !!v);
@@ -367,126 +366,90 @@ function CompanyHeader({
     border: "1px solid var(--line)", background: "#fff", color: "var(--ink-soft)", textDecoration: "none", flexShrink: 0,
   };
 
-  return (
-    <header className="jd-card cd-head" data-cd-hero data-state="company-header">
-      {cover && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={cover} alt="" className="cd-cover-img" />
+  const actions = (
+    <>
+      {company.accepting_casual_meetings && (
+        <Link href={`/companies/${company.id}/casual-meeting`} data-state="cta-meeting"
+          style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: 40,
+            padding: "8px 20px", borderRadius: 10, fontSize: 14, fontWeight: 700,
+            background: MEETING_CTA_BG, color: MEETING_CTA_FG, textDecoration: "none", whiteSpace: "nowrap",
+            boxShadow: `0 3px 10px rgba(${MEETING_CTA_SHADOW_RGB},0.3)`,
+          }}>
+          話を聞く
+        </Link>
       )}
-      <div className="cd-head-body">
-        <div className={cover ? "cd-head-logo cd-head-logo--over" : "cd-head-logo"}>
-          <CompanyLogo
-            name={company.name}
-            logoUrl={company.logo_url}
-            logoLetter={company.logo_letter}
-            logoGradient={company.gradient}
-            companyUrl={company.url}
-            size={88}
-            borderRadius={16}
-            style={{ border: "3px solid #fff", boxShadow: "0 1px 4px rgba(15,23,42,0.12)" }}
-          />
-        </div>
-
-        <div className="cd-head-actions" data-state="company-header-actions">
-          {company.accepting_casual_meetings && (
-            <Link href={`/companies/${company.id}/casual-meeting`} data-state="cta-meeting"
-              style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: 40,
-                padding: "8px 20px", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                background: MEETING_CTA_BG, color: MEETING_CTA_FG, textDecoration: "none", whiteSpace: "nowrap",
-                boxShadow: `0 3px 10px rgba(${MEETING_CTA_SHADOW_RGB},0.3)`,
-              }}>
-              話を聞く
-            </Link>
+      {/* ★「話を聞いてみたい」（2026-10-27）。押せない会社・未ログインでは何も描かない（CompanyInterestButton の中で判定） */}
+      <CompanyInterestButton companyId={company.id} />
+      <FollowButton companyId={company.id} tone="primary" />
+      <BookmarkButton companyName={company.name} companyId={company.id} variant="pill" />
+      {/* 共有は小さいアイコン（767px 以上）。767px 以下は「…」の中にある */}
+      <span className="cd-links-row"><ShareButton companyName={company.name} companyId={company.id} iconOnly /></span>
+      {siteHref && (
+        <a href={siteHref} target="_blank" rel="noopener noreferrer" style={ghost} data-state="company-site">
+          公式サイト <span aria-hidden>↗</span>
+        </a>
+      )}
+      {(company.x_url || company.linkedin_url || company.careers_url) && (
+        /* ⚠️ 767px 以下は出さない（.cd-links-row）。「…」の中に同じものがある */
+        <span className="cd-links-row" style={{ gap: 6, alignItems: "center" }}>
+          {company.careers_url && (
+            <a href={company.careers_url} target="_blank" rel="noopener noreferrer" style={ghost}>採用情報 <span aria-hidden>↗</span></a>
           )}
-          {/* ★「話を聞いてみたい」（2026-10-27）。押せない会社・未ログインでは何も描かない（CompanyInterestButton の中で判定） */}
-          <CompanyInterestButton companyId={company.id} />
-          <FollowButton companyId={company.id} tone="primary" />
-          <BookmarkButton companyName={company.name} companyId={company.id} variant="pill" />
-          {/* 共有は小さいアイコン（767px 以上）。767px 以下は「…」の中にある */}
-          <span className="cd-links-row"><ShareButton companyName={company.name} companyId={company.id} iconOnly /></span>
-          {siteHref && (
-            <a href={siteHref} target="_blank" rel="noopener noreferrer" style={ghost} data-state="company-site">
-              公式サイト <span aria-hidden>↗</span>
+          {company.x_url && (
+            <a href={company.x_url} target="_blank" rel="noopener noreferrer" title="X (Twitter)" aria-label="X (Twitter)" style={iconLink}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.263 5.632 5.9-5.632zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             </a>
           )}
-          {(company.x_url || company.linkedin_url || company.careers_url) && (
-            /* ⚠️ 767px 以下は出さない（.cd-links-row）。「…」の中に同じものがある */
-            <span className="cd-links-row" style={{ gap: 6, alignItems: "center" }}>
-              {company.careers_url && (
-                <a href={company.careers_url} target="_blank" rel="noopener noreferrer" style={ghost}>採用情報 <span aria-hidden>↗</span></a>
-              )}
-              {company.x_url && (
-                <a href={company.x_url} target="_blank" rel="noopener noreferrer" title="X (Twitter)" aria-label="X (Twitter)" style={iconLink}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.263 5.632 5.9-5.632zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                </a>
-              )}
-              {company.linkedin_url && (
-                <a href={company.linkedin_url} target="_blank" rel="noopener noreferrer" title="LinkedIn" aria-label="LinkedIn" style={iconLink}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
-                </a>
-              )}
-            </span>
+          {company.linkedin_url && (
+            <a href={company.linkedin_url} target="_blank" rel="noopener noreferrer" title="LinkedIn" aria-label="LinkedIn" style={iconLink}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+            </a>
           )}
-          {/* ★スマホだけの「…」（2026-10-17）。公式サイト以外のリンクと共有をここにまとめる */}
-          <CompanyMoreMenu
-            companyName={company.name}
-            companyId={company.id}
-            links={[
-              ...(company.careers_url ? [{ label: "採用情報", href: company.careers_url }] : []),
-              ...(company.x_url ? [{ label: "X (Twitter)", href: company.x_url }] : []),
-              ...(company.linkedin_url ? [{ label: "LinkedIn", href: company.linkedin_url }] : []),
-            ]}
-          />
-        </div>
+        </span>
+      )}
+      {/* ★スマホだけの「…」（2026-10-17）。公式サイト以外のリンクと共有をここにまとめる */}
+      <CompanyMoreMenu
+        companyName={company.name}
+        companyId={company.id}
+        links={[
+          ...(company.careers_url ? [{ label: "採用情報", href: company.careers_url }] : []),
+          ...(company.x_url ? [{ label: "X (Twitter)", href: company.x_url }] : []),
+          ...(company.linkedin_url ? [{ label: "LinkedIn", href: company.linkedin_url }] : []),
+        ]}
+      />
+    </>
+  );
 
-        <div className="cd-head-info">
-          <h1 className="cd-title">{enName ?? company.name}</h1>
-          {enName && <p style={{ margin: "2px 0 0", fontSize: 14, color: "var(--ink-mute)", overflowWrap: "anywhere" }}>{company.name}</p>}
-          {/* ★運営会社の開示（2026-10-10）。社名のすぐ下に1行 */}
-          {isOwnCompany && <OwnCompanyNote style={{ marginTop: 4 }} />}
-          {company.tagline && (
-            <p style={{ margin: "10px 0 0", fontSize: 15, color: "var(--ink)", lineHeight: 1.75, maxWidth: 640 }}>{company.tagline}</p>
-          )}
-          {meta1.length > 0 && <MetaLine items={meta1} state="company-meta" />}
-          {meta2.length > 0 && <MetaLine items={meta2} state="company-meta2" />}
-        </div>
-      </div>
+  return (
+    <>
+      <DetailHero
+        state="company-header"
+        logo={
+          <CompanyLogo name={company.name} logoUrl={company.logo_url} logoLetter={company.logo_letter}
+            logoGradient={company.gradient} companyUrl={company.url} size={72} borderRadius={14}
+            style={{ border: "1px solid var(--line)" }} />
+        }
+        category={industryLeaf ?? undefined}
+        title={enName ?? company.name}
+        formalName={enName ? company.name : null}
+        /* ★運営会社の開示（2026-10-10） */
+        note={isOwnCompany ? <OwnCompanyNote style={{ marginTop: 4 }} /> : undefined}
+        tagline={company.tagline}
+        chips={chips.length > 0 ? <>{chips.map((c) => <HeroChip key={c}>{c}</HeroChip>)}</> : undefined}
+        meta={meta}
+        actions={actions}
+      />
       {/* ⚠️ style タグの中に不等号・バッククォート・引用符を書かない（サーバーだけが実体参照に変えてハイドレーションが壊れる） */}
       <style>{`
-        .cd-head { overflow: hidden; }
-        .cd-cover-img { display: block; width: 100%; height: 200px; object-fit: cover; }
-        .cd-head-body { padding: 24px 32px 24px; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 16px; align-items: end; }
-        .cd-head-logo { grid-column: 1; grid-row: 1; }
-        .cd-head-logo--over { margin-top: -68px; }
-        .cd-head-actions { grid-column: 2; grid-row: 1; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; }
-        .cd-head-info { grid-column: 1 / -1; grid-row: 2; margin-top: 14px; min-width: 0; }
-        .cd-title { margin: 0; font-size: 28px; font-weight: 700; color: var(--ink); line-height: 1.4; overflow-wrap: anywhere; }
         .cd-links-row { display: inline-flex; }
         .cd-more { display: none; }
         @media (max-width: 767px) {
-          .cd-head-body { padding: 18px 18px 20px; grid-template-columns: minmax(0, 1fr); }
-          .cd-cover-img { height: 120px; }
-          .cd-head-logo--over { margin-top: -56px; }
-          .cd-head-actions { grid-column: 1; grid-row: 3; justify-content: flex-start; margin-top: 16px; }
-          .cd-title { font-size: 22px; }
           .cd-links-row { display: none; }
           .cd-more { display: block; }
         }
       `}</style>
-    </header>
-  );
-}
-
-/** メタ情報の1行。項目の中では折り返さない（「51〜200名」などが途中で切れないように）。
- *  ⚠️ 区切りの「・」は折り返せる側に置く（項目ごと nowrap に入れると、行が折り返せず 375px ではみ出した。2026-11-26） */
-function MetaLine({ items, state }: { items: string[]; state: string }) {
-  return (
-    <p data-state={state} style={{ margin: "8px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-      {items.map((m, i) => (
-        <Fragment key={m}>{i > 0 && <span aria-hidden style={{ margin: "0 8px" }}>・</span>}<span style={{ whiteSpace: "nowrap" }}>{m}</span></Fragment>
-      ))}
-    </p>
+    </>
   );
 }
 
@@ -881,6 +844,11 @@ async function countCompanyFollowers(companyId: string): Promise<number> {
  *   true のとき: 検証用の会社だけを引き、リンクを /t/… に向け、上部に灰色の一行を出す。閲覧は数えない。
  * ⚠️ この公開ページ（ISR）は testMode = false のまま。ここで認証を読まないこと（下の注記）。
  */
+/* ★タブに無いセクションを「働く人」タブとして点ける（OB/OG など。2026-10-03 / 2026-11-26） */
+const NAV_ALIASES: Record<string, string> = {
+  alumni: "company-people", "current-employees": "company-people", "company-flow": "company-people", "company-reasons": "company-people",
+};
+
 export async function renderCompanyDetailPage(params: { id: string }, mode: boolean | { preview: { companyId: string; banner: React.ReactNode } }) {
   /* ★mode: false … 公開ページ ／ true … 検証用アカウント（/t/companies）／ { preview } … 担当者のプレビュー（/biz/company/preview） */
   const preview = typeof mode === "object" ? mode.preview : null;
@@ -1107,11 +1075,10 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
       <div className="cd-page">
         {/* ★パンくずは「企業 ＞ 会社名」（2026-11-26 / 柴さんの指示） */}
         <Breadcrumb items={[{ label: "企業", href: "/companies" }, { label: company.name }]} />
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-4 pt-3 md:px-12">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-4 pt-3 pb-4 md:px-12">
           <CompanyHeader
             company={company}
             detail={detail}
-            coverPhotoUrl={photos[0]?.image_url ?? detail.headerImageUrl ?? null}
             followerCount={followerCount}
             isOwnCompany={ownCompanyId !== null && ownCompanyId === resolvedId}
           />
@@ -1119,9 +1086,10 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
 
         {/* ★タブ（2026-11-26）。ヘッダーカードの下に置き、追従は今までどおり（CompanyStickyNav）。
                ⚠️ 新しいルートは作らない（同じページの中のアンカー）。中身の無いタブは出さない */}
-        <CompanyStickyNav items={[
+        <DetailSectionNav aliases={NAV_ALIASES} items={[
           ...(hasAbout ? [{ id: "about", label: "概要" }] : []),
-          ...(company.job_count > 0 && hasJobs ? [{ id: "jobs", label: "募集", count: company.job_count }] : []),
+          /* ⚠️ タブに数字を入れない（2026-11-26） */
+          ...(company.job_count > 0 && hasJobs ? [{ id: "jobs", label: "募集" }] : []),
           /* ⚠️ 在籍者が1人でもいれば出す（閲覧者ごとの可視件数はサーバーでは分からない。タブは案内なので許容する） */
           ...(hasPeople ? [{ id: "company-people", label: "働く人" }] : []),
           ...(hasWorkEnv ? [{ id: workEnvFirstId, label: "働く環境" }] : []),
@@ -1133,9 +1101,10 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
           /* ★`cd-body` はカードの左右の余白（`--cd-pad-x`）と見出しの位置合わせ（scroll-margin）を決める。globals.css を参照 */
           className="cd-body px-4 md:px-12 pt-5 pb-10 md:pb-12"
         >
-          {/* ⚠️ 1fr ではなく minmax(0,1fr)。サイドバーは追従させない（sticky にしない） */}
-          <div className="cd-cols">
-            <article className="jd-card cd-body-card" data-state="company-body">
+          {/* ★本文はセクションごとに1枚のカード（2026-11-26 / 柴さんの指示。.dt-stack .cd-sec が globals.css で枠を付ける）。
+                 サイドバーは一番上の行動カードだけ貼り付く（.dt-action） */}
+          <div className="dt-cols">
+            <div className="dt-stack" data-state="company-body">
               {/* 1. 企業について → 事業（製品・営業先・事例） */}
               <AboutSection detail={detail} photos={photos} />
               <ProductsClientsSection detail={detail} />
@@ -1198,10 +1167,24 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                   </div>
                 </section>
               )}
-            </article>
+            </div>
 
-            {/* ── サイドバー（1023px 以下は本文カードの下に a → b → c の順で並ぶ）── */}
-            <aside className="cd-side" aria-label="この会社の担当者と会社概要">
+            {/* ── サイドバー（1023px 以下は本文の下に 行動 → a → b → c の順で並ぶ）── */}
+            <aside className="dt-side" aria-label="この会社の募集・担当者と会社概要">
+              {/* ★行動カード（2026-11-26）。募集があれば「募集N件を見る」、無ければ小さいカードでフォローを案内する */}
+              {company.job_count > 0 && hasJobs ? (
+                <div className="jd-card jd-side-card dt-action" data-state="company-action-card">
+                  <a href="#jobs" data-state="company-action-jobs"
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 44, padding: "10px 20px", borderRadius: 10, fontSize: 15, fontWeight: 700, background: "var(--royal)", color: "#fff", textDecoration: "none" }}>
+                    募集{company.job_count}件を見る
+                  </a>
+                </div>
+              ) : (
+                <div className="jd-card jd-side-card dt-action" data-state="company-action-nojobs">
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>受付中の募集はありません</p>
+                  <div style={{ marginTop: 10 }}><FollowButton companyId={company.id} tone="primary" label="フォローして新着を受け取る" /></div>
+                </div>
+              )}
               {/* a. 話せる人（ブラウザで取る。0人ならカードを出さず、担当者の入口だけ） */}
               <CompanyContactsCard
                 companyId={company.id}
@@ -1249,17 +1232,9 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
       {/* ⚠️ style タグの中に不等号・バッククォートを書かない（ハイドレーションが壊れる） */}
       <style>{`
         .cd-page { background: var(--bg-tint); }
-        .cd-cols { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
-        .cd-body-card { overflow: hidden; }
-        .cd-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-        .cd-body-card .cd-sec { border-top: 1px solid var(--line); }
-        .cd-body-card .cd-sec:first-child { border-top: 0; }
         .cd-sec-pad { padding: 28px var(--cd-pad-x, 32px); }
-        .cd-optional { padding: 0 var(--cd-pad-x, 32px); }
+        .cd-people { display: flex; flex-direction: column; gap: 16px; }
         .cd-optional:empty, .cd-people:empty { display: none; }
-        @media (max-width: 1023px) {
-          .cd-cols { grid-template-columns: minmax(0, 1fr); }
-        }
         @media (max-width: 640px) {
           .cd-sec-pad { padding: 22px var(--cd-pad-x, 18px); }
         }

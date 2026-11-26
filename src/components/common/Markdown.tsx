@@ -24,12 +24,9 @@ import { formatJobBody } from "@/lib/jobs/jobBody";
  *    箇条書きの印は「・」にする（企業が書いた印のまま見せ、折り返した行の字下げをそろえる）。
  *    ⚠️ 企業説明・企業記事には使わない（上の決めごとどおり素の markdown。あちらは markdown エディタ）。
  */
-export function Markdown({ children, jobBody = false, sectionHeadings = false }: {
+export function Markdown({ children, jobBody = false }: {
   children: string;
   jobBody?: boolean;
-  /** ★求人ページの本文カード（2026-11-26）。本文の大きな見出しをページのセクション見出しと同じ扱いにする
-   *  （`md-sec` を付け、見た目は呼び出し側の CSS が持つ。区切り線と 19px）。⚠️ 求人ページ以外では使わない */
-  sectionHeadings?: boolean;
 }) {
   const text = jobBody ? formatJobBody(children) : children;
   return (
@@ -40,8 +37,9 @@ export function Markdown({ children, jobBody = false, sectionHeadings = false }:
           p: ({ children }) => (
             <p style={{ margin: "0 0 14px", fontSize: 15, color: "var(--ink)", lineHeight: 1.85, fontFamily: "var(--font-inter), var(--font-noto)" }}>{children}</p>
           ),
-          h1: ({ children }) => sectionHeadings ? <h2 className="md-sec">{children}</h2> : <h3 style={H}>{children}</h3>,
-          h2: ({ children }) => sectionHeadings ? <h2 className="md-sec">{children}</h2> : <h3 style={H}>{children}</h3>,
+          /* ★求人の本文の「■◯◯」は h3・16px の小見出し（2026-11-26。カードの見出し「仕事内容」の下に入る） */
+          h1: ({ children }) => <h3 style={H}>{children}</h3>,
+          h2: ({ children }) => <h3 style={H}>{children}</h3>,
           h3: ({ children }) => <h4 style={{ ...H, fontSize: 15 }}>{children}</h4>,
           ul: ({ children }) => <ul style={jobBody ? DOT_LIST : LIST}>{children}</ul>,
           ol: ({ children }) => <ol style={LIST}>{children}</ol>,

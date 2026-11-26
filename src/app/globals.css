@@ -2731,6 +2731,26 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
   .cd-body { --cd-pad-x: 24px; }
 }
 
+/* ── ★企業詳細・募集詳細の2カラムと本文のカード（2026-11-26 / 柴さんの指示。2ページ共通）──
+   本文はセクションごとに1枚のカード（.dt-card ＝ SectionCard。企業ページの .cd-sec も同じ見た目にする）。
+   サイドバーは 320px。一番上の行動カード（.dt-action）だけ、1024px 以上でヘッダーとタブの下に貼り付く。
+   ⚠️ 貼り付けるには .dt-side が行の高さまで伸びている必要がある（align-self: stretch）。外さないこと。
+   ⚠️ 1fr ではなく minmax(0,1fr)（長い英数字で列が広がり、375px ではみ出すのを防ぐ）。 */
+.dt-cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+.dt-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.dt-card { padding: 28px var(--cd-pad-x, 32px); }
+.dt-stack .cd-sec { background: #fff; border: 1px solid var(--line); border-radius: 14px; }
+.dt-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; align-self: stretch; }
+@media (min-width: 1024px) {
+  .dt-action { position: sticky; top: 132px; z-index: 5; }
+}
+@media (max-width: 1023px) {
+  .dt-cols { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .dt-card { padding: 22px var(--cd-pad-x, 18px); }
+}
+
 /* ── ★企業ページの固定タブの貼り付く位置（2026-10-29）──────────────────────
    ヘッダーの実高は全幅で 61px（中身 60 ＋ 下線 1）。68px だと7pxの隙間ができ、
    スクロールすると本文の文字が隙間から透けて見えていた。
