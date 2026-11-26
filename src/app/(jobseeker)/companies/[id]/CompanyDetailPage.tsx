@@ -836,7 +836,8 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
       .eq("company_id", companyId).eq("is_published", true).order("sort_order", { ascending: true }),
   ]);
   if (externalLinksResult.error) console.error("[company-detail] external_links:", externalLinksResult.error.message);
-  const externalLinks: ExternalLink[] = (externalLinksResult.data ?? []) as ExternalLink[];
+  /* ⚠️ http(s) 以外の URL は数えない（ExternalLinksSection が描かないので、タブだけ出るのを防ぐ） */
+  const externalLinks: ExternalLink[] = ((externalLinksResult.data ?? []) as ExternalLink[]).filter((l) => /^https?:\/\//i.test(l.url ?? ""));
   /* ★人の流れの件数だけの形（2026-10-27）。出せる項目が無ければ null（見出しごと出さない） */
   const flowSummary = hasAnyFlowItem(companyFlow) ? toFlowSummary(companyFlow!) : null;
 

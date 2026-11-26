@@ -216,7 +216,21 @@ function accountName(l: ExternalLink, kindLabel: string): string {
   return raw.startsWith(kindLabel + " ") ? raw.slice(kindLabel.length + 1) : raw;
 }
 
-export function ExternalLinksSection({ links }: { links: ExternalLink[] }) {
+/** http(s) の URL だけ通す。⚠️ 企業の管理者も RLS でこの表を書けるので、javascript: などを href に入れない */
+function safeHttpUrl(u: string): string | null {
+  try {
+    const p = new URL(u);
+    return p.protocol === "https:" || p.protocol === "http:" ? p.href : null;
+  } catch {
+    return null;
+  }
+}
+
+export function ExternalLinksSection({ links: rawLinks }: { links: ExternalLink[] }) {
+  const links = rawLinks.flatMap((l) => {
+    const url = safeHttpUrl(l.url);
+    return url ? [{ ...l, url }] : [];
+  });
   if (links.length === 0) return null;
   return (
     <SectionCard id="official-links" state="company-official-links" title="公式の発信">
