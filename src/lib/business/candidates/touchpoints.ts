@@ -14,7 +14,7 @@ import { fitText, type FitFact } from "@/lib/evidence/fit";
 import { RANK_LABELS } from "@/lib/constants/careerOptions";
 import { rankOrder } from "@/lib/constants/jobFit";
 import { phaseLabel } from "@/lib/constants/phase";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 export type { TouchpointMaterials };
 
 /**
@@ -94,7 +94,7 @@ type Exp = {
   role_category_id: string | null; started_at: string | null; ended_at: string | null;
   is_current: boolean; visibility_company: string | null;
   companyName: string | null;
-  /** ★画面に出す社名（companyDisplayName。「SmartHR」など）。⚠️ 突き合わせには companyName を使う（こちらは表示だけ） */
+  /** ★画面に出す社名（companyBrandName。「SmartHR」など）。⚠️ 突き合わせには companyName を使う（こちらは表示だけ） */
   companyShortName: string | null;
   /** 役職（RANKS の値）。⚠️ 会社を伏せた職歴でも使う（職種と同じく、伏せる対象は社名） */
   rank: string | null;
@@ -177,7 +177,7 @@ export async function getCompanyCandidateTouchpoints(
   const [expR, empUsersR] = await Promise.all([
     /* ★id を分けて、1,000 行ずつ最後まで引く（2026-10-19） */
     inChunks(allUserIds, (part, from, to) => db.from("ow_experiences")
-      .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, rank, ow_companies!company_id(name, name_en, industry_id, phase)")
+      .select("id, user_id, company_id, company_text, role_category_id, started_at, ended_at, is_current, visibility_company, rank, ow_companies!company_id(name, name_en, brand_name, industry_id, phase)")
       .in("user_id", part).order("id").range(from, to), "touchpoints exps"),
     inChunks(empIds, (part, from, to) => db.from("ow_users").select("id, auth_id, is_test, is_system, visibility, statistics_opt_out").in("id", part).order("id").range(from, to), "touchpoints emp users"),
   ]);
@@ -188,7 +188,7 @@ export async function getCompanyCandidateTouchpoints(
   const industryOfCompany = new Map<string, string | null>();
   const expsByUser = new Map<string, Exp[]>();
   for (const e of (expR.data ?? []) as Record<string, unknown>[]) {
-    const co = e.ow_companies as { name: string | null; name_en: string | null; industry_id: string | null; phase: string | null } | null;
+    const co = e.ow_companies as { name: string | null; name_en: string | null; brand_name: string | null; industry_id: string | null; phase: string | null } | null;
     if (e.company_id) industryOfCompany.set(e.company_id as string, co?.industry_id ?? null);
     const row: Exp = {
       id: e.id as string, user_id: e.user_id as string,
@@ -197,7 +197,7 @@ export async function getCompanyCandidateTouchpoints(
       started_at: (e.started_at as string | null) ?? null, ended_at: (e.ended_at as string | null) ?? null,
       is_current: e.is_current === true, visibility_company: (e.visibility_company as string | null) ?? "real",
       companyName: (co?.name ?? (e.company_text as string | null) ?? "").trim() || null,
-      companyShortName: co?.name ? companyDisplayName(co.name, co.name_en).displayName : ((e.company_text as string | null) ?? "").trim() || null,
+      companyShortName: co?.name ? companyBrandName({ name: co.name, name_en: co.name_en, brand_name: co.brand_name }) : ((e.company_text as string | null) ?? "").trim() || null,
       rank: (e.rank as string | null) ?? null,
       companyPhase: co?.phase ?? null,
     };

@@ -16,7 +16,7 @@ import { pickLpCompanies } from "@/lib/lp/pickCompanies";
 import { filterListedCompanies } from "@/lib/companies/visibility";
 import { fetchBusinessDomainsByCompany } from "@/lib/supabase/queries";
 import { primaryBusinessDomain } from "@/types/genre";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 /* ★記事セクション（2026-09-20）。⚠️★**`/articles` と同じ取得経路を使う。**
       `getArticles()` は `published_at DESC`（新着順）で、`unstable_cache` 済み。
       ⚠️ ダミーデータを作らないこと（`mockArticleData` の `MOCK_ARTICLES` は
@@ -230,7 +230,7 @@ export default async function HomePage() {
   const respondingForCards = await respondingCompanyIds(Array.from(jobByCompanyAll.keys()), "HomePage カード");
   const jobByCompany = new Map(Array.from(jobByCompanyAll.entries()).filter(([id]) => respondingForCards.has(id)));
 
-  /* ★表示名は `companyDisplayName()` に寄せた（2026-09-16）。
+  /* ★表示名は `companyDisplayName()` に寄せた（2026-09-16）（2026-11-27 から `companyBrandName()`。brand_name を優先し、空なら英語社名・短い社名に倒す）。
         ⚠️★**`brand_name ?? name` に戻さないこと。** 2つ壊れていた:
           ① **`brand_name` に空文字の行がある**（株式会社Opinio）。`??` は空文字を拾わないので
              **カードの社名が空のまま**出ていた。しかも `updated_at` が最新で**必ず先頭**だった
@@ -239,12 +239,12 @@ export default async function HomePage() {
              「HubSpot」「Sansan株式会社」「HPE」「CTC」が同じ一覧に混在していた
         ⚠️ `displayName.ts` の冒頭にも「新しく企業名を表示する箇所を作るときは必ずここを通すこと」
            と書いてある。**LP はそれを通っていない唯一の画面だった。**
-        ⚠️ 副作用: 伊藤忠テクノソリューションズが「CTC」→「ITOCHU Techno-Solutions」になる。
+        ⚠️ 副作用: 伊藤忠テクノソリューションズが「CTC」→「ITOCHU Techno-Solutions」になる（2026-11-27 に brand_name を優先して「CTC」に戻った）。
            `/companies` と一致する側に揃えた（柴さんの判断）。 */
   const companies: LPCompanyCard[] = companyRows.map((c) => ({
     id: c.id,
     slug: c.slug,
-    name: companyDisplayName(c.name, c.name_en).displayName,
+    name: companyBrandName(c),
     businessDomain: primaryBusinessDomain(previewDomains.get(c.id))?.name ?? null,
     phase: c.phase,
     logoUrl: c.logo_url,
@@ -269,15 +269,15 @@ export default async function HomePage() {
   const jobCompanyIds = Array.from(new Set(jobRows.map((j) => j.company_id).filter(Boolean)));
   const companyNameById = new Map<string, string>();
   if (jobCompanyIds.length > 0) {
-    /* ⚠️ 表示名は企業カードと同じ `companyDisplayName()` を通す（2026-09-16）。
+    /* ⚠️ 表示名は企業カードと同じ `companyBrandName()` を通す（2026-09-16。2026-11-27 に関数名を変えた）。
           同じページの中で社名の作り方を2つ持たない。 */
     const { data, error } = await db
       .from("ow_companies")
-      .select("id, name, name_en")
+      .select("id, name, name_en, brand_name")
       .in("id", jobCompanyIds);
     if (error) console.error("[HomePage] job companies fetch failed:", error.message);
-    for (const c of (data ?? []) as { id: string; name: string; name_en: string | null }[]) {
-      companyNameById.set(c.id, companyDisplayName(c.name, c.name_en).displayName);
+    for (const c of (data ?? []) as { id: string; name: string; name_en: string | null; brand_name: string | null }[]) {
+      companyNameById.set(c.id, companyBrandName(c));
     }
   }
 
@@ -399,7 +399,7 @@ export default async function HomePage() {
   const { data: articleCompanyRows, error: articleCompanyErr } = articleCompanySlugs.length > 0
     ? await db
         .from("ow_companies")
-        .select("slug, name, name_en, logo_url, logo_letter, logo_gradient, url")
+        .select("slug, name, name_en, brand_name, logo_url, logo_letter, logo_gradient, url")
         .in("slug", articleCompanySlugs)
     : { data: [], error: null };
   /* ⚠️ error を捨てない。捨てるとロゴと社名が黙って空になる（CLAUDE.md） */
@@ -415,12 +415,12 @@ export default async function HomePage() {
       slug: a.slug,
       type: a.type,
       title: a.title,
-      /* ⚠️★社名は `companyDisplayName()` を通す。**`brand_name` を直接読まない** ——
+      /* ⚠️★社名は `companyBrandName()` を通す。**`brand_name ?? name` と素で書かない** ——
             株式会社Opinio は `brand_name` が空文字で、`brand_name ?? name` だと
             **空文字を拾って社名が消える**（docs/phase0-top-page-20260916.md ★2）。
          ⚠️ 企業セクション（上の `companies`）も同じ関数を通している。揃えること。 */
       companyName: c
-        ? companyDisplayName(c.name as string, c.name_en as string | null).displayName
+        ? companyBrandName({ name: c.name as string, name_en: (c.name_en as string | null) ?? null, brand_name: (c.brand_name as string | null) ?? null })
         : a.company_name,
       logoUrl: (c?.logo_url as string | null) ?? null,
       logoLetter: (c?.logo_letter as string | null) ?? null,

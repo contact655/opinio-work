@@ -1,5 +1,5 @@
 "use client";
-import { brandOrName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -107,10 +107,10 @@ export function FollowsClient({ companies, users }: { companies: FollowedCompany
               <FollowRow key={c.id} href={c.no_link ? null : `/companies/${c.slug ?? c.id}`} gone={c.gone_label}>
                 <CompanyLogoImg
                   logoUrl={c.logo_url} logoLetter={c.logo_letter} logoGradient={c.logo_gradient}
-                  name={brandOrName(c.brand_name, c.name)} size={40} borderRadius={8}
+                  name={companyBrandName(c)} size={40} borderRadius={8}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={NAME}>{brandOrName(c.brand_name, c.name)}</div>
+                  <div style={NAME}>{companyBrandName(c)}</div>
                   {c.industry && <div style={SUB}>{c.industry}</div>}
                 </div>
                 {c.gone_label && <GoneTag label={c.gone_label} />}

@@ -1,6 +1,6 @@
 import "server-only";
 import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { interestCountBand, trendItems } from "@/lib/interest/constants";
 import { filterCompaniesWithRespondingStaff } from "@/lib/companies/respondingStaff";
 
@@ -54,7 +54,7 @@ export async function loadInterestWaiting(): Promise<InterestWaitingRow[] | null
   const companyIds = Array.from(new Set(list.map((r) => r.company_id)));
   const userIds = Array.from(new Set(list.map((r) => r.user_id)));
   const [comp, exps, roles, inds] = await Promise.all([
-    db.from("ow_companies").select("id, name, name_en, slug, is_test").in("id", companyIds),
+    db.from("ow_companies").select("id, name, name_en, brand_name, slug, is_test").in("id", companyIds),
     db.from("ow_experiences").select("user_id, company_id, role_category_id, is_current, started_at").in("user_id", userIds),
     db.from("ow_roles").select("id, name, parent_id"),
     db.from("ow_industries").select("id, name, parent_id"),
@@ -95,7 +95,7 @@ export async function loadInterestWaiting(): Promise<InterestWaitingRow[] | null
     byCompany.set(r.company_id, g);
   }
 
-  const compById = new Map(((comp.data ?? []) as { id: string; name: string; name_en: string | null; slug: string | null; is_test: boolean }[]).map((c) => [c.id, c]));
+  const compById = new Map(((comp.data ?? []) as { id: string; name: string; name_en: string | null; brand_name: string | null; slug: string | null; is_test: boolean }[]).map((c) => [c.id, c]));
   const out: InterestWaitingRow[] = [];
   for (const [companyId, g] of Array.from(byCompany.entries())) {
     const c = compById.get(companyId);
@@ -110,7 +110,7 @@ export async function loadInterestWaiting(): Promise<InterestWaitingRow[] | null
     }
     out.push({
       companyId,
-      name: c ? companyDisplayName(c.name, c.name_en).displayName : "（企業が見つかりません）",
+      name: c ? companyBrandName(c) : "（企業が見つかりません）",
       slug: c?.slug ?? null,
       isTest: c?.is_test === true,
       count: g.users.length,

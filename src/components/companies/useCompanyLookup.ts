@@ -43,7 +43,7 @@ import { useCallback, useRef, useState } from "react";
     ⚠️ ロゴ・業種・従業員数は**返らない**。 */
 export type CompanyLookupResult = {
   id: string;
-  /** ★表示名（`companyDisplayName`）。「Adobe」「テスト」のように法人格を落とした形 */
+  /** ★表示名（`companyBrandName`）。ブランド名、無ければ「Adobe」「テスト」のように法人格を落とした形 */
   name: string;
   /**
    * ★正式名（登記の商号）。**表示名と違うときだけ入る**（2026-09-28）。

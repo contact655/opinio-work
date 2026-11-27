@@ -1,4 +1,4 @@
-import { brandOrName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { announcementsInStream } from "@/lib/feed/streamMode";
 import { nextFeedPage } from "@/lib/feed/cursor";
 import "server-only";
@@ -25,7 +25,7 @@ import { getCareerMoveBlocks, type CareerMoveBlock } from "@/lib/feed/careerMove
  * ⚠️ 中身は切り出す前の FeedPage と同じ。ホームの見え方を変えるときはここを直す
  */
 // サイドバー用型（FeedClient が import する。page.tsx からも再 export している）
-export type SidebarFollow = { id: string; slug: string | null; name: string; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null };
+export type SidebarFollow = { id: string; slug: string | null; name: string; name_en?: string | null; brand_name: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null };
 export type SidebarUserFollow = { id: string; name: string; avatar_color: string | null; avatar_url: string | null; role_title: string | null; company_name: string | null };
 export type SidebarJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; salary_negotiable: boolean; employment_type: string | null; companyName: string | null };
 /** 右レール「掲載中の企業」。ディレクトリに載っている企業から先頭3社 */
@@ -44,9 +44,9 @@ function flattenRefCompany(co: any): any {
   return { ...rest, industry: links.find((l) => l.is_primary)?.ow_business_domains?.name ?? null };
 }
 
-export type SidebarCompany = { id: string; slug: string | null; name: string; brand_name?: string | null; tagline: string | null; industry: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null };
+export type SidebarCompany = { id: string; slug: string | null; name: string; name_en?: string | null; brand_name?: string | null; tagline: string | null; industry: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null };
 
-type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; /* ⚠️ company_joined の本文位置に出す（2026-08-13）。content は使わない */ tagline: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry: string | null; employee_count: string | null; location: string | null; founded_year: number | null; /* ⚠️ 取り下げた企業の告知を出さないための判定に使う（isCompanyPostAlive・2026-08-13） */ is_published: boolean | null; is_test: boolean | null; /* ★「新しく掲載された企業」の枠は掲載中だけ（2026-10-26。FeedClient の buildHomeRailItems） */ listing_status?: string | null } | null;
+type RefCompany = { id: string; slug?: string | null; name: string; name_en?: string | null; brand_name: string | null; /* ⚠️ company_joined の本文位置に出す（2026-08-13）。content は使わない */ tagline: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry: string | null; employee_count: string | null; location: string | null; founded_year: number | null; /* ⚠️ 取り下げた企業の告知を出さないための判定に使う（isCompanyPostAlive・2026-08-13） */ is_published: boolean | null; is_test: boolean | null; /* ★「新しく掲載された企業」の枠は掲載中だけ（2026-10-26。FeedClient の buildHomeRailItems） */ listing_status?: string | null } | null;
 type RefJob = { id: string; slug?: string | null; title: string; status?: string | null; is_test?: boolean | null; salary_min: number | null; salary_max: number | null; work_style: string | null; company: RefCompany } | null;
 /* ⚠️ `ow_articles` に画像カラムは1つも無い（2026-08-13 に全28列を確認）。
       サムネイルは作れないので、記事ごとに違う `eyecatch_gradient` /
@@ -120,8 +120,8 @@ export async function loadFeedProps() {
       image_url, link_url, link_title, link_image_url, link_description, link_domain,
       event_title, event_starts_at, event_location, created_at, visibility,
       user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system, is_test),
-      ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, tagline, logo_letter, logo_gradient, logo_url, employee_count, employee_count_band, location, founded_year, is_published, is_test, listing_status, ow_company_business_domains(is_primary, ow_business_domains(name))),
-      ref_job:ow_jobs!ref_job_id(id, slug, title, status, is_test, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, is_test)),
+      ref_company:ow_companies!ref_company_id(id, slug, name, name_en, brand_name, tagline, logo_letter, logo_gradient, logo_url, employee_count, employee_count_band, location, founded_year, is_published, is_test, listing_status, ow_company_business_domains(is_primary, ow_business_domains(name))),
+      ref_job:ow_jobs!ref_job_id(id, slug, title, status, is_test, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, name_en, brand_name, logo_letter, logo_gradient, logo_url, is_test)),
       ref_article:ow_articles!ref_article_id(id, slug, title, is_published, eyecatch_gradient, company_initial_text, company_gradient_text, company_name_text, company:ow_companies!company_id(is_test)),
       likes:ow_post_likes(count),
       comments:ow_post_comments(count)
@@ -284,7 +284,7 @@ export async function loadFeedProps() {
     myOwUserId
       ? adminSupabase
           .from("ow_company_follows")
-          .select("ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url)")
+          .select("ow_companies!company_id(id, slug, name, name_en, brand_name, logo_letter, logo_gradient, logo_url)")
           .eq("follower_user_id", myOwUserId)
       : Promise.resolve({ data: [] }),
     // (a2) フォロー中のユーザー (全件)
@@ -343,13 +343,13 @@ export async function loadFeedProps() {
           ⚠️ `try/catch` では捕まらない。supabase-js はエラーを**戻り値**で返す。 */
     const { data: jobRows, error: jobRowsErr } = await adminSupabase
       .from("ow_jobs")
-      .select("id, slug, title, salary_min, salary_max, salary_negotiable, employment_type, company_id, ow_companies!company_id(name, brand_name)")
+      .select("id, slug, title, salary_min, salary_max, salary_negotiable, employment_type, company_id, ow_companies!company_id(name, name_en, brand_name)")
       .in("id", bookmarkedJobIds)
       .match(PUBLIC_JOB_MATCH);
     if (jobRowsErr) console.error("[feed/(list)] ow_jobs:", jobRowsErr.message);
     /* ★担当者がいない会社の求人は出さない（2026-10-27。lib/jobs/respondingJobs.ts） */
     sidebarSavedJobs = (await keepJobsAtRespondingCompanies((jobRows ?? []) as Record<string, unknown>[] as { company_id: string | null }[], "feed 保存した求人") as unknown as Record<string, unknown>[]).map((j: Record<string, unknown>) => {
-      const co = j["ow_companies"] as { name: string; brand_name: string | null } | null;
+      const co = j["ow_companies"] as { name: string; name_en: string | null; brand_name: string | null } | null;
       return {
         id: j.id as string,
         slug: (j.slug as string | null) ?? null,
@@ -358,7 +358,7 @@ export async function loadFeedProps() {
         salary_max: j.salary_max as number | null,
         salary_negotiable: j.salary_negotiable === true,
         employment_type: (j.employment_type as string | null) ?? null,
-        companyName: co ? brandOrName(co.brand_name, co.name) : null,
+        companyName: co ? companyBrandName(co) : null,
       };
     });
   }
@@ -368,7 +368,7 @@ export async function loadFeedProps() {
     adminSupabase, listedCompanies.companies.map((c) => c.id), "feed sidebar",
   );
   const sidebarCompanies: SidebarCompany[] = listedCompanies.companies.map((c) => ({
-    id: c.id, slug: c.slug, name: c.name, tagline: c.tagline || null,
+    id: c.id, slug: c.slug, name: c.name, name_en: c.name_en, brand_name: c.brand_name, tagline: c.tagline || null,
     industry: primaryBusinessDomain(sidebarDomains.get(c.id))?.name ?? null,
     logo_letter: c.logo_letter, logo_gradient: c.logo_gradient, logo_url: c.logo_url,
   }));

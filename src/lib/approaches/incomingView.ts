@@ -1,5 +1,5 @@
 import "server-only";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { TEST_JOB_LISTED_NOTE } from "@/lib/jobs/publicJobs";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 import { listIncomingApproaches } from "@/lib/approaches/server";
@@ -24,7 +24,7 @@ export async function loadIncomingApproachViews(owUserId: string): Promise<Incom
     body: a.body,
     senderName: a.senderName,
     senderRole: a.senderRole,
-    companyName: companyDisplayName(a.company.name, a.company.nameEn).displayName,
+    companyName: companyBrandName({ name: a.company.name, name_en: a.company.nameEn, brand_name: a.company.brandName }),
     /* ★見ている人と会社がどちらも検証用なら、社名は文字だけ（企業ページは開かない。`companyLinkStateFor`） */
     companyHref: a.company.linkState === "open" ? `/companies/${a.company.slug ?? a.company.id}` : null,
     isOwnCompany: ownCompanyId !== null && a.company.id === ownCompanyId,

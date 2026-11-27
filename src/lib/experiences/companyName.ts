@@ -1,4 +1,4 @@
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 /**
  * ow_experiences の会社名を解決する共通ヘルパー。
  *
@@ -33,7 +33,7 @@ export type ExperienceCompanyRow = {
   company?: CompanyRel | CompanyRel[] | null;
 };
 
-type CompanyRel = { name?: string | null; name_en?: string | null };
+type CompanyRel = { name?: string | null; name_en?: string | null; brand_name?: string | null };
 
 /** PostgREST は to-one でもクライアント設定次第で配列を返すことがあるため両方受ける */
 function firstRel(rel: CompanyRel | CompanyRel[] | null | undefined): CompanyRel | null {
@@ -53,7 +53,7 @@ function firstRel(rel: CompanyRel | CompanyRel[] | null | undefined): CompanyRel
 function masterDisplayName(rel: CompanyRel | CompanyRel[] | null | undefined): string | null {
   const c = firstRel(rel);
   if (!c?.name) return null;
-  return companyDisplayName(c.name, c.name_en).displayName;
+  return companyBrandName({ name: c.name, name_en: c.name_en, brand_name: c.brand_name });
 }
 
 /**
@@ -141,7 +141,7 @@ export function isPlaceholderCompanyName(name: string | null | undefined): boole
 }
 
 export const EXPERIENCE_COMPANY_COLS =
-  /* ⚠️ `name_en` も取る。表示名は `companyDisplayName` が name_en 優先で作るため、
+  /* ⚠️ `name_en` も取る。表示名は `companyBrandName` が brand_name → name_en の順で作るため、
         取り忘れると経歴だけ正式名称（「株式会社セールスフォース・ジャパン」）に戻る。 */
   /* ⚠️★★**`!company_id` を必ず書く**（2026-09-12 に本番で踏んだ）。
         `ow_experiences` は `company_id` と **`secondment_company_id`（出向先）** の
@@ -152,4 +152,4 @@ export const EXPERIENCE_COMPANY_COLS =
            **ユーザー一覧から3人が消え、候補者一覧の会社名が全員空**になった。
         ⚠️ 出向先を引きたいときは `ow_companies!secondment_company_id(...)`。
            **無印に戻さないこと。** */
-  "company_id, company_text, company_anonymized, ow_companies!company_id(name, name_en)";
+  "company_id, company_text, company_anonymized, ow_companies!company_id(name, name_en, brand_name)";

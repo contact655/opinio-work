@@ -103,7 +103,7 @@ export async function markPublished(jobId: string, opts: { actorOwUserId: string
   }
   /* ★フィードの「求人を公開しました」。⚠️ 1求人1件（2回目以降は 23505 で入らない） */
   try {
-    const { data: co } = await db.from("ow_companies").select("name, brand_name").eq("id", companyId).maybeSingle();
+    const { data: co } = await db.from("ow_companies").select("name, name_en, brand_name").eq("id", companyId).maybeSingle();
     const { error: feedErr } = await db.from("ow_posts").insert(buildJobPostedRow(jobId, companyId, co ?? {}, { title: cur.title as string | null }));
     if (feedErr && feedErr.code !== "23505") console.error("[publishServer] feed job_posted:", feedErr.message);
   } catch (e) {

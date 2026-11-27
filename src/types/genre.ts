@@ -89,6 +89,8 @@ export type CompanyForCarousel = {
   slug?: string | null;             // URL-safe slug（例: "salesforce"）。null の場合は id で代替
   name: string;
   name_en?: string | null;             // 英語社名（ブランド表記用）
+  /** ★ブランド名（companyBrandName が最初に見る）。select に入れ忘れると英語社名・短い社名に倒れる */
+  brand_name?: string | null;
   tagline: string | null;              // 企業キャッチコピー（1行）
   industry: string | null;
   funding_stage: string | null;

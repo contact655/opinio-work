@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import CoverageClient, { type CoverageRow, type AddressSource } from "./CoverageClient";
 import { COVERAGE_COLUMNS } from "./columns";
 import type { CompanySourceKind } from "@/lib/constants/companySources";
+import { companyBrandName } from "@/lib/companies/displayName";
 
 /**
  * 企業データの充填状況一覧（運営の作業管理用）。
@@ -38,7 +39,7 @@ function isFilled(v: unknown): boolean {
 export default async function CoveragePage() {
   const supabase = createAdminClient();
 
-  const cols = ["id", "slug", "name", "brand_name", "is_test", ...COVERAGE_COLUMNS.map((c) => c.key)].join(", ");
+  const cols = ["id", "slug", "name", "name_en", "brand_name", "is_test", ...COVERAGE_COLUMNS.map((c) => c.key)].join(", ");
   /* ⚠️ 検証用の企業は一覧から外すが、**件数は必ず出す**（2026-08-12）。
         完全に消すと「見えていないだけ」を自分で作ることになる。
         ow_jobs で「テスト」タブを残したのと同じ考え方。 */
@@ -99,7 +100,7 @@ export default async function CoveragePage() {
     return {
       id: c.id as string,
       slug: (c.slug as string | null) ?? null,
-      name: (c.brand_name as string | null)?.trim() || (c.name as string),
+      name: companyBrandName({ name: c.name as string, name_en: (c.name_en as string | null) ?? null, brand_name: (c.brand_name as string | null) ?? null }),
       filled,
       filledCount: Object.values(filled).filter(Boolean).length,
       /* ⚠️ 住所が入っているのに出典が無い ＝ **今日以降に足されて記録し忘れた**行。

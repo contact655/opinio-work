@@ -1,5 +1,5 @@
 "use client";
-import { brandOrName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 
 import { listAddress } from "@/lib/jobs/heroFacts";
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -144,13 +144,13 @@ export function JobCardGrid({
                  行き先を作ると押し分けられない）。1列のカードでは押せるが、
                  あちらは行が広くて余白があり、誤爆しにくい。 */}
           <span
-            title={brandOrName((company as unknown as { brand_name?: string }).brand_name, company.name)}
+            title={companyBrandName(company)}
             style={{
               fontSize: 13, color: "var(--royal)", fontWeight: 700,
               minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}
           >
-            {brandOrName((company as unknown as { brand_name?: string }).brand_name, company.name)}
+            {companyBrandName(company)}
           </span>
         </div>
 

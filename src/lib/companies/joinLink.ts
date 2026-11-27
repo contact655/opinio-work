@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 
 /**
  * ★会社ごとの招待リンク（/join/<slug>。2026-10-12 / 柴さんの指示）。
@@ -32,10 +32,10 @@ export async function findJoinCompany(slugOrId: string): Promise<{ id: string } 
 export async function resolveJoinCompany(companyId: string | undefined | null, viewerIsTest: boolean): Promise<{ id: string; name: string; isListed: boolean } | null> {
   if (!companyId || !/^[0-9a-f-]{36}$/i.test(companyId)) return null;
   const { data: c, error } = await createAdminClient().from("ow_companies")
-    .select("id, name, name_en, is_test, listing_status").eq("id", companyId).maybeSingle();
+    .select("id, name, name_en, brand_name, is_test, listing_status").eq("id", companyId).maybeSingle();
   if (error) { console.error("[joinLink] resolve:", error.message); return null; }
   if (!c || (c.is_test === true) !== viewerIsTest) return null;
-  return { id: c.id as string, name: companyDisplayName(c.name as string, c.name_en as string | null).displayName, isListed: c.listing_status === "listed" };
+  return { id: c.id as string, name: companyBrandName({ name: c.name as string, name_en: (c.name_en as string | null) ?? null, brand_name: (c.brand_name as string | null) ?? null }), isListed: c.listing_status === "listed" };
 }
 
 /** 招待リンクから登録した人を記録する（1人1社1行・何度呼んでも増えない）。失敗しても画面は止めない */

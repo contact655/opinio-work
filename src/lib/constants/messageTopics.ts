@@ -7,7 +7,7 @@
  * ⚠️ 出し分けは `topicsFor()` の1か所。画面側で条件を書かない。
  */
 
-import { companyDisplayName, stripLegalSuffix } from "@/lib/companies/displayName";
+import { companyBrandName, stripLegalSuffix } from "@/lib/companies/displayName";
 
 export type MessageTopicGroup = "company" | "career" | "hiring" | "join";
 
@@ -133,8 +133,8 @@ export function requestHeadline(value: MessageTopic | null, aboutCompanyName?: s
 
 /** 埋め込みで取った「どの会社の話か」を表示名にする（一覧・詳細・届いたものの3か所で同じ形） */
 export function requestCompanyName(v: unknown): string | null {
-  const c = (Array.isArray(v) ? v[0] : v) as { name?: string; name_en?: string | null } | null | undefined;
-  return c?.name ? companyDisplayName(c.name, c.name_en ?? null).displayName : null;
+  const c = (Array.isArray(v) ? v[0] : v) as { name?: string; name_en?: string | null; brand_name?: string | null } | null | undefined;
+  return c?.name ? companyBrandName({ name: c.name, name_en: c.name_en, brand_name: c.brand_name }) : null;
 }
 
 /**

@@ -6,6 +6,7 @@ import { requireBizAction } from "@/lib/auth/companyAccess";
 import { isCompanyRole, ROLE_LABELS, type CompanyRole } from "@/lib/auth/roles";
 import { sendEmail } from "@/lib/notify/email";
 import { joinRequestApprovedTemplate } from "@/lib/notify/templates";
+import { companyBrandName } from "@/lib/companies/displayName";
 
 /**
  * ★企業の管理者が「担当者に追加してください」という依頼を承認・見送る（2026-10-18 / 柴さんの指示）。
@@ -128,14 +129,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   /* 本人に知らせる。best-effort（追加そのものは済んでいる）。⚠️ 黙らない */
   const [{ data: user }, { data: company }] = await Promise.all([
     admin.from("ow_users").select("name, email").eq("id", userId).maybeSingle(),
-    admin.from("ow_companies").select("name, brand_name").eq("id", companyId).maybeSingle(),
+    admin.from("ow_companies").select("name, name_en, brand_name").eq("id", companyId).maybeSingle(),
   ]);
   if (user?.email) {
     try {
       await sendEmail(joinRequestApprovedTemplate({
         to: user.email as string,
         requesterName: (user.name as string | null) ?? "",
-        companyName: (company?.brand_name as string | null) ?? (company?.name as string | null) ?? "貴社",
+        companyName: company?.name ? companyBrandName({ name: company.name as string, name_en: (company.name_en as string | null) ?? null, brand_name: (company.brand_name as string | null) ?? null }) : "貴社",
         roleLabel: ROLE_LABELS[permission],
       }));
     } catch (e) {

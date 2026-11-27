@@ -8,7 +8,7 @@ import { notifyNewMessage } from "@/lib/notify/messageNotification";
 import { notify } from "@/lib/notify/email";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
 import { meetingCanceledTemplate, meetingConfirmedTemplate } from "@/lib/notify/templates";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { buildMeetingIcs } from "@/lib/meetings/ics";
 import { proposalConversationIds } from "@/lib/evidence/companyProposals";
 import {
@@ -176,9 +176,9 @@ async function sendConfirmedEmails(params: {
     const db = createAdminClient();
     const [{ data: cand }, { data: comp }] = await Promise.all([
       db.from("ow_users").select("name, email").eq("id", params.candidateOwUserId).maybeSingle(),
-      db.from("ow_companies").select("name, name_en").eq("id", params.companyId).maybeSingle(),
+      db.from("ow_companies").select("name, name_en, brand_name").eq("id", params.companyId).maybeSingle(),
     ]);
-    const companyName = comp ? companyDisplayName(comp.name as string, (comp.name_en as string | null) ?? null).displayName : "企業";
+    const companyName = comp ? companyBrandName({ name: comp.name as string, name_en: (comp.name_en as string | null) ?? null, brand_name: (comp.brand_name as string | null) ?? null }) : "企業";
     const whenText = formatMeetingDateTime(params.startsAt);
     const formatLabel = MEETING_FORMATS[params.format];
     const ics = (side: "candidate" | "company") => buildMeetingIcs({
@@ -298,11 +298,11 @@ async function notifyCanceled(params: { conversationId: string; companyId: strin
   try {
     const [{ data: cand }, { data: comp }] = await Promise.all([
       db.from("ow_users").select("email").eq("id", params.candidateOwUserId).maybeSingle(),
-      db.from("ow_companies").select("name, name_en").eq("id", params.companyId).maybeSingle(),
+      db.from("ow_companies").select("name, name_en, brand_name").eq("id", params.companyId).maybeSingle(),
     ]);
     const email = ((cand?.email as string | null) ?? "").trim();
     if (!email) return;
-    const companyName = comp ? companyDisplayName(comp.name as string, (comp.name_en as string | null) ?? null).displayName : "企業";
+    const companyName = comp ? companyBrandName({ name: comp.name as string, name_en: (comp.name_en as string | null) ?? null, brand_name: (comp.brand_name as string | null) ?? null }) : "企業";
     const tpl = meetingCanceledTemplate({ to: email, companyName, whenText: params.whenIso ? formatMeetingDateTime(params.whenIso) : null, conversationId: params.conversationId });
     /* 確定した面談なら、カレンダーから消える .ics（CANCEL）を添える */
     const attachments = params.meetingId && params.whenIso && params.duration

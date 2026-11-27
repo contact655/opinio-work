@@ -4,7 +4,7 @@ import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import { primaryBusinessDomain } from "@/types/genre";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { CompanyInfoBox } from "@/components/companies/CompanyInfoBox";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandNameParts } from "@/lib/companies/displayName";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { MEETING_CTA_BG, MEETING_CTA_FG } from "@/lib/constants/meetingCta";
 import { phaseLabel } from "@/lib/constants/phase";
@@ -59,7 +59,7 @@ export function CompanyPane({
   /** 「詳細を見る」の遷移先。省略時は slug（無ければ id）から組む */
   href?: string;
 }) {
-  const { displayName, isEnName } = companyDisplayName(company.name, company.name_en);
+  const { name: displayName, isLatin: isEnName } = companyBrandNameParts(company);
   const showSubtitle = displayName !== company.name;
   const detailHref = href ?? `/companies/${company.slug ?? company.id}`;
 

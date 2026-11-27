@@ -107,7 +107,7 @@ export async function setCompanyListedBySelf(p: {
 export async function insertCompanyJoined(companyId: string): Promise<void> {
   try {
     const admin = createAdminClient();
-    const { data: co } = await admin.from("ow_companies").select("name, brand_name, tagline").eq("id", companyId).maybeSingle();
+    const { data: co } = await admin.from("ow_companies").select("name, name_en, brand_name, tagline").eq("id", companyId).maybeSingle();
     if (!co) return;
     const { error } = await admin.from("ow_posts").insert(buildCompanyJoinedRow(companyId, co));
     if (error && error.code !== "23505") console.error("[feed company_joined]", error.message);

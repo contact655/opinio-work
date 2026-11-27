@@ -70,7 +70,7 @@ import { BackToTop } from "@/components/jobseeker/BackToTop";
 import { fmtMan, payNegotiableText } from "@/lib/utils/salary";
 import { employeeBandRange, formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { isJobPostAlive, isArticlePostAlive, postRefersToTest } from "@/lib/feed/visibility";
-import { cleanEnName } from "@/lib/companies/displayName";
+import { companyBrandName, companyLegalName } from "@/lib/companies/displayName";
 /* ⚠️ `primaryBusinessDomain` は meta・OGPバッジ・Hero が使う（**1つに絞る場所**）。
       **全部**出すのは `CompanyInfoBox`（サイドバーと本文が共有）で、そちらが
       `orderedBusinessDomains` を持つ。混同しないこと。 */
@@ -342,7 +342,9 @@ function CompanyHeader({
   isOwnCompany?: boolean;
 }) {
   /* ⚠️ 表示名は `@/lib/companies/displayName` に集約した（2026-08-13）。正規表現をここに書き戻さないこと。 */
-  const enName = cleanEnName(company.name_en);
+  /* ★見出しはブランド名、その下に正式社名（2026-11-27。違うときだけ）。⚠️ 見出しに正式社名を戻さないこと */
+  const brandName = companyBrandName(company);
+  const legalName = companyLegalName(company);
   const industryLeaf = detail.industryPath ? detail.industryPath.split(/\s*[›>＞]\s*/).pop() ?? null : null;
   /* ★要点チップ（2026-11-26 / 柴さんの指示）: 企業タイプ／従業員数／設立／資金調達ステージ。事実だけ・値があるものだけ。
      ⚠️ company_features と評価の言葉は出さない（2026-11-26 時点の company_features はすべて一括投入で、企業の入力ではない） */
@@ -437,8 +439,8 @@ function CompanyHeader({
             style={{ border: "1px solid var(--line)" }} />
         }
         category={industryLeaf ?? undefined}
-        title={enName ?? company.name}
-        formalName={enName ? company.name : null}
+        title={brandName}
+        formalName={brandName !== legalName ? legalName : null}
         /* ★運営会社の開示（2026-10-10） */
         note={isOwnCompany ? <OwnCompanyNote style={{ marginTop: 4 }} /> : undefined}
         tagline={company.tagline}

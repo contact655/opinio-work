@@ -32,7 +32,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/paging";
 import { createPublicClient } from "@/lib/supabase/public";
 import { filterListedCompanies } from "@/lib/companies/visibility";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { isRegisteredUser } from "@/lib/users/registered";
 import { getRoleTree } from "@/lib/supabase/queries";
 import { destinationsForUsers } from "./destinations";
@@ -281,7 +281,7 @@ export async function searchCompanyHits(conditions: Condition[]): Promise<KindRe
 
   let q = filterListedCompanies(
     db.from("ow_companies").select(
-      "id, slug, name, name_en, tagline, logo_url, logo_letter, logo_gradient, is_foreign",
+      "id, slug, name, name_en, brand_name, tagline, logo_url, logo_letter, logo_gradient, is_foreign",
       { count: "exact" },
     ),
   );
@@ -302,7 +302,7 @@ export async function searchCompanyHits(conditions: Condition[]): Promise<KindRe
     items: rows.map((r) => ({
       id: r.id as string,
       slug: (r.slug as string | null) ?? null,
-      name: companyDisplayName(r.name as string, r.name_en as string | null).displayName,
+      name: companyBrandName({ name: r.name as string, name_en: (r.name_en as string | null) ?? null, brand_name: (r.brand_name as string | null) ?? null }),
       tagline: (r.tagline as string | null) ?? null,
       logoUrl: (r.logo_url as string | null) ?? null,
       logoLetter: (r.logo_letter as string | null) ?? null,
@@ -410,7 +410,7 @@ export async function searchJobHits(conditions: Condition[]): Promise<KindResult
 
   /* 掲載中の企業に限る。⚠️ 求人が published でも企業が非掲載なら出さない。 */
   const { data: compRows, error: compErr } = await readAll("searchJobHits companies", (f, t) => filterListedCompanies(
-    admin.from("ow_companies").select("id, slug, name, name_en, is_foreign, logo_url, logo_letter, logo_gradient"),
+    admin.from("ow_companies").select("id, slug, name, name_en, brand_name, is_foreign, logo_url, logo_letter, logo_gradient"),
   ).order("id").range(f, t));
   if (compErr) console.error("[searchJobHits] companies:", compErr.message);
   const companies = new Map(
@@ -488,7 +488,7 @@ export async function searchJobHits(conditions: Condition[]): Promise<KindResult
       slug: (j.slug as string | null) ?? null,
       title: j.title as string,
       companyName: c
-        ? companyDisplayName(c.name as string, c.name_en as string | null).displayName
+        ? companyBrandName({ name: c.name as string, name_en: (c.name_en as string | null) ?? null, brand_name: (c.brand_name as string | null) ?? null })
         : "—",
       companySlug: (c?.slug as string | null) ?? null,
       salaryMin: (j.salary_min as number | null) ?? null,
@@ -1042,7 +1042,7 @@ export async function searchArticleHits(conditions: Condition[]): Promise<KindRe
   const db = createPublicClient();
   const { data, error, count } = await db
     .from("ow_articles")
-    .select("id, slug, title, type, published_at, ow_companies!company_id(name, name_en)", { count: "exact" })
+    .select("id, slug, title, type, published_at, ow_companies!company_id(name, name_en, brand_name)", { count: "exact" })
     .in("company_id", companyIds)
     .not("is_published", "is", false)
     .order("published_at", { ascending: false, nullsFirst: false })
@@ -1051,14 +1051,14 @@ export async function searchArticleHits(conditions: Condition[]): Promise<KindRe
   if (error) { console.error("[searchArticleHits]", error.message); return { items: [], total: 0 }; }
 
   const items: ArticleHit[] = (data ?? []).map((r) => {
-    const c = r.ow_companies as unknown as { name: string; name_en: string | null } | null;
+    const c = r.ow_companies as unknown as { name: string; name_en: string | null; brand_name: string | null } | null;
     return {
       id: r.id as string,
       slug: (r.slug as string | null) ?? null,
       title: r.title as string,
       typeLabel: ARTICLE_TYPE_LABEL[(r.type as string) ?? ""] ?? null,
-      /* ⚠️ 社名は表示名に畳む（CLAUDE.md「社名を画面へ返す口では必ず `companyDisplayName` を通す」） */
-      companyName: c ? companyDisplayName(c.name, c.name_en).displayName : null,
+      /* ⚠️ 社名は表示名に畳む（CLAUDE.md「社名を画面へ返す口では必ず `companyBrandName` を通す」） */
+      companyName: c ? companyBrandName(c) : null,
       publishedAt: (r.published_at as string | null) ?? null,
     };
   });

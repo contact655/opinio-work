@@ -21,7 +21,7 @@ import { fetchAllRows } from "@/lib/supabase/paging";
 import { MIN_AGGREGATE_COUNT, MIN_REASON_COUNT } from "@/lib/constants/aggregate";
 import { companyReasonTop3, joinDecisionReasonsOfUser } from "@/lib/joinDecision/server";
 import { isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { matchCompanyPreference } from "@/lib/matching/scoreJob";
 import { getRoleNameMap } from "@/lib/supabase/queries";
 import { buildMoves, countMovesInto, type Move } from "./transitions";
@@ -111,7 +111,7 @@ export async function gatherCompanyFacts(
   // ── 1. 企業の基本情報 ─────────────────────────────────────────────────────
   const { data: companies, error: coErr } = await db
     .from("ow_companies")
-    .select("id, name, name_en, phase, remote_work_status, is_test")
+    .select("id, name, name_en, brand_name, phase, remote_work_status, is_test")
     .in("id", ids);
   if (coErr) console.error("[evidence/fetch] ow_companies:", coErr.message);
 
@@ -231,7 +231,7 @@ export async function gatherCompanyFacts(
   // ── 畳む ──────────────────────────────────────────────────────────────────
   return (companies ?? []).map((co) => {
     const cid = co.id as string;
-    const { displayName } = companyDisplayName(co.name as string, co.name_en as string | null);
+    const displayName = companyBrandName({ name: co.name as string, name_en: (co.name_en as string | null) ?? null, brand_name: (co.brand_name as string | null) ?? null });
 
     /* ① same_path … 候補者と同じ職種から、この会社へ移った人
           ★`/admin/evidence-gaps` と**同じ関数**で数える（数字がずれない） */

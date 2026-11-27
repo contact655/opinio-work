@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName, companyLegalName } from "@/lib/companies/displayName";
 import { companyNameOrFilter } from "@/lib/companies/searchFilter";
 
 /**
@@ -26,7 +26,7 @@ import { companyNameOrFilter } from "@/lib/companies/searchFilter";
  *   ・返すのは **id / name / isListed の3つだけ**。ロゴ・説明・URL・業種は返さない
  *   ・件数上限あり（`MAX_RESULTS`）
  *
- * ⚠️ `name` は**表示名に解決してから返す**（`companyDisplayName`）。
+ * ⚠️ `name` は**表示名に解決してから返す**（`companyBrandName`）。
  *    `name_en` を生で返すと「返す列を絞る」に反するが、返さないと候補だけ
  *    正式名称（「株式会社セールスフォース・ジャパン」）になって画面と食い違う。
  *    **サーバー側で畳んで1つにする**のが両立する形。
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
         を、規約ではなく共有関数で守る形にした。エスケープもあちらが持つ。 */
   const { data, error } = await createAdminClient()
     .from("ow_companies")
-    .select("id, name, name_en, is_published, listing_status")
+    .select("id, name, name_en, brand_name, is_published, listing_status")
     /* ⚠️ 検証用企業は返さない。求職者の画面に出す候補なので */
     .eq("is_test", false)
     .or(companyNameOrFilter(q))
@@ -86,20 +86,23 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({
-    results: (data ?? []).map((c) => ({
+    results: (data ?? []).map((c) => {
+      const src = { name: c.name as string, name_en: (c.name_en as string | null) ?? null, brand_name: (c.brand_name as string | null) ?? null };
+      const brand = companyBrandName(src);
+      return {
       id: c.id as string,
       /* ⚠️ 表示名に畳んでから返す（`name_en` を生で渡さない） */
-      name: companyDisplayName(c.name as string, c.name_en as string | null).displayName,
+      name: brand,
       /* ★正式名（登記の商号）。**表示名と違うときだけ**返す（2026-09-28 / 柴さんの指示）。
             ⚠️★**「株式会社テスト」と打った人に候補が「テスト」としか出ず、
                自分の勤務先だと気づけなかった**（本番で実際に起きて、同じ会社を2つ作った）。
             ⚠️ 同じときは返さない ——同じ名前を括弧で2回出しても情報が増えない。
             ⚠️★これは「表示名に統一する」判断を戻すものではない。**主は表示名のまま**で、
                **添える**だけ。`name` を正式名に戻さないこと。 */
-      formalName: companyDisplayName(c.name as string, c.name_en as string | null).displayName === (c.name as string)
-        ? null : (c.name as string),
+      formalName: brand === companyLegalName(src) ? null : companyLegalName(src),
       /* ⚠️ `filterListedCompanies` と同じ意味。掲載中＝ディレクトリに載っている */
       isListed: c.is_published === true && c.listing_status === "listed",
-    })),
+      };
+    }),
   });
 }

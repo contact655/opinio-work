@@ -8,7 +8,7 @@ import { loadCompanyCandidates } from "@/lib/business/candidates/load";
 import { getCandidateProfileForCompany } from "@/lib/business/candidates/profile";
 import { getApproachQuota, getRecentlyApproached, listApproachableJobs, listApproachSenders } from "@/lib/approaches/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import ApproachComposeClient from "./ApproachComposeClient";
 import { approachResendNotice, APPROACH_UNAVAILABLE_MESSAGE } from "@/lib/constants/companyApproaches";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
@@ -82,7 +82,7 @@ export default async function ApproachComposePage({ searchParams }: { searchPara
     getApproachQuota(ctx.tenantId),
     listApproachSenders(ctx.tenantId, ctx.currentOwnId),
     listApproachableJobs(ctx.tenantId),
-    db.from("ow_companies").select("name, name_en, logo_url, logo_letter, logo_gradient").eq("id", ctx.tenantId).maybeSingle(),
+    db.from("ow_companies").select("name, name_en, brand_name, logo_url, logo_letter, logo_gradient").eq("id", ctx.tenantId).maybeSingle(),
   ]);
   if (!profile || !senders) return message("読み込めませんでした。時間をおいてもう一度お試しください。");
 
@@ -99,7 +99,7 @@ export default async function ApproachComposePage({ searchParams }: { searchPara
   }
   for (const r of c.desiredRoleNames) quotes.push({ label: `関心: ${r}`, text: `${r}への関心` });
 
-  const companyName = co.data ? companyDisplayName(co.data.name as string, (co.data.name_en as string | null) ?? null).displayName : ctx.tenantName;
+  const companyName = co.data ? companyBrandName({ name: co.data.name as string, name_en: (co.data.name_en as string | null) ?? null, brand_name: (co.data.brand_name as string | null) ?? null }) : ctx.tenantName;
 
   return (
     <BusinessLayout {...layoutProps}>

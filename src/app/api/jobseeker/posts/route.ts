@@ -166,8 +166,8 @@ const POST_SELECT = `
   image_url, link_url, link_title, link_image_url, link_description, link_domain,
   event_title, event_starts_at, event_location, created_at, visibility,
   user:ow_users!user_id(id, name, avatar_color, avatar_url, visibility, is_system, is_test),
-  ref_company:ow_companies!ref_company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, industry, employee_count, employee_count_band, location, founded_year, is_published, is_test, listing_status),
-  ref_job:ow_jobs!ref_job_id(id, slug, title, status, is_test, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, brand_name, logo_letter, logo_gradient, logo_url, is_test)),
+  ref_company:ow_companies!ref_company_id(id, slug, name, name_en, brand_name, logo_letter, logo_gradient, logo_url, industry, employee_count, employee_count_band, location, founded_year, is_published, is_test, listing_status),
+  ref_job:ow_jobs!ref_job_id(id, slug, title, status, is_test, salary_min, salary_max, work_style, company:ow_companies!company_id(id, slug, name, name_en, brand_name, logo_letter, logo_gradient, logo_url, is_test)),
   ref_article:ow_articles!ref_article_id(id, slug, title, is_published, company:ow_companies!company_id(is_test)),
   likes:ow_post_likes(count),
   comments:ow_post_comments(count)

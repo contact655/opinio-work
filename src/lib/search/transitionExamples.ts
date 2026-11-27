@@ -3,7 +3,7 @@ import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/paging";
 import { filterListedCompanies } from "@/lib/companies/visibility";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { getRoleTree } from "@/lib/supabase/queries";
 import { expandWithAncestors } from "@/lib/roles/jobRoles";
 import { AGGREGATE_USER_COLUMNS, isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
@@ -34,7 +34,7 @@ export const getTransitionExamples = unstable_cache(
         .order("id").range(f, t), "examples exps"),
       fetchAllRows((f, t) => db.from("ow_companies").select("id, industry_id, is_foreign").order("id").range(f, t), "examples companies"),
       db.from("ow_industries").select("id, parent_id"),
-      filterListedCompanies(db.from("ow_companies").select("id, name, name_en")),
+      filterListedCompanies(db.from("ow_companies").select("id, name, name_en, brand_name")),
       getRoleTree(),
     ]);
     for (const [label, r] of Object.entries({ userRes, expRes, coRes, indRes, listedRes })) {
@@ -68,7 +68,7 @@ export const getTransitionExamples = unstable_cache(
 
     const out: string[] = [];
     /* 「〈会社〉を出た人」：その会社の職歴（会社名を出してよいもの）が全部終わっている人が3人以上 */
-    const companyRows = ((listedRes.data ?? []) as { id: string; name: string; name_en: string | null }[])
+    const companyRows = ((listedRes.data ?? []) as { id: string; name: string; name_en: string | null; brand_name: string | null }[])
       .map((c) => {
         let alumni = 0;
         for (const exps of Array.from(byUser.values())) {
@@ -81,7 +81,7 @@ export const getTransitionExamples = unstable_cache(
       .sort((a, b) => b.alumni - a.alumni);
     for (const c of companyRows) {
       if (out.length >= MAX_COMPANY_EXAMPLES) break;
-      const phrase = `${companyDisplayName(c.name, c.name_en).displayName}を出た人`;
+      const phrase = `${companyBrandName(c)}を出た人`;
       const r = await interpretQuery(phrase);
       if (r.transition?.kind === "left" && r.transition.companyId === c.id) out.push(phrase);
     }

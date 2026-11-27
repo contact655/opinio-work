@@ -2,7 +2,7 @@ import "server-only";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { viewerIsTestUser } from "@/lib/users/testViewer";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { resolveDomainCompanyIds, resolveIndustryFilterIds } from "@/lib/search/companies";
 import { isCompanyStage } from "@/lib/companies/classification";
 import { splitMulti } from "@/lib/search/companyListParams";
@@ -23,7 +23,7 @@ export async function TestCompaniesSection({ kind, filter }: { kind: "companies"
   const [{ data: companies, error: ce }, { data: jobs, error: je }] = await Promise.all([
     (async () => {
       /* ⚠️ 条件の解決は一覧と同じ関数（resolveIndustryFilterIds / resolveDomainCompanyIds）。書き写さない */
-      let q = admin.from("ow_companies").select("id, slug, name, name_en").eq("is_published", true).eq("is_test", true);
+      let q = admin.from("ow_companies").select("id, slug, name, name_en, brand_name").eq("is_published", true).eq("is_test", true);
       const none = "00000000-0000-0000-0000-000000000000";
       /* ★複数選択（2026-10-29）: カンマ区切りの値を一覧と同じく OR で当てる */
       if (filter?.ind) { const ids = (await Promise.all(splitMulti(filter.ind).map((s) => resolveIndustryFilterIds(admin, s)))).flat(); q = q.in("industry_id", ids.length > 0 ? ids : [none]); }
@@ -66,7 +66,7 @@ export async function TestCompaniesSection({ kind, filter }: { kind: "companies"
       </p>
       <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
         {rows.map((c) => {
-          const name = companyDisplayName(c.name as string, c.name_en as string | null).displayName;
+          const name = companyBrandName({ name: c.name as string, name_en: (c.name_en as string | null) ?? null, brand_name: (c.brand_name as string | null) ?? null });
           const js = jobsBy.get(c.id as string) ?? [];
           return (
             <li key={c.id as string} style={{ fontSize: 13, lineHeight: 1.7, minWidth: 0 }}>
