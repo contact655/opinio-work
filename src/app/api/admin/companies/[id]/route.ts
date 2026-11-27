@@ -200,7 +200,21 @@ export async function PUT(
         4つあり、書き写すと必ず漏れる）。運営経路なので掲載規約の同意は求めない。
      ⚠️ 取り下げは常に通す。塞ぐのは「見えるようにする一手」だけ。
      ⚠️ **更新を当てる前に見る。** 当てたあとだと、弾いても値は書き換わっている。 */
-  if (updates.is_published === true || updates.listing_status === 'listed') {
+  /* ★見えるようにする「切り替え」のときだけ見る（2026-11-27）。この画面は保存のたびに is_published を送るので、
+        値だけで判定すると、分類が欠けたまま公開中の会社はどの項目も保存できなかった（株式会社エージェントで踏んだ）。
+     ⚠️ 今の状態が読めなければ、切り替えとみなしてチェックする（止める側に倒す） */
+  const wantsPublish = updates.is_published === true;
+  const wantsListed = updates.listing_status === 'listed';
+  let turningVisible = false;
+  if (wantsPublish || wantsListed) {
+    const { data: curVis, error: curVisErr } = await supabase
+      .from('ow_companies').select('is_published, listing_status').eq('id', params.id).maybeSingle();
+    if (curVisErr) console.error('[PUT /api/admin/companies/[id]] visibility before:', curVisErr.message);
+    turningVisible = !curVis
+      || (wantsPublish && curVis.is_published !== true)
+      || (wantsListed && curVis.listing_status !== 'listed');
+  }
+  if (turningVisible) {
     const gate = await checkPublishable(params.id, { kind: 'admin' });
     if (!gate.ok) {
       return NextResponse.json({ error: publishBlockedMessage(gate.missing) }, { status: 400 });
