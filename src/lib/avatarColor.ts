@@ -38,6 +38,25 @@ export const AVATAR_COLOR: AvatarColor = {
 };
 
 /**
+ * ロゴ・学校・サムネイルの「代わり」に出す四角の色（2026-11-27 / 柴さんの指示）。
+ * **紺系の薄い地＋紺の文字の単色。** グラデーションや紫を使わない（ui-conventions「サイト全体の見た目の決まり」）。
+ * ⚠️ 人のアバターは上の `AVATAR_COLOR`（グレー）。ロゴの代わりと人を同じ色にしないため分けてある。
+ */
+export const LOGO_PLACEHOLDER: AvatarColor = {
+  bg: "var(--royal-50)",
+  text: "var(--royal)",
+};
+
+/**
+ * DB に残っている色（`avatar_color` / `cover_color` / `logo_gradient` / `eyecatch_gradient`）を背景に使うときの関所。
+ * **グラデーションなら使わず `fallback` に落とす**（2026-11-27）。
+ * ⚠️ データは消していない。表示だけ単色にそろえている（実データは数件で、どれもグラデーション）。
+ */
+export function solidBackground(value: string | null | undefined, fallback: string): string {
+  return value && !/gradient\(/i.test(value) ? value : fallback;
+}
+
+/**
  * 頭文字アバターの共通スタイル（2026-09-21 に追加・`/biz` の3画面をここへ寄せた）。
  *
  * ── なぜ `/biz` も同じ色にしたか ────────────────────────────────────
