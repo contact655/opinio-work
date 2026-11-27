@@ -32,6 +32,7 @@ import {
   type ExperienceReasonBody,
 } from "@/lib/experiences/createExperience";
 import { HighlightedName } from "@/components/companies/HighlightedName";
+import { useEscapeLayer } from "@/hooks/useEscapeLayer";
 import { EXPERIENCE_SALARY_PRIVACY_NOTE, EXPERIENCE_SALARY_MAX_MAN, parseExperienceSalary } from "@/lib/constants/experienceSalary";
 
 
@@ -1843,6 +1844,8 @@ export default function CareerHistoryEditor({
   const [currentConflict, setCurrentConflict] = useState<null | { prevId: string; prevLabel: string }>(null);
   const [prevEndYear, setPrevEndYear] = useState("");
   const [prevEndMonth, setPrevEndMonth] = useState("");
+  /* ★Esc はこの確認だけを閉じる（下の職歴モーダルには届かない） */
+  useEscapeLayer(!!currentConflict, () => { if (!addSaving) setCurrentConflict(null); });
 
   /** 追加しようとしている役割と同じ会社で、すでに現職になっている役割 */
   const conflictingCurrent = useMemo(() => {
@@ -2053,9 +2056,9 @@ export default function CareerHistoryEditor({
         companyName: editCompanyGroup.displayCompanyName,
       }
     : { companyId: null, companyName: "" };
-  const companyDirty =
-    !!companyDraft.companyName.trim() &&
-    JSON.stringify(companyDraft) !== JSON.stringify(companyBase);
+  /* ★入力が変わったか（閉じるときの確認）と、保存できるか（保存ボタン）を分ける（2026-11-27） */
+  const companyChanged = JSON.stringify(companyDraft) !== JSON.stringify(companyBase);
+  const companyDirty = !!companyDraft.companyName.trim() && companyChanged;
 
   const deleteCompanyGroup = deleteCompanyGroupKey
     ? groups.find((g) => g.key === deleteCompanyGroupKey) ?? null
@@ -2253,8 +2256,8 @@ export default function CareerHistoryEditor({
           ? groups.find((gr) => gr.key === addingForCompanyKey) : undefined;
         return g ? draftFromGroup(g) : EMPTY_DRAFT;
       })();
-  const careerDirty = canSaveStint(careerDraft)
-    && JSON.stringify(careerDraft) !== JSON.stringify(careerBase);
+  const careerChanged = JSON.stringify(careerDraft) !== JSON.stringify(careerBase);
+  const careerDirty = canSaveStint(careerDraft) && careerChanged;
 
   /* ★理由モーダルの対象。⚠️ 行が消えた（削除された）ら開かない */
   const reasonStint = reasonId ? stints.find((x) => x.id === reasonId) ?? null : null;
@@ -2277,6 +2280,7 @@ export default function CareerHistoryEditor({
         open={careerIsEditing || addingForCompanyKey !== null}
         title={careerIsEditing ? "職歴を編集" : addingForCompanyKey && addingForCompanyKey !== "__new__" ? "この会社に役割を追加" : addShort === "past" ? "前職を追加" : "職歴を追加"}
         dirty={careerDirty}
+        changed={careerChanged}
         saving={careerIsEditing ? editSaving : addSaving}
         justSaved={careerIsEditing ? editJustSaved : addJustSaved}
         error={null}
@@ -2382,6 +2386,7 @@ export default function CareerHistoryEditor({
           open
           title="会社名を変更"
           dirty={companyDirty}
+          changed={companyChanged}
           saving={companySaving}
           justSaved={companyJustSaved}
           error={companyError}

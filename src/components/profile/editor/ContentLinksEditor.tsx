@@ -342,9 +342,9 @@ export function ContentLinksEditor({
   const base = editingLinkId ? contentLinks.find((l) => l.id === editingLinkId) : undefined;
   const initial = base ? draftFromLink(base) : EMPTY_LINK_DRAFT;
   /* ⚠️ URL が空のあいだは押させない（インライン時代の disabled と同じ意味） */
-  const dirty = !!contentDraft
-    && !!contentDraft.url.trim()
-    && JSON.stringify(contentDraft) !== JSON.stringify(initial);
+  /* ★入力が変わったか（閉じるときの確認）と、保存できるか（保存ボタン）を分ける（2026-11-27） */
+  const changed = !!contentDraft && JSON.stringify(contentDraft) !== JSON.stringify(initial);
+  const dirty = changed && !!contentDraft && !!contentDraft.url.trim();
 
   return (
     <>
@@ -352,6 +352,7 @@ export function ContentLinksEditor({
         open={adding || editingLinkId !== null}
         title={editingLinkId ? "発信コンテンツを編集" : "発信コンテンツを追加"}
         dirty={dirty}
+        changed={changed}
         saving={linkSaving}
         justSaved={false}
         error={linkError}

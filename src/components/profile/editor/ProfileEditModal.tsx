@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { useScrollLock } from "@/hooks/useScrollLock";
+import { useEscapeLayer } from "@/hooks/useEscapeLayer";
 
 /**
  * プロフィール編集のモーダル。**編集はすべてこれを通す。**
@@ -32,8 +34,13 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 export function ProfileEditModal({
   open,
   title,
-  /** 未保存の変更があるか。閉じるときの確認の要否に使う */
+  /** 保存できる変更があるか。**保存ボタンを押せるか**に使う */
   dirty,
+  /** ★★入力が1つでも変わっているか。**閉じるときの「破棄しますか？」**に使う（2026-11-27）。
+      ⚠️ `dirty`（保存できるか）と分けてある。必須欄が空・文字数超過など「まだ保存できない入力」でも、
+         何か書いてあれば確認を出す。以前は `dirty` 1つで兼ねていたため、学校名が空のまま他を入力して
+         外を触ると、確認なしで閉じて入力が消えていた。省略すると `dirty` を使う */
+  changed,
   saving,
   justSaved,
   /** API が返したエラー文。★丸めずそのまま出す */
@@ -87,6 +94,7 @@ export function ProfileEditModal({
   open: boolean;
   title: string;
   dirty: boolean;
+  changed?: boolean;
   saving: boolean;
   justSaved: boolean;
   error: string | null;
@@ -111,29 +119,21 @@ export function ProfileEditModal({
   const panelRef = useRef<HTMLDivElement>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
-  /** 閉じる要求。未保存なら確認を挟む */
+  const hasChanges = changed ?? dirty;
+
+  /** 閉じる要求。入力が変わっていれば確認を挟む */
   const requestClose = useCallback(() => {
     if (saving) return;              // 保存中は閉じさせない
-    if (dirty) { setConfirmDiscard(true); return; }
+    if (hasChanges) { setConfirmDiscard(true); return; }
     onClose();
-  }, [dirty, saving, onClose]);
+  }, [hasChanges, saving, onClose]);
 
   /* ⚠️ 背景を固定する。モーダルを開いたまま後ろがスクロールすると、
-        閉じたときに元の位置を見失う（`JobseekerHeader` と同じ形）。 */
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, [open]);
+        閉じたときに元の位置を見失う。body の overflow だけでは止まらない（useScrollLock の注記） */
+  useScrollLock(open);
 
-  /* Esc で閉じる。⚠️ 破棄の確認が出ているときは、そちらが Esc を受ける */
-  useEffect(() => {
-    if (!open || confirmDiscard) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") requestClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, confirmDiscard, requestClose]);
+  /* Esc で閉じる。★上にダイアログ（破棄の確認・転職か修正か など）が重なっているときは、そちらだけが Esc を受ける */
+  useEscapeLayer(open, requestClose);
 
   /* ★フォーカストラップ。**キーボードだけで完結すること。**
      開いたら中の最初の入力へ。Tab がモーダルの外へ出ない。 */
@@ -225,7 +225,7 @@ export function ProfileEditModal({
           </div>
 
           {/* 本文（★ここだけスクロールする） */}
-          <div style={{ overflowY: "auto", flex: 1, padding: "20px 24px", WebkitOverflowScrolling: "touch" as unknown as undefined }}>
+          <div style={{ overflowY: "auto", overscrollBehavior: "contain", flex: 1, padding: "20px 24px", WebkitOverflowScrolling: "touch" as unknown as undefined }}>
             {children}
           </div>
 
