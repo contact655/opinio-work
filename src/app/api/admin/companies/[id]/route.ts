@@ -133,6 +133,8 @@ export async function PUT(
     }
   }
 
+  /* ★代表メッセージは空なら null（2026-11-27）。⚠️ 上のループは空文字をそのまま書くので、消したのに "" が残っていた */
+  if (typeof updates.ceo_message === "string" && updates.ceo_message.trim() === "") updates.ceo_message = null;
   /* ★資本金（円・2026-11-27）。空は null。0 以上の整数以外は 400（黙って捨てない） */
   if ("capital_amount_yen" in body) {
     const v = body.capital_amount_yen;
