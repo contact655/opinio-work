@@ -51,7 +51,7 @@ export const PROFILE_NEXT_STEP_SIDEBAR_LABEL: Record<ProfileNextStepKey, string>
  * ★ホームの左のカードの1行（2026-11-04 / 柴さんの指示）。225px のカードで1行に収まる長さ。
  * ⚠️ career は無い。職歴0件のときは肩書きの欄に「職歴を入れる」が出ているので、この行は出さない（homeProfileNextStep）
  */
-export const PROFILE_NEXT_STEP_SHORT_LABEL: Record<ProfileFocusKey, string> = {
+export const PROFILE_NEXT_STEP_SHORT_LABEL: Record<Exclude<ProfileNextStepKey, "career">, string> = {
   photo: "写真を追加する",
   education: "学歴を入れる",
   school: "学歴の学校を一覧から選ぶ",
@@ -60,7 +60,9 @@ export const PROFILE_NEXT_STEP_SHORT_LABEL: Record<ProfileFocusKey, string> = {
 };
 
 /** /mypage を開いたときに寄せる欄（?focus=）。読むのは ProfileTab */
-export type ProfileFocusKey = Exclude<ProfileNextStepKey, "career">;
+/* ★location / experience / intent は「企業の候補者一覧に表示される項目」の案内から来たとき（2026-11-27 / lib/profile/candidateListFields.ts）。
+     location … ヘッダーの編集をお住まいの欄で開く ／ experience … 職歴の欄へ寄せる ／ intent … 転職の状況の編集を開く */
+export type ProfileFocusKey = Exclude<ProfileNextStepKey, "career"> | "location" | "experience" | "intent";
 
 export const PROFILE_FOCUS_PARAM = "focus";
 
@@ -70,7 +72,8 @@ export function profileNextStepHref(key: ProfileFocusKey): string {
 
 /** ?focus= の値を読む。知らない値は null（何もしない） */
 export function parseProfileFocus(v: string | null | undefined): ProfileFocusKey | null {
-  return v === "photo" || v === "education" || v === "school" || v === "headline" || v === "about" ? v : null;
+  return v === "photo" || v === "education" || v === "school" || v === "headline" || v === "about"
+    || v === "location" || v === "experience" || v === "intent" ? v : null;
 }
 
 /** ホームの左のカードに出す1行。職歴0件（肩書きの欄に「職歴を入れる」）と全部埋まっているときは null */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProfileEditModal } from "./ProfileEditModal";
 import { CollapsibleRow, FormGroup, selectStyle, inputStyle } from "./formKit";
 import { PencilIcon } from "@/components/profile/view/RowActions";
@@ -147,13 +147,15 @@ function SubLine({ children }: { children: React.ReactNode }) {
 const NARROW_LINE: React.CSSProperties = { lineHeight: 1.6, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 
 export default function IntentCard({
-  initialPrefs, stanceUpdatedAt, roles, desiredRoleOptions,
+  initialPrefs, stanceUpdatedAt, roles, desiredRoleOptions, initialOpen = false,
 }: {
   initialPrefs: IntentPrefs;
   /** 「意思表示を最後に答えた日」。⚠️ `null` なら**最終更新の行ごと出さない** */
   stanceUpdatedAt: string | null;
   roles: { id: string; name: string; parent_id: string | null; display_order: number }[];
   desiredRoleOptions?: { id: string; name: string; parent_id: string | null; display_order: number }[];
+  /** ★開いたときに編集を開く（2026-11-27 / 「企業の候補者一覧に表示される項目」の案内から `/mypage?focus=intent` で来たとき） */
+  initialOpen?: boolean;
 }) {
   /* ⚠️★「企業から声をかけられる」のトグルは 2026-08-27 に**削除した**（フェーズ3）。
         スカウトの送信可否は「転職について」＝ `ow_profiles.career_stance` が決める
@@ -214,6 +216,11 @@ export default function IntentCard({
     setPhase(saved.prefs.desired_phase ?? []);
     setError(null);
   }, [saved]);
+
+  /* ★案内から来たときだけ、最初に1回開く。⚠️ 状態は初期値のまま（開いた直後は「変更なし」） */
+  useEffect(() => {
+    if (initialOpen) setOpen(true);
+  }, [initialOpen]);
 
   /* ── 変更の有無を**系統ごと**に持つ。保存で呼ぶのは変わった系統だけ ────────── */
   const prefsPatch = useMemo(() => ({

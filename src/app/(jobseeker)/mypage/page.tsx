@@ -22,6 +22,7 @@ import { rowsToStints } from "@/lib/experiences/toStint";
 import { buildAutoSkills } from "@/lib/profile/autoSkillsServer";
 import type { AutoSkill } from "@/lib/profile/autoSkills";
 import { getMypageNavBadges } from "@/lib/mypage/navBadges";
+import { buildCandidateListNudge, type CandidateListNudge } from "@/lib/profile/candidateListFields";
 
 export const metadata = { title: { absolute: "マイページ | OPINIO" }, robots: { index: false, follow: false } };
 
@@ -118,6 +119,9 @@ export default async function MypagePage({
     type: string; eyecatch_gradient: string | null; read_min: number | null;
     published_at: string | null;
   }[] = [];
+  /* ★「企業の候補者一覧に表示される項目」の案内に使う現職（下の candidateListNudge） */
+  type NudgeExp = { id: string; is_current?: boolean | null; role_title?: string | null; company_id?: string | null; company_text?: string | null; company_anonymized?: string | null };
+  let nudgeCurrentExp = null as NudgeExp | null;
   if (owUser) {
     const [
       { data: edus },
@@ -259,6 +263,10 @@ export default async function MypagePage({
           anon にも開いており、本人のセッションでも同じ行が読める。
        ⚠️ `expRows` が undefined でも `?? []` で受けているので落ちない。 */
     autoSkills = await buildAutoSkills(supabase, (expRows ?? []), roleNameById, "mypage");
+    /* ⚠️ 企業の一覧と同じ選び方（is_current のうち id が最も小さい1件。lib/business/candidates/load.ts） */
+    nudgeCurrentExp = ((expRows ?? []) as unknown as NudgeExp[])
+      .filter((e) => e.is_current === true)
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0] ?? null;
 
     // master 企業の会社名 + ロゴ 3 フィールドを二次取得（A-1: logo_url / logo_letter / logo_gradient 追加）
     /* ⚠️★**出向先の会社IDも入れる**（2026-09-12）。落とすと「〇〇へ出向」の会社名が
@@ -466,11 +474,13 @@ export default async function MypagePage({
   /* ★「これ以上の経歴はない」を押した日時（2026-10-16）。null＝まだ答えていない。
         職歴の促しカード（`ProfileTab`）の表示条件に使う */
   let careerHistoryCompleteAt: string | null = null;
+  /* ★本人が最後に転職への意向を確かめた日時（企業の絞り込み「意向を更新した時期」が読む列） */
+  let careerStanceUpdatedAt: string | null = null;
   if (owUser) {
     const { data: profile, error: profileError } = await supabase
       .from("ow_profiles")
       /* ⚠️ `onboarding_completed` はバナーの判定に使っていたが、バナーごと消した（2026-08-17）。 */
-      .select("desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, career_stance, stance_updated_at, career_history_complete_at")
+      .select("desired_work_styles, desired_prefectures, desired_salary_min, desired_salary_max, transfer_timing, desired_phase, career_stance, stance_updated_at, career_stance_updated_at, career_history_complete_at")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profileError) console.error("[mypage] ow_profiles fetch error:", profileError.message);
@@ -486,7 +496,25 @@ export default async function MypagePage({
         stance_updated_at:   profile.stance_updated_at ?? null,
       };
       careerHistoryCompleteAt = profile.career_history_complete_at ?? null;
+      careerStanceUpdatedAt = profile.career_stance_updated_at ?? null;
     }
+  }
+
+  /* ★「企業の候補者一覧に表示される項目」の案内（2026-11-27）。項目と判定は lib/profile/candidateListFields.ts の1か所。
+     ⚠️ 現職は nudgeCurrentExp（上で選んだもの） */
+  let candidateListNudge: CandidateListNudge | null = null;
+  if (owUser) {
+    const currentExp = nudgeCurrentExp;
+    candidateListNudge = buildCandidateListNudge({
+      hasAvatar: !!(owUser.avatar_url as string | null),
+      hasCurrentExperience: !!currentExp,
+      hasCurrentRoleAndCompany: !!currentExp && !!currentExp.role_title?.trim()
+        && !!(currentExp.company_id || currentExp.company_text?.trim() || currentExp.company_anonymized?.trim()),
+      careerStance: profilePrefs?.career_stance ?? null,
+      careerStanceUpdatedAt,
+      location: (owUser.location as string | null) ?? null,
+      desiredRoleCount: desiredRoleIds.length,
+    });
   }
 
   /* ⚠️ 実績・受賞・メディア・発信コンテンツの**件数はもう使わない**（2026-08-16）。
@@ -555,6 +583,7 @@ export default async function MypagePage({
       proposalsBadge={proposalsBadge}
       inbox={inbox}
       isNewUser={isNewUser}
+      candidateListNudge={candidateListNudge}
       initialAddCompany={initialAddCompany}
       initialAddFirst={searchParams?.add === "career"}
       /* ★ホームの「前の会社・学校を足す」から来たとき（2026-11-12） */
