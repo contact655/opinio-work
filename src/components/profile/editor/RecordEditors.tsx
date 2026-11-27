@@ -554,7 +554,9 @@ export function EducationEditor({
   const eduDraft = eduIsEditing ? editDraft : addDraft;
   const eduSavedRow = eduIsEditing ? educations.find((e) => e.id === editingId) : undefined;
   const eduBase = eduSavedRow ? draftFromEducation(eduSavedRow) : EMPTY_EDU_DRAFT;
-  const eduDirty = !!eduDraft.school.trim() && JSON.stringify(eduDraft) !== JSON.stringify(eduBase);
+  /* ★入力が変わったか（閉じるときの確認）と、保存できるか（保存ボタン）を分ける（2026-11-27） */
+  const eduChanged = JSON.stringify(eduDraft) !== JSON.stringify(eduBase);
+  const eduDirty = !!eduDraft.school.trim() && eduChanged;
 
   return (
     <>
@@ -569,6 +571,7 @@ export function EducationEditor({
         open={eduModalOpen}
         title={eduIsEditing ? "学歴を編集" : "学歴を追加"}
         dirty={eduDirty}
+        changed={eduChanged}
         saving={eduIsEditing ? editSaving : addSaving}
         justSaved={eduIsEditing ? editJustSaved : addJustSaved}
         error={null}
@@ -884,7 +887,8 @@ export function AchievementEditor({
   const draft = isEditing ? editDraft : addDraft;
   const savedRow = isEditing ? scoped.find((a) => a.id === editingId) : undefined;
   const base = savedRow ? draftFromAch(savedRow) : EMPTY_ACH_DRAFT;
-  const dirty = !!draft.title.trim() && JSON.stringify(draft) !== JSON.stringify(base);
+  const changed = JSON.stringify(draft) !== JSON.stringify(base);
+  const dirty = !!draft.title.trim() && changed;
 
   return (
     <>
@@ -894,6 +898,7 @@ export function AchievementEditor({
         open={isEditing || adding}
         title={isEditing ? "数値実績を編集" : "数値実績を追加"}
         dirty={dirty}
+        changed={changed}
         saving={isEditing ? editSaving : addSaving}
         justSaved={isEditing ? editJustSaved : addJustSaved}
         error={null}
@@ -1095,7 +1100,8 @@ export function AwardEditor({
   const draft = isEditing ? editDraft : addDraft;
   const savedRow = isEditing ? scoped.find((a) => a.id === editingId) : undefined;
   const base = savedRow ? draftFromAward(savedRow) : EMPTY_AWARD_DRAFT;
-  const dirty = !!draft.title.trim() && JSON.stringify(draft) !== JSON.stringify(base);
+  const changed = JSON.stringify(draft) !== JSON.stringify(base);
+  const dirty = !!draft.title.trim() && changed;
 
   return (
     <>
@@ -1104,6 +1110,7 @@ export function AwardEditor({
         open={isEditing || adding}
         title={isEditing ? "受賞・表彰を編集" : "受賞・表彰を追加"}
         dirty={dirty}
+        changed={changed}
         saving={isEditing ? editSaving : addSaving}
         justSaved={isEditing ? editJustSaved : addJustSaved}
         error={null}
@@ -1317,7 +1324,8 @@ export function CertificationEditor({
   const draft = isEditing ? editDraft : addDraft;
   const savedRow = isEditing ? certifications.find((c) => c.id === editingId) : undefined;
   const base = savedRow ? draftFromCert(savedRow) : EMPTY_CERT_DRAFT;
-  const dirty = !!draft.name.trim() && JSON.stringify(draft) !== JSON.stringify(base);
+  const changed = JSON.stringify(draft) !== JSON.stringify(base);
+  const dirty = !!draft.name.trim() && changed;
 
   return (
     <>
@@ -1325,6 +1333,7 @@ export function CertificationEditor({
         open={isEditing || adding}
         title={isEditing ? "資格を編集" : "資格を追加"}
         dirty={dirty}
+        changed={changed}
         saving={isEditing ? editSaving : addSaving}
         justSaved={isEditing ? editJustSaved : addJustSaved}
         error={null}
@@ -1587,7 +1596,8 @@ export function LanguageEditor({
   const draft = isEditing ? editDraft : addDraft;
   const savedRow = isEditing ? languages.find((l) => l.id === editingId) : undefined;
   const base = savedRow ? draftFromLang(savedRow) : EMPTY_LANG_DRAFT;
-  const dirty = !!draft.language_id && JSON.stringify(draft) !== JSON.stringify(base);
+  const changed = JSON.stringify(draft) !== JSON.stringify(base);
+  const dirty = !!draft.language_id && changed;
 
   return (
     <>
@@ -1595,6 +1605,7 @@ export function LanguageEditor({
         open={isEditing || adding}
         title={isEditing ? "言語を編集" : "言語を追加"}
         dirty={dirty}
+        changed={changed}
         saving={isEditing ? editSaving : addSaving}
         justSaved={isEditing ? editJustSaved : addJustSaved}
         error={null}
@@ -2056,7 +2067,8 @@ export function MediaAppearanceEditor({
         比べると、フォームが整えたぶんまで「変更あり」になる。 */
   const savedRow = isEditing ? mediaAppearances.find((m) => m.id === editingId) : undefined;
   const base = savedRow ? draftFromMA(savedRow) : EMPTY_MA_DRAFT;
-  const dirty = !!draft.title.trim() && JSON.stringify(draft) !== JSON.stringify(base);
+  const changed = JSON.stringify(draft) !== JSON.stringify(base);
+  const dirty = !!draft.title.trim() && changed;
   const closeModal = () => {
     setEditingId(null); setEditDraft(EMPTY_MA_DRAFT);
     setAdding(false); setAddDraft(EMPTY_MA_DRAFT);
@@ -2073,6 +2085,7 @@ export function MediaAppearanceEditor({
         open={modalOpen}
         title={isEditing ? "メディア掲載を編集" : "メディア掲載を追加"}
         dirty={dirty}
+        changed={changed}
         saving={isEditing ? editSaving : addSaving}
         justSaved={isEditing ? editJustSaved : addJustSaved}
         error={null}

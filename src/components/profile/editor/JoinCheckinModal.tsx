@@ -185,6 +185,8 @@ export function JoinCheckinModal({
       title={cp ? `${companyName}について（${cp.label}）` : `${companyName}について`}
       width={600}
       dirty={false}
+      /* ★入力が変わっていれば、閉じるときに「破棄しますか？」を出す（2026-11-27） */
+      changed={step !== "done" && JSON.stringify(draft) !== JSON.stringify(fromLoaded(loaded))}
       saving={saving}
       justSaved={false}
       error={saveError ?? loadError}

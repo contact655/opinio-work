@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 /**
  * 一覧の「詳細検索」まわりの共通部品（2026-10-09）。
@@ -168,13 +169,12 @@ export function DetailSearchPanel({
   const isDrawer = useIsDrawer();
   const { n, pending } = useDrawerCount(open && isDrawer, count, countUrl);
 
+  useScrollLock(open && isDrawer);
   useEffect(() => {
     if (!open || !isDrawer) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
-    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
+    return () => { window.removeEventListener("keydown", onKey); };
   }, [open, isDrawer, onClose]);
 
   if (!open) return null;

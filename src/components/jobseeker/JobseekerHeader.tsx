@@ -12,6 +12,7 @@ import { MessagesButton } from "@/components/notifications/MessagesButton";
 import OpinioLogo from "@/components/common/OpinioLogo";
 import { BOTTOM_NAV_HEIGHT, isBottomNavHiddenOn } from "@/components/jobseeker/MobileBottomNav";
 import { SEARCH_EXAMPLES, readRecentSearches, clearRecentSearches } from "@/lib/search/examples";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 /* ⚠️★`highlight` を廃止した（2026-08-30）。**5項目すべて `false` で、
       琥珀色の分岐（デスクトップ・モバイルの2箇所）は一度も描画されていなかった。**
@@ -408,18 +409,12 @@ export function JobseekerHeader() {
 
   // Close mobile menu on pathname change or Escape key
   useEffect(() => { setMobileMenuOpen(false); }, [pathname]);
+  useScrollLock(mobileMenuOpen);
   useEffect(() => {
+    if (!mobileMenuOpen) return;
     function onKey(e: KeyboardEvent) { if (e.key === "Escape") setMobileMenuOpen(false); }
-    if (mobileMenuOpen) {
-      document.addEventListener("keydown", onKey);
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("keydown", onKey); };
   }, [mobileMenuOpen]);
 
   /* ★スマホ（768px 未満）かつログイン中（2026-10-17）。この形だけ LinkedIn 型のヘッダーにする:

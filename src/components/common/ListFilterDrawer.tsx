@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 /**
  * ★一覧の「フィルター」パネル（2026-11-12 / 柴さんの指示「企業と募集もユーザーと同じようにしたい」）。
@@ -56,14 +57,13 @@ export function ListFilterDrawer({
   const panelRef = useRef<HTMLDivElement>(null);
   /* 開くたびに、いま効いている条件から始める */
   useEffect(() => { if (open) { setDraft(values); setQueries({}); } }, [open, values]);
+  useScrollLock(open);
   useEffect(() => {
     if (!open) return;
     panelRef.current?.focus();
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+    return () => { document.removeEventListener("keydown", onKey); };
   }, [open, onClose]);
   if (!open || typeof document === "undefined") return null;
 

@@ -66,6 +66,8 @@ export function JoinDecisionModal({
   const [loaded, setLoaded] = useState<LoadedJoinDecisionView | null>(preview ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>(preview?.reasons ?? []);
+  /* ★読み込んだ時点の選択。閉じるときの「破棄しますか？」の比較に使う（2026-11-27） */
+  const [savedSelected, setSavedSelected] = useState<string[]>(preview?.reasons ?? []);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -92,6 +94,7 @@ export function JoinDecisionModal({
         if (onlyWhenPrompted && !j.prompt) { finishedRef.current = true; onCloseRef.current(); return; }
         setLoaded(j);
         setSelected(j.reasons ?? []);
+        setSavedSelected(j.reasons ?? []);
       } catch (e) {
         console.error("[JoinDecisionModal] load:", (e as Error).message);
         if (!alive) return;
@@ -145,7 +148,9 @@ export function JoinDecisionModal({
     }
   }
 
-  /* ★スキップ（ボタン・×・Esc）。⚠️ 答えたあと・読めなかったときは記録しない */
+  /* ★スキップ。**「スキップ」ボタンを押したときだけ**記録する（2026-11-27 に変更）。
+     ⚠️ 外を触った・×・Esc は記録しない（何も記録せずに閉じる）。それまでは×や外のタップも「スキップ」として
+        記録しており、うっかり触っただけで30日出なくなっていた。⚠️ 答えたあと・読めなかったときは記録しない */
   async function skipAndClose() {
     if (!finishedRef.current && loaded && loaded.status !== "answered") {
       finishedRef.current = true;
@@ -156,6 +161,7 @@ export function JoinDecisionModal({
   }
 
   const ready = !!loaded;
+  const changed = !done && JSON.stringify([...selected].sort()) !== JSON.stringify([...savedSelected].sort());
   if (!open || (onlyWhenPrompted && !ready && !loadError)) return null;
 
   return (
@@ -164,6 +170,7 @@ export function JoinDecisionModal({
       title={`${companyName}について`}
       width={560}
       dirty={false}
+      changed={changed}
       saving={saving}
       justSaved={false}
       error={saveError ?? loadError}
@@ -173,7 +180,7 @@ export function JoinDecisionModal({
       secondaryLabel={done ? undefined : "スキップ"}
       onSecondary={done ? undefined : () => void skipAndClose()}
       onSave={() => { if (done) onClose(); else void save(); }}
-      onClose={() => { if (done) onClose(); else void skipAndClose(); }}
+      onClose={onClose}
     >
       <style>{CSS}</style>
       {!ready && !loadError && <div style={{ fontSize: 13, color: "var(--ink-mute)" }}>読み込んでいます…</div>}

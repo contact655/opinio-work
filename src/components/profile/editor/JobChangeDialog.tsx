@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useScrollLock } from "@/hooks/useScrollLock";
+import { useEscapeLayer } from "@/hooks/useEscapeLayer";
 import { currentYm, jobChangeEndError } from "@/lib/experiences/jobChange";
 
 /**
@@ -47,6 +49,9 @@ export default function JobChangeDialog({
   const [touched, setTouched] = useState(false);
   const endedAt = year && month ? `${year}-${month.padStart(2, "0")}` : "";
   const error = jobChangeEndError(endedAt, latestStartedAt);
+  /* ★Esc はこのダイアログだけを閉じる（下の職歴モーダルには届かない）。保存中は何もしない */
+  useEscapeLayer(true, () => { if (!saving) onCancel(); });
+  useScrollLock(true);
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>

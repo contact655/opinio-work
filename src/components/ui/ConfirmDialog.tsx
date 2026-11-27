@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useScrollLock } from "@/hooks/useScrollLock";
+import { useEscapeLayer } from "@/hooks/useEscapeLayer";
 
 type ConfirmDialogProps = {
   isOpen: boolean;
@@ -28,15 +29,11 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  // Escape key handler
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isSubmitting) onCancel();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [isOpen, isSubmitting, onCancel]);
+  /* Esc でキャンセル。★重なっているときは、いちばん上のダイアログだけが Esc を受ける（下のモーダルには届かない）。
+     送信中は何もしない（下にも渡さない） */
+  useEscapeLayer(isOpen, () => { if (!isSubmitting) onCancel(); });
+  /* 後ろのスクロールを止める（下にモーダルがあっても、重ねて数えるので正しく戻る） */
+  useScrollLock(isOpen);
 
   if (!isOpen) return null;
 
