@@ -1,3 +1,4 @@
+import { brandOrName } from "@/lib/companies/displayName";
 import { LikersCountButton } from "@/components/feed/LikersDialog";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
@@ -64,9 +65,9 @@ export async function generateMetadata({ params }: { params: { postId: string } 
   const p = raw as unknown as { content: string; post_type: string; user: { name: string } | null; ref_company: ActorCompany; ref_job: { status: string | null; company: ActorCompany } | null };
   const co = actorCompany(p);
   // 一覧と同じ関数を通す。actor 行と本文で社名が二重にならないようにする
-  const body = co ? stripActorPrefix(p.content, p.post_type, [co.brand_name ?? co.name, co.name]) : p.content;
+  const body = co ? stripActorPrefix(p.content, p.post_type, [brandOrName(co.brand_name, co.name), co.name]) : p.content;
   const excerpt = truncateAtBoundary(body, 50);
-  const authorName = co ? (co.brand_name ?? co.name) : (p.user?.name ?? "ユーザー");
+  const authorName = co ? brandOrName(co.brand_name, co.name) : (p.user?.name ?? "ユーザー");
   // OGP。画像は動的生成（/api/og）に寄せる。
   // ⚠️ actor 企業のロゴを og:image に使うのは避けている。85社中76社の logo_url が
   //    死んだ Clearbit を指しており（B-0 参照）、SNS 側は onError で差し替えられないため、
@@ -148,7 +149,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
   if (!isArticlePostAlive(p)) notFound();
 
   const actorCo = actorCompany(p);
-  const actorName = actorCo ? (actorCo.brand_name ?? actorCo.name) : (p.user?.name ?? "不明");
+  const actorName = actorCo ? brandOrName(actorCo.brand_name, actorCo.name) : (p.user?.name ?? "不明");
   // ⚠️ 一覧と同じ関数を通す。DB の content は書き換えない
   const displayContent = actorCo
     ? stripActorPrefix(p.content, p.post_type, [actorName, actorCo.name])

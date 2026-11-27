@@ -95,3 +95,17 @@ export function deriveBrandName(name: string | null | undefined): string | null 
   const stripped = stripLegalSuffix(name);
   return stripped && stripped !== name.trim() ? stripped : (stripped || null);
 }
+
+/**
+ * ★`brand_name` があればそれ、無ければ `name`（2026-11-27 / 柴さんの判断「表示を変えずに空だけ直す」）。
+ *   それまで各画面が `brand_name ?? name` を書いており、`??` は空文字を拾わないので、
+ *   brand_name が "" の会社（株式会社Opinio）は社名が空になっていた。
+ *
+ * ⚠️ 空・空白だけの brand_name は「値なし」として name を返す。中身のある brand_name は前後の空白も含めてそのまま返す
+ *    （表示を変えないため。companyDisplayName() とは別の規則で、英語社名や法人格の扱いは変えない）。
+ * ⚠️ `brand_name ?? name` を新しく書かないこと。ここを通す。
+ * ⚠️ /companies 一覧などは companyDisplayName() を使っている。この2つをそろえるかは別に決める（2026-11-27 時点で95社の表示が違う）。
+ */
+export function brandOrName(brandName: string | null | undefined, name: string): string {
+  return typeof brandName === "string" && brandName.trim() !== "" ? brandName : name;
+}
