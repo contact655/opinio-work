@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
  * イニシャル円アバター — 共通コンポーネント
  *
  * JobseekerHeader・メッセージ詳細画面で共用する。
- * - self (ログイン中ユーザー): デフォルト（royal グラデーション、白テキスト）
+ * - self (ログイン中ユーザー): デフォルト（グレーの単色。2026-11-27 にグラデーションから変更）
  * - other (相手方): bgStyle / textColor を明示的に渡して視覚的に区別する
  */
 type InitialAvatarProps = {
@@ -14,7 +14,7 @@ type InitialAvatarProps = {
   name: string;
   /** 直径（px）。デフォルト 32 */
   size?: number;
-  /** CSS background 値。デフォルト = royal グラデーション */
+  /** CSS background 値。デフォルト = グレーの単色 */
   bgStyle?: string;
   /** テキストカラー。デフォルト = #fff */
   textColor?: string;
@@ -25,8 +25,9 @@ type InitialAvatarProps = {
 export function InitialAvatar({
   name,
   size = 32,
-  bgStyle = "linear-gradient(135deg, var(--royal), var(--accent))",
-  textColor = "#fff",
+  /* ★既定は単色のグレー（2026-11-27 / 柴さんの指示）。AVATAR_COLOR と同じ値 */
+  bgStyle = "var(--line-soft)",
+  textColor = "var(--ink-mute)",
   imageUrl = null,
 }: InitialAvatarProps) {
   const initial = (name ?? "").trim().charAt(0).toUpperCase() || "?";

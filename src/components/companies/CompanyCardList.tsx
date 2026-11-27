@@ -164,7 +164,7 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
                   上に色帯・帯に重ねたロゴ・社名（2行まで）・事業領域と規模・募集中。見本は /dev/preview/company-rows。
                ⚠️ ここの !important はカード側のインライン指定（横並び用）を上書きするため。600px 以下だけに効く */
             .clv-card { gap: 6px !important; min-height: 0 !important; padding: 0 0 12px !important; align-items: center; text-align: center; }
-            .clv-band { display: block !important; align-self: stretch; height: 40px; background: linear-gradient(135deg, var(--royal-50), #dbe4f7); }
+            .clv-band { display: block !important; align-self: stretch; height: 40px; background: var(--royal-50); }
             .clv-head { flex-direction: column; gap: 6px !important; padding: 0 8px !important; margin-top: -30px; width: 100%; }
             .clv-namebox { width: 100%; }
             .clv-logo { width: 56px !important; height: 56px !important; min-width: 56px !important; border: 3px solid #fff !important; background: #fff; }
@@ -526,13 +526,11 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
             style={{
               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
               padding: "9px 18px", borderRadius: 9, fontSize: 13, fontWeight: 700,
-              background: company.job_count > 0
-                ? "linear-gradient(135deg, var(--royal), var(--accent))"
-                : "var(--royal-50)",
+              /* ★紺の単色・影なし（2026-11-27 / 柴さんの指示） */
+              background: company.job_count > 0 ? "var(--royal)" : "var(--royal-50)",
               color: company.job_count > 0 ? "#fff" : "var(--royal)",
               border: company.job_count > 0 ? "none" : "1px solid var(--royal-100)",
               cursor: "pointer", whiteSpace: "nowrap",
-              boxShadow: company.job_count > 0 ? "0 2px 8px rgba(0,35,102,0.20)" : "none",
             }}
             /* ⚠️★**`<Link>` にはできない。** このボタンは**カード全体の `<Link>` の内側**に
                   あるので、アンカーの入れ子になる。だから `<button>` ＋ `router.push`。

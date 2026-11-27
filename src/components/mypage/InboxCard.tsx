@@ -16,7 +16,7 @@ export function InboxCard({ proposals, messageRequests, approaches = null }: { p
       key: "proposals",
       label: "あなたに合いそうな会社",
       count: proposals,
-      text: "OPINIO が根拠をそろえてお届けしている企業との出会い",
+      text: "プロフィールをもとにおすすめしている企業",
       href: "/mypage/proposals",
     },
     /* ★企業から・個人からの最初のメッセージは「未返信のメッセージ」1行にまとめた（2026-10-11 / 柴さんの指示。

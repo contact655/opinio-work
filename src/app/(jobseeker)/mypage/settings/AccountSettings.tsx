@@ -14,6 +14,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { Briefcase, Mail, MessageCircle, type LucideIcon } from "lucide-react";
 import { EMAIL_SETTING_DEFAULTS, type EmailSettingKey } from "@/lib/constants/emailSettings";
 import { FormSection, FormGroup, inputStyle } from "@/components/profile/editor/formKit";
 
@@ -70,12 +71,13 @@ function NotificationSettingsSection() {
     }
   };
 
-  const items: { key: keyof NotifPrefs; label: string; desc: string; icon: string }[] = [
-    { key: "email_weekly_enabled", label: "週1回のおすすめメール", desc: "新着の募集と、希望条件に合う募集をまとめてお送りします", icon: "💼" },
+  const items: { key: keyof NotifPrefs; label: string; desc: string; icon: LucideIcon }[] = [
+    /* ★絵文字をやめて線のアイコン（2026-11-27） */
+    { key: "email_weekly_enabled", label: "週1回のおすすめメール", desc: "新着の募集と、希望条件に合う募集をまとめてお送りします", icon: Briefcase },
     /* ★2026-10-11。企業からの1通目・紹介で企業が「会う」と答えたとき・会話での返信。30分以内はまとめて1通 */
-    { key: "email_company_message_enabled", label: "企業からのメッセージをメールで受け取る", desc: "企業からメッセージや返事が届いたときにお知らせします。同じ相手から30分以内に続いて届いたぶんは、まとめて1通にします", icon: "✉️" },
+    { key: "email_company_message_enabled", label: "企業からのメッセージをメールで受け取る", desc: "企業からメッセージや返事が届いたときにお知らせします。同じ相手から30分以内に続いて届いたぶんは、まとめて1通にします", icon: Mail },
     /* ★2026-10-20。個人からの最初の1通・返信・つながっている人からのメッセージ。30分以内はまとめて1通 */
-    { key: "email_person_message_enabled", label: "個人からのメッセージをメールで受け取る", desc: "ほかの利用者からメッセージや返信が届いたときにお知らせします。同じ相手から30分以内に続いて届いたぶんは、まとめて1通にします", icon: "💬" },
+    { key: "email_person_message_enabled", label: "個人からのメッセージをメールで受け取る", desc: "ほかの利用者からメッセージや返信が届いたときにお知らせします。同じ相手から30分以内に続いて届いたぶんは、まとめて1通にします", icon: MessageCircle },
     /* ⚠️ 「スカウトのお知らせ」は 2026-10-08 に外した（スカウト廃止。送るメールが無い） */
   ];
 
@@ -101,7 +103,7 @@ function NotificationSettingsSection() {
       {/* ⚠️ 読み込みが終わるまで操作させない。既定値のまま触らせると、
              保存されていない値を「保存済み」と見せることになる */}
       <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: "var(--space-3)", opacity: loaded ? 1 : 0.5, pointerEvents: loaded ? "auto" : "none" }}>
-        {items.map(({ key, label, desc, icon }) => (
+        {items.map(({ key, label, desc, icon: Icon }) => (
           <label
             key={key}
             style={{
@@ -112,7 +114,7 @@ function NotificationSettingsSection() {
               cursor: "pointer", transition: "all 0.15s",
             }}
           >
-            <span style={{ fontSize: "var(--text-lg)", flexShrink: 0, marginTop: 1 }}>{icon}</span>
+            <Icon size={18} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ flexShrink: 0, marginTop: 2 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--ink)", marginBottom: 2 }}>{label}</div>
               <div style={{ fontSize: "var(--text-sm)", color: "var(--ink-soft)", lineHeight: 1.6 }}>{desc}</div>
@@ -140,7 +142,7 @@ function NotificationSettingsSection() {
         ))}
       </div>
       <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--bg-tint)", borderRadius: 8, fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", lineHeight: 1.7 }}>
-        💡 メール通知の配信は登録メールアドレスに送られます。迷惑メールフォルダもご確認ください。
+        メール通知の配信は登録メールアドレスに送られます。迷惑メールフォルダもご確認ください。
       </div>
     </div>
   );

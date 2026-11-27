@@ -66,7 +66,7 @@ export default function ApplicationsClient({
     <MypageLayout activeKey="applications">
       <div>
         <h1 style={{
-          fontFamily: "var(--font-noto-serif)", fontSize: 22, fontWeight: 700,
+          fontSize: 22, fontWeight: 700,
           color: "var(--ink)", marginBottom: 24,
         }}>応募・面談</h1>
 

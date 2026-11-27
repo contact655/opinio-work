@@ -214,7 +214,7 @@ export function JobPane({
               }}>
                 <span style={{
                   width: 20, height: 20, borderRadius: "50%", flexShrink: 0, marginTop: 1,
-                  background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)",
+                  background: "var(--royal)", /* ★単色（2026-11-27） */
                   color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 11, fontWeight: 800, fontFamily: "var(--font-inter), var(--font-noto)",
                 }}>{i + 1}</span>

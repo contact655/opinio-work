@@ -65,8 +65,8 @@ export default async function ApplyPage({ params }: { params: { id: string } }) 
 
       <div style={{ background: "var(--bg-tint)", minHeight: "calc(100vh - 120px)" }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 20px 80px" }} className="px-5 md:px-10">
+          {/* ★見出しはゴシック（2026-11-27 / ui-conventions「サイト全体の見た目の決まり」。明朝を使わない） */}
           <h1 style={{
-            fontFamily: 'var(--font-noto-serif)',
             fontSize: "clamp(18px,2vw,22px)", fontWeight: 700,
             color: "var(--ink)", marginBottom: 6, lineHeight: 1.4,
           }}>

@@ -24,6 +24,7 @@
 import { useState } from "react";
 import { GraduationCap } from "lucide-react";
 import { LetterCircle } from "./CompanyLogoImg";
+import { LOGO_PLACEHOLDER } from "@/lib/avatarColor";
 
 type SchoolMasterLike = {
   logo_url: string | null;
@@ -48,14 +49,15 @@ export default function SchoolLogoImg({ schoolMaster, size = 40 }: Props) {
           width: size,
           height: size,
           borderRadius: Math.round(size * 0.17),
-          background: "linear-gradient(135deg, #7C3AED 0%, #a855f7 100%)",
+          /* ★単色（2026-11-27）。紫のグラデーションをやめた */
+          background: LOGO_PLACEHOLDER.bg,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
         }}
       >
-        <GraduationCap size={size * 0.44} color="#fff" strokeWidth={1.75} />
+        <GraduationCap size={size * 0.44} color={LOGO_PLACEHOLDER.text} strokeWidth={1.75} />
       </div>
     );
   }
@@ -98,14 +100,14 @@ export default function SchoolLogoImg({ schoolMaster, size = 40 }: Props) {
         width: size,
         height: size,
         borderRadius: Math.round(size * 0.17),
-        background: "linear-gradient(135deg, #7C3AED 0%, #a855f7 100%)",
+        background: LOGO_PLACEHOLDER.bg,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
       }}
     >
-      <GraduationCap size={size * 0.44} color="#fff" strokeWidth={1.75} />
+      <GraduationCap size={size * 0.44} color={LOGO_PLACEHOLDER.text} strokeWidth={1.75} />
     </div>
   );
 }

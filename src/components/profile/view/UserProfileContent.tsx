@@ -159,9 +159,9 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
         ⚠️ 企業向けの右欄（embed）には出さないので引かない */
   const routesPromise = embed ? Promise.resolve([]) : getProfileRoutes(owUser.id);
 
-  const avatarColor = owUser.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)";
-  // cover_color が未設定の場合はアバターカラーをカバーに流用（色統一・個性化）
-  const coverColor = owUser.cover_color ?? owUser.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9, #818CF8)";
+  /* ★既定色は単色（2026-11-27）。グラデーションの既定値をやめた。DB に残るグラデーションは ProfileHeader が落とす */
+  const avatarColor = owUser.avatar_color ?? "var(--line-soft)";
+  const coverColor = owUser.cover_color ?? "var(--royal-100)";
   const initial = owUser.name.charAt(0);
   const viewerIsOwner = !!authUser && owUser.auth_id === authUser.id;
   /* ⚠️ ここは互いに依存しないので**1往復にまとめる**（2026-08-09）。
@@ -655,10 +655,9 @@ export async function UserProfileContent({ resolvedId, profileUsername, embed = 
                   <Link href={`/auth?next=/u/${owUser.id}`} style={{
                     display: "inline-flex", alignItems: "center", gap: 7,
                     padding: "9px 18px", borderRadius: 8,
-                    background: "linear-gradient(135deg, var(--royal) 0%, #3B5FD9 100%)",
+                    background: "var(--royal)",
                     color: "#fff", fontSize: "var(--text-sm)", fontWeight: 700,
                     textDecoration: "none", flexShrink: 0,
-                    boxShadow: "0 4px 14px rgba(0,35,102,0.3)",
                     whiteSpace: "nowrap",
                   }}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

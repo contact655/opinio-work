@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { getLogoLetter, usableLogoUrl } from "@/lib/utils/companyLogo";
+import { LOGO_PLACEHOLDER } from "@/lib/avatarColor";
 
 // ─── Size tokens ──────────────────────────────────────────────────────────────
 type SizeToken = "xs" | "sm" | "md" | "lg" | "xl";
@@ -14,23 +15,9 @@ const SIZE_MAP: Record<SizeToken, { px: number; radius: number }> = {
   xl: { px: 96, radius: 14 },
 };
 
-const DEFAULT_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
-
-function hexToRgb(hex: string): [number, number, number] | null {
-  const m = hex.trim().match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
-  if (!m) return null;
-  return [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)];
-}
-function resolveGradient(raw: string | null | undefined): string {
-  if (!raw) return DEFAULT_GRADIENT;
-  if (raw.includes("gradient")) return raw;
-  const rgb = hexToRgb(raw);
-  if (rgb) {
-    const dark = `rgb(${Math.max(0, rgb[0] - 40)},${Math.max(0, rgb[1] - 40)},${Math.max(0, rgb[2] - 40)})`;
-    return `linear-gradient(135deg, ${dark}, ${raw})`;
-  }
-  return raw;
-}
+/* ★ロゴの代わり（頭文字）は単色（2026-11-27 / ui-conventions「サイト全体の見た目の決まり」）。
+     それまでは DB の logo_gradient か既定のグラデーション（紺→青）を背景にしていた。
+     ⚠️ logoGradient は受け取るが使わない（呼び出し側を変えずに済むよう残してある。データも消していない） */
 
 // Google favicon API — 信頼性が高く無料
 function googleFaviconUrl(domain: string): string {
@@ -106,7 +93,6 @@ export function CompanyLogo({
   name,
   logoUrl,
   logoLetter,
-  logoGradient,
   companyUrl,
   size = "md",
   borderRadius,
@@ -140,7 +126,6 @@ export function CompanyLogo({
   }
 
   const letter = getLogoLetter(logoLetter, name);
-  const gradient = resolveGradient(logoGradient);
   const fontSize = Math.round(px * 0.38);
 
   const containerStyle: React.CSSProperties = {
@@ -210,8 +195,8 @@ export function CompanyLogo({
     <div
       style={{
         ...containerStyle,
-        background: gradient,
-        color: "#fff",
+        background: LOGO_PLACEHOLDER.bg,
+        color: LOGO_PLACEHOLDER.text,
         /* ⚠️ 生の "Inter" / 'Noto Sans JP' を書かない（2026-08-29）。
               next/font が読み込むのは Inter と Noto Serif JP だけで、
               **'Noto Sans JP' は読み込んでいない**ので指定しても効かない。

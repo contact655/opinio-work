@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { listAddress } from "@/lib/jobs/heroFacts";
 import Link from "next/link";
+import { ClipboardList, MapPin } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getJobs, getRoleTree } from "@/lib/supabase/queries";
 import { getDeptJobs } from "@/lib/jobs/deptJobs";
@@ -139,7 +140,6 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
           <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600 }}>{cat.label}</span>
         </div>
         <h1 style={{
-          fontFamily: "var(--font-noto-serif, 'Noto Serif JP', serif)",
           fontSize: "clamp(22px, 3vw, 32px)",
           fontWeight: 700,
           color: "var(--ink)",
@@ -172,7 +172,8 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
       {/* ─ 求人リスト ─ */}
       {filteredJobs.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--ink-mute)" }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
+          {/* ★絵文字をやめて線のアイコン（2026-11-27） */}
+          <ClipboardList size={32} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ display: "block", margin: "0 auto 12px" }} />
           <p style={{ fontSize: 15, margin: 0 }}>現在この職種の募集はありません</p>
           <Link href="/jobs" style={{ display: "inline-block", marginTop: 16, fontSize: 13, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
             すべての募集を見る →
@@ -251,8 +252,8 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
                           </span>
                         )}
                         {job.location && (
-                          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)" }}>
-                            📍 {listAddress(job.location)}
+                          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-mute)", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                            <MapPin size={12} strokeWidth={2} aria-hidden />{listAddress(job.location)}
                           </span>
                         )}
                         {job.is_new && (
@@ -313,8 +314,8 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
 
       {/* ─ CTA ─ */}
       <div style={{
-        marginTop: 40, padding: "28px 24px", borderRadius: 16,
-        background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
+        marginTop: 40, padding: "28px 24px", borderRadius: 14,
+        background: "var(--royal)", /* ★紺の単色（2026-11-27） */
         textAlign: "center",
       }}>
         <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, margin: "0 0 16px", lineHeight: 1.6 }}>

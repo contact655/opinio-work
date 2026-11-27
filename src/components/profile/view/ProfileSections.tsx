@@ -227,16 +227,11 @@ export function ProfileAchievementsSection({ achievements, actions, showAll }: {
             {achievements.map((a) => (
               <div key={a.id} style={{
                 textAlign: "center", padding: "18px 12px 14px",
-                border: "1.5px solid var(--royal-100)", borderRadius: 12,
-                background: "linear-gradient(160deg, var(--royal-50) 0%, #fff 100%)",
+                /* ★単色・線1px（2026-11-27）。グラデーションと飾りの円を外した */
+                border: "1px solid var(--royal-100)", borderRadius: 12,
+                background: "var(--royal-50)",
                 position: "relative", overflow: "hidden",
               }}>
-                {/* subtle arc decoration */}
-                <div style={{
-                  position: "absolute", top: -20, right: -20,
-                  width: 60, height: 60, borderRadius: "50%",
-                  background: "var(--royal-100)", opacity: 0.4,
-                }} />
                 <div style={{
                   fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 800, color: "var(--royal)",
                   lineHeight: 1, marginBottom: 6,
@@ -337,11 +332,11 @@ export function ProfileAwardsSection({ awards, actions, showAll }: {
               }}>
                 <div style={{
                   width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                  background: "linear-gradient(135deg, #FBBF24 0%, #D97706 100%)",
+                  /* ★単色（2026-11-27）。琥珀色のグラデーションと影をやめた（黄色は「注意」専用） */
+                  background: "var(--royal-50)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: "0 2px 8px rgba(217,119,6,0.25)",
                 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--royal)">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                   </svg>
                 </div>
@@ -818,7 +813,7 @@ export function ProfileMediaSection({ mediaAppearances, actions, showAll }: {
                   {/* Thumbnail or placeholder */}
                   <div style={{
                     width: 52, height: 52, borderRadius: 8, flexShrink: 0,
-                    background: m.thumbnail_url ? undefined : "linear-gradient(135deg, #334155, #6b7280)",
+                    background: m.thumbnail_url ? undefined : "var(--royal-50)",
                     overflow: "hidden",
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
@@ -826,7 +821,7 @@ export function ProfileMediaSection({ mediaAppearances, actions, showAll }: {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={m.thumbnail_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     ) : (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round">
                         <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
                       </svg>
                     )}
@@ -930,13 +925,13 @@ export function ProfileArticlesSection({ featuredArticles }: { featuredArticles:
                   background: "var(--bg-tint)", transition: "border-color 0.15s",
                 }}
               >
-                {/* Eyecatch gradient strip */}
+                {/* サムネイルの代わり。★単色（2026-11-27）。eyecatch_gradient は使わない */}
                 <div style={{
                   width: 56, height: 56, borderRadius: 8, flexShrink: 0,
-                  background: article.eyecatch_gradient ?? "linear-gradient(135deg, var(--royal), var(--accent))",
+                  background: "var(--royal-50)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.8" strokeLinecap="round">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="1.8" strokeLinecap="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <polyline points="14 2 14 8 20 8" />
                     <line x1="16" y1="13" x2="8" y2="13" />
@@ -1056,7 +1051,7 @@ export function ProfileContentLinksSection({ contentLinks, viewerIsOwner, action
                     width: 64, height: 64, borderRadius: 10, flexShrink: 0, overflow: "hidden",
                     background: link.thumbnail_url
                       ? undefined
-                      : `linear-gradient(135deg, ${meta.color}18 0%, ${meta.color}38 100%)`,
+                      : `${meta.color}1F`, /* ★単色（2026-11-27） */
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
                     {link.thumbnail_url ? (

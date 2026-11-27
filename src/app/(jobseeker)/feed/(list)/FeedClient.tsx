@@ -5,6 +5,7 @@ import { ANNOUNCEMENT_POST_TYPES } from "@/lib/feed/streamMode";
 import { Fragment, useState, useRef, useCallback, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
+import { CalendarDays, Clock, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { HomeProfileCard, type HomeProfileCardData } from "@/components/feed/HomeProfileCard";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
@@ -2001,19 +2002,20 @@ function PostCard({
           }}
         >
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-            <div style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>📅</div>
+            {/* ★絵文字をやめて線のアイコン（2026-11-27） */}
+            <CalendarDays size={18} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ flexShrink: 0, marginTop: 1 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontWeight: 700, fontSize: 14, color: "var(--purple)" }}>
                 {post.event_title}
               </div>
               {post.event_starts_at && (
-                <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 4 }}>
-                  🕐 {new Date(post.event_starts_at).toLocaleString("ja-JP", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                  <Clock size={12} strokeWidth={2} aria-hidden />{new Date(post.event_starts_at).toLocaleString("ja-JP", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                 </div>
               )}
               {post.event_location && (
-                <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>
-                  📍 {post.event_location}
+                <div style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                  <MapPin size={12} strokeWidth={2} aria-hidden />{post.event_location}
                 </div>
               )}
             </div>

@@ -4,6 +4,7 @@ import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import { ProfileSocialLinks } from "./ProfileSections";
 import type { CareerEntry } from "@/components/profile/MergedTimeline";
 import { isPlaceholderCompanyName } from "@/lib/experiences/companyName";
+import { AVATAR_COLOR, solidBackground } from "@/lib/avatarColor";
 import type { FollowCounts as Counts } from "@/lib/people/followCounts";
 
 /** 会社名から法人格プレフィックス・サフィックスを除去して短縮名を返す。
@@ -111,8 +112,8 @@ export function ProfileHeader({
          この1枚だけ影が無く、薄グレーの地の上で境目が弱かった。 */}
   {/* ⚠️ 箱の見た目は CSS（.pf-card-head / globals.css）。スマホで画面の端まで広げるので、インラインに戻さない */}
   <div className="pf-card-head">
-    {/* Cover area: photo or gradient */}
-    <div className="profile-cover" style={{ height: 200, position: "relative", background: coverPhotoUrl ? undefined : coverColor, overflow: "hidden" }}>
+    {/* Cover area: photo or 単色。★既定は紺系の薄い単色（2026-11-27）。DB に残るグラデーションは使わない */}
+    <div className="profile-cover" style={{ height: 200, position: "relative", background: coverPhotoUrl ? undefined : solidBackground(coverColor, "var(--royal-100)"), overflow: "hidden" }}>
       {coverPhotoUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -122,17 +123,7 @@ export function ProfileHeader({
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       )}
-      {/* Subtle dot pattern overlay */}
-      <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)",
-        backgroundSize: "24px 24px",
-      }} />
-      {/* Bottom fade gradient */}
-      <div style={{
-        position: "absolute", bottom: 0, left: 0, right: 0, height: 80,
-        background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.25))",
-      }} />
+      {/* ⚠️ 点模様と下端のフェードは 2026-11-27 に外した（柴さんの指示。カバーは単色か写真だけ） */}
       {/* ★カバー全面を押せるようにする（本人のときだけ）。
           ⚠️ 右上の `topRight`（鉛筆）とアバターは**後ろの兄弟**なので、重なっても
              そちらがクリックを受ける。この当たり判定が上に乗ることはない。 */}
@@ -183,8 +174,9 @@ export function ProfileHeader({
              写真は `<img>` 側の `borderRadius: 50%` で丸いままなので、見た目は変わらない。 */}
       <div className="profile-avatar profile-avatar-wrap" style={{
         width: 120, height: 120, borderRadius: "50%",
-        background: avatarUrl ? undefined : avatarColor,
-        color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+        /* ★既定は単色のグレー（2026-11-27）。DB に残るグラデーションは使わない */
+        background: avatarUrl ? undefined : solidBackground(avatarColor, AVATAR_COLOR.bg),
+        color: AVATAR_COLOR.text, display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 42, fontWeight: 600,
         border: "5px solid #fff",
         boxShadow: "0 4px 16px rgba(15,23,42,0.12)",

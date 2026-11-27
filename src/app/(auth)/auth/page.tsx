@@ -336,7 +336,7 @@ function AuthPageInner() {
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
-              <h2 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 22, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", marginBottom: 12 }}>
                 確認メールを送りました
               </h2>
               <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.9, marginBottom: 28 }}>
@@ -371,7 +371,6 @@ function AuthPageInner() {
           border: "1px solid var(--line)",
           borderRadius: 99,
           fontSize: 12, color: "var(--ink-soft)", fontWeight: 600, textDecoration: "none",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
           whiteSpace: "nowrap",
         }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
@@ -885,10 +884,12 @@ const s = {
           **375px でロゴがこの帯に潜り込む**（実測: ロゴ 145〜230 × 帯 138〜355 で重なる）。
           ⚠️ ロゴを中央に寄せた日に出た。左寄せのときは横がずれていて当たらなかっただけで、
              **帯が本文に重なること自体は前からあった。** */
-    padding: "64px 28px",
+    /* ★地は --bg-tint、フォームは白いカード（2026-11-27 / 柴さんの指示）。
+       横の余白は 16px（カードの内側にも余白があるので、375px で入力欄が狭くなりすぎない） */
+    padding: "64px 16px",
     display: "flex",
     flexDirection: "column",
-    background: "#fff",
+    background: "var(--bg-tint)",
     minHeight: "100vh",
     overflowY: "auto",
   } as React.CSSProperties,
@@ -896,6 +897,12 @@ const s = {
   formWrap: {
     maxWidth: 420,
     width: "100%",
+    /* ★カード（角丸14px・線1px・影なし。2026-11-27） */
+    background: "#fff",
+    border: "1px solid var(--line)",
+    borderRadius: 14,
+    padding: "28px 24px",
+    boxSizing: "border-box",
     /* ★**`margin: auto` で縦中央に置く**（2026-08-20）。
        ⚠️ 以前は `flex: 1` で**伸びた領域の上端にカードが貼り付き**、
           下に大きな空白ができていた（1280×900 のログインタブで実測。
@@ -950,7 +957,6 @@ const s = {
   modeTabActive: {
     background: "var(--royal)",
     color: "#fff",
-    boxShadow: "0 2px 8px rgba(0,35,102,0.25)",
   } as React.CSSProperties,
 
   errorBox: {
@@ -1012,8 +1018,8 @@ const s = {
     cursor: "pointer",
   } as React.CSSProperties,
 
+  /* ★見出しはゴシック（2026-11-27 / 柴さんの指示）。明朝（--font-noto-serif）に戻さないこと */
   formTitle: {
-    fontFamily: "var(--font-noto-serif)",
     fontWeight: 700,
     fontSize: 26,
     color: "var(--ink)",
@@ -1027,7 +1033,7 @@ const s = {
     lineHeight: 1.7,
   } as React.CSSProperties,
 
-  // ⑥ Google button — taller padding + stronger shadow
+  // ⑥ Google button — taller padding。★影は付けない（2026-11-27）
   oauthBtn: {
     width: "100%",
     padding: "16px 18px",
@@ -1042,8 +1048,6 @@ const s = {
     display: "flex",
     alignItems: "center",
     gap: 12,
-    boxShadow: "0 3px 10px rgba(0,0,0,0.10),0 1px 4px rgba(0,0,0,0.07)",
-    transition: "box-shadow 0.2s",
   } as React.CSSProperties,
 
   formGroup: {
@@ -1104,7 +1108,6 @@ const s = {
     fontWeight: 700,
     cursor: "pointer",
     marginTop: 16,
-    boxShadow: "0 4px 14px rgba(0,35,102,0.22)",
     transition: "all 0.2s",
   } as React.CSSProperties,
 
@@ -1135,7 +1138,7 @@ const s = {
 // ─── Page export ─────────────────────────────────────────────────────────────
 export default function AuthPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#fff" }} />}>
+    <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--bg-tint)" }} />}>
       <AuthPageInner />
     </Suspense>
   );

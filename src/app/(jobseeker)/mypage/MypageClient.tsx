@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { AVATAR_COLOR, LOGO_PLACEHOLDER, solidBackground } from "@/lib/avatarColor";
 import MypageLayout from "./_components/MypageLayout";
 /* ★意思表示（2026-08-26 / フェーズ1）。`StanceCard` / `CareerIntentBox` /
       `TalkToMeCard` の**3枚を1枚に統合した**。3枚に戻さないこと。 */
@@ -96,7 +97,7 @@ function DashboardView({
               marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid var(--line)",
             }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>
+                <span style={{ fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>
                   あなたの母校
                 </span>
                 <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase" as const }}>
@@ -122,10 +123,11 @@ function DashboardView({
                   }} className="request-item-row">
                     <div style={{
                       width: 48, height: 48, borderRadius: 12, flexShrink: 0,
-                      background: sm.logo_gradient ?? "linear-gradient(135deg, #7C3AED, #a855f7)",
+                      /* ★学校ロゴの代わりは単色（2026-11-27）。紫のグラデーションをやめた。DB の logo_gradient も使わない */
+                      background: LOGO_PLACEHOLDER.bg,
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
-                      <span style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>
+                      <span style={{ fontSize: 18, fontWeight: 800, color: LOGO_PLACEHOLDER.text }}>
                         {sm.logo_letter ?? sm.name.charAt(0)}
                       </span>
                     </div>
@@ -163,10 +165,10 @@ function DashboardView({
                   }} className="request-item-row">
                     <div style={{
                       width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                      background: sm.logo_gradient ?? "linear-gradient(135deg, #7C3AED, #a855f7)",
+                      background: LOGO_PLACEHOLDER.bg,
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: "#fff" }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: LOGO_PLACEHOLDER.text }}>
                         {sm.logo_letter ?? sm.name.charAt(0)}
                       </span>
                     </div>
@@ -275,7 +277,8 @@ export default function MypageClient({
 } & ProfileEditorProps) {
   const userName = owUser?.name ?? "ユーザー";
   const userInitial = userName.charAt(0);
-  const userAvatar = owUser?.avatar_color ?? "linear-gradient(135deg, var(--royal), #3B5FD9)";
+  /* ★既定色は単色のグレー（2026-11-27）。DB に残っているグラデーションも使わない */
+  const userAvatar = solidBackground(owUser?.avatar_color, AVATAR_COLOR.bg);
 
   /* ⚠️ 現職の1行は 2-7 で `ProfileHeader` が自分で組むようになった（2026-08-16）。
         ここで作って渡すのはやめた。同じ導出を2箇所に置かない。 */
@@ -465,20 +468,20 @@ export default function MypageClient({
       {/* ウェルカムバナー（新規登録直後） */}
       {isNewUser && !welcomeDismissed && (
         <div style={{
-          background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
-          border: "1.5px solid #6EE7B7",
+          /* ★単色の紺系の薄い地（2026-11-27）。緑は「プラスの一致」専用なのでここでは使わない */
+          background: "var(--royal-50)",
+          border: "1px solid var(--royal-100)",
           borderRadius: 14,
           padding: "18px 20px",
           marginBottom: 20,
         }}>
           {/* ヘッダー行 */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-            <span style={{ fontSize: 26, lineHeight: 1 }}>🎉</span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: "#065F46" }}>
-                OPINIOへようこそ！登録が完了しました。
+              <div style={{ fontSize: 15, fontWeight: 800, color: "var(--ink)" }}>
+                登録が完了しました
               </div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: "#047857", marginTop: 2 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-soft)", marginTop: 2 }}>
                 まずは以下の3ステップをやってみましょう
               </div>
             </div>
@@ -488,7 +491,7 @@ export default function MypageClient({
               aria-label="閉じる"
               style={{
                 background: "none", border: "none", cursor: "pointer",
-                color: "#6EE7B7", fontSize: 20, lineHeight: 1,
+                color: "var(--ink-mute)", fontSize: 20, lineHeight: 1,
                 padding: "4px 6px", borderRadius: 6, flexShrink: 0,
               }}
             >×</button>
@@ -503,25 +506,25 @@ export default function MypageClient({
             ].map(({ step, label, href, cta }) => (
               <div key={step} style={{
                 display: "flex", alignItems: "center", gap: 12,
-                background: "rgba(255,255,255,0.65)", borderRadius: 10,
+                background: "#fff", borderRadius: 10,
                 padding: "10px 14px",
               }}>
                 <div style={{
                   width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-                  background: "var(--success-strong)", color: "#fff",
+                  background: "var(--royal)", color: "#fff",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 12, fontWeight: 800,
                 }}>
                   {step}
                 </div>
-                <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#065F46" }}>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
                   {label}
                 </span>
                 <Link href={href} style={{
-                  fontSize: 12, fontWeight: 700, color: "#047857",
-                  background: "#D1FAE5", padding: "4px 10px",
+                  fontSize: 12, fontWeight: 700, color: "var(--royal)",
+                  background: "#fff", padding: "4px 10px",
                   borderRadius: 100, textDecoration: "none", flexShrink: 0,
-                  border: "1px solid #A7F3D0",
+                  border: "1px solid var(--royal-100)",
                 }}>
                   {cta}
                 </Link>

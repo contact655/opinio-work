@@ -117,9 +117,7 @@ export function PostComposer({
                   padding: "7px 18px",
                   borderRadius: 8,
                   border: "none",
-                  background: canSubmit
-                    ? "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)"
-                    : "var(--line)",
+                  background: canSubmit ? "var(--royal)" : "var(--line)", /* ★紺の単色（2026-11-27） */
                   color: canSubmit ? "#fff" : "var(--ink-mute)",
                   fontSize: 13,
                   fontWeight: 700,

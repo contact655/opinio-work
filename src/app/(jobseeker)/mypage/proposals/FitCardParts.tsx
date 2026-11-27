@@ -3,6 +3,12 @@
  * ⚠️ 色や枠をどちらかのカードに直書きしないこと。片方だけ変わると、上下で違うものに見える。
  * ⚠️ クライアント部品からも読むので、サーバー専用のものを import しない。
  */
+import { Check } from "lucide-react";
+
+/** 理由の頭の印。★「✓」の文字をやめて線のチェックアイコン（2026-11-27 / 柴さんの指示） */
+export function ReasonCheck({ size = 13 }: { size?: number }) {
+  return <Check size={size} strokeWidth={2.5} aria-hidden style={{ flexShrink: 0, verticalAlign: "-2px", marginRight: 4 }} />;
+}
 
 /** 理由（合っている点）の枠。緑は「プラスの一致」（ui-conventions の色の役割） */
 export function ReasonBox({ items, state = "fit-reasons" }: { items: string[]; state?: string }) {
@@ -13,7 +19,7 @@ export function ReasonBox({ items, state = "fit-reasons" }: { items: string[]; s
       background: "#ECF6EF", border: "1px solid #D3E8DA", borderRadius: 8,
     }}>
       {items.map((r, i) => (
-        <li key={`${i}-${r}`} style={{ fontSize: 13, lineHeight: 1.6, color: "#14532D" }}>✓ {r}</li>
+        <li key={`${i}-${r}`} style={{ fontSize: 13, lineHeight: 1.6, color: "#14532D" }}><ReasonCheck />{r}</li>
       ))}
     </ul>
   );

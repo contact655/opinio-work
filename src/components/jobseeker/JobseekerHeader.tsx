@@ -128,14 +128,15 @@ function SearchSuggestPanel({ query, suggestions, onClose, router }: {
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>クイックナビ</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {[
-              { href: "/companies", label: "企業一覧", icon: "🏢" },
-              { href: "/jobs",      label: "募集一覧", icon: "💼" },
-              { href: "/people",    label: "ユーザー一覧", icon: "👥" },
-              { href: "/articles",  label: "記事",      icon: "📝" },
-            ].map(({ href, label, icon }) => (
+              /* ★絵文字は外した（2026-11-27 / 柴さんの指示。画面に絵文字を出さない） */
+              { href: "/companies", label: "企業一覧" },
+              { href: "/jobs",      label: "募集一覧" },
+              { href: "/people",    label: "ユーザー一覧" },
+              { href: "/articles",  label: "記事" },
+            ].map(({ href, label }) => (
               <a key={href} href={href} onClick={() => onClose()}
                 style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "1px solid var(--line)", textDecoration: "none", fontSize: 13, color: "var(--ink-soft)", fontWeight: 500 }}>
-                <span>{icon}</span>{label}
+                {label}
               </a>
             ))}
           </div>

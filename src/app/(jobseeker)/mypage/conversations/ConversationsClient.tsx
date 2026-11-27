@@ -7,6 +7,8 @@ import { ApproachLetter } from "@/components/approaches/ApproachLetter";
 import type { IncomingApproachView } from "@/components/approaches/incomingApproachView";
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import Link from "next/link";
+import { MessageCircle } from "lucide-react";
+import { AVATAR_COLOR } from "@/lib/avatarColor";
 import { useRouter } from "next/navigation";
 import { formatRelativeTime } from "@/lib/utils/formatRelativeTime";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
@@ -88,9 +90,10 @@ function ConvAvatar({ conv }: { conv: Conversation }) {
     return (
       <div style={{
         width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-        background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
+        /* ★単色のグレー（2026-11-27） */
+        background: AVATAR_COLOR.bg,
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 14, fontWeight: 700, color: "#fff",
+        fontSize: 14, fontWeight: 700, color: AVATAR_COLOR.text,
       }}>{displayName[0] ?? "?"}</div>
     );
   }
@@ -622,7 +625,7 @@ export default function ConversationsClient({
           {/* 左ヘッダー */}
           <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid var(--line-soft)", flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-              <h1 style={{ fontFamily: "var(--font-noto-serif)", fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
+              <h1 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: 0 }}>
                 メッセージ
               </h1>
               {/* ⚠️ 会話が2件以上あるときだけ出す。1件しか無い人に「複数に送る」は意味が無い */}
@@ -684,7 +687,8 @@ export default function ConversationsClient({
 
           {tab === "unreplied" && !bulkMode ? null : conversations.length === 0 && unreplied.length === 0 ? (
             <div style={{ padding: 24, textAlign: "center" }}>
-              <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
+              {/* ★絵文字をやめて線のアイコン（2026-11-27） */}
+              <MessageCircle size={28} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ display: "block", margin: "0 auto 8px" }} />
               <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}>
                 まだ対話がありません
               </p>

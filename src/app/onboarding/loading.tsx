@@ -10,7 +10,7 @@ export default function Loading() {
         </div>
 
         {/* Question card */}
-        <div style={{ background: "#fff", borderRadius: 20, border: "1px solid var(--line)", padding: "36px 32px" }}>
+        <div style={{ background: "#fff", borderRadius: 14, border: "1px solid var(--line)", padding: "36px 32px" }}>
           {/* Icon */}
           <div className="skeleton-shimmer" style={{ width: 56, height: 56, borderRadius: "50%", margin: "0 auto 20px" }} />
 

@@ -93,8 +93,10 @@ type OwUser = {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const DEFAULT_AVATAR_COLOR = "linear-gradient(135deg, var(--royal), #3B5FD9)";
-const DEFAULT_COVER_COLOR  = "linear-gradient(135deg, var(--royal), #3B5FD9, #818CF8)";
+/* ★既定色は単色（2026-11-27 / 柴さんの指示）。グラデーション・紫を使わない。
+      アバターはグレー（AVATAR_COLOR）、カバーは紺系の薄い色 */
+const DEFAULT_AVATAR_COLOR = "var(--line-soft)";
+const DEFAULT_COVER_COLOR  = "var(--royal-100)";
 
 // ─── ProfilePhotoUploader ─────────────────────────────────────────────────────
 

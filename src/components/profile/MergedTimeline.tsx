@@ -7,6 +7,7 @@ import { isSearchableSchoolType } from "@/lib/constants/schools";
 import { type RowActions, type CareerActions, RowActionButtons, AddRoleLink } from "./view/RowActions";
 import CompanyLogoImg, { LetterCircle } from "./CompanyLogoImg";
 import { isPlaceholderCompanyName } from "@/lib/experiences/companyName";
+import { AVATAR_COLOR, LOGO_PLACEHOLDER } from "@/lib/avatarColor";
 import SchoolLogoImg from "./SchoolLogoImg";
 import { formatDuration, formatTenure } from "@/lib/profile/tenure";
 import { rankLabel } from "@/lib/constants/careerOptions";
@@ -805,8 +806,9 @@ function CompanyLogoIcon({
         `isPlaceholderCompanyName()` の1箇所に集約してある。 */
   if (isPlaceholderCompanyName(company_name)) {
     return (
-      <div style={{ ...wrapStyle, background: "linear-gradient(135deg, #64748B 0%, #94A3B8 100%)" }}>
-        <svg width={iconPx} height={iconPx} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      /* ★単色のグレー（2026-11-27） */
+      <div style={{ ...wrapStyle, background: AVATAR_COLOR.bg }}>
+        <svg width={iconPx} height={iconPx} viewBox="0 0 24 24" fill="none" stroke={AVATAR_COLOR.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
         </svg>
       </div>
@@ -838,12 +840,11 @@ function CompanyLogoIcon({
 
   // ステップ 3: それ以外 → 会社名イニシャル円
   const fallbackLetter = company_name ? company_name.charAt(0) : "?";
-  const fallbackGrad = isCurrent
-    ? "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)"
-    : "linear-gradient(135deg, #64748B 0%, #94A3B8 100%)";
+  /* ★単色（2026-11-27）。現職は紺系、過去はグレー */
+  const fallback = isCurrent ? LOGO_PLACEHOLDER : AVATAR_COLOR;
   return (
-    <div style={{ ...wrapStyle, background: fallbackGrad }}>
-      <span style={{ color: "#fff", fontSize: fontPx, fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)", lineHeight: 1 }}>
+    <div style={{ ...wrapStyle, background: fallback.bg }}>
+      <span style={{ color: fallback.text, fontSize: fontPx, fontWeight: 700, fontFamily: "var(--font-inter), var(--font-noto)", lineHeight: 1 }}>
         {fallbackLetter}
       </span>
     </div>

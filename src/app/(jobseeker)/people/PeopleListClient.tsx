@@ -4,6 +4,7 @@ import { SearchAllLink } from "@/components/jobseeker/SearchAllLink";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Users } from "lucide-react";
 import Image from "next/image";
 import type { DirectoryPerson } from "@/lib/people/directory";
 import type { SearchAlias } from "@/lib/supabase/queries";
@@ -1161,7 +1162,7 @@ export function PeopleListClient({ ambassadors, roleSlugToId, roleAliases, myUse
   if (ambassadors.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: "80px 24px" }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>💬</div>
+        <Users size={36} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ display: "block", margin: "0 auto 16px" }} />
         <div style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>まだ登録がありません</div>
         <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>プロフィールを登録した方から順に表示されます。</div>
       </div>

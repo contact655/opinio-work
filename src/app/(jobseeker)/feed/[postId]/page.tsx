@@ -3,6 +3,7 @@ import { LikersCountButton } from "@/components/feed/LikersDialog";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import Link from "next/link";
+import { MessageCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { LinkPreviewCard } from "@/components/feed/LinkPreviewCard";
@@ -315,7 +316,7 @@ export default async function FeedPostPage({ params }: { params: { postId: strin
         >
           {/* ★押すといいねした人の一覧（2026-10-21） */}
           <LikersCountButton postId={p.id} count={likeCount}>❤️ {likeCount}</LikersCountButton>
-          <span>💬 {commentCount}</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><MessageCircle size={14} strokeWidth={2} aria-hidden />{commentCount}</span>
           <Link
             href="/home"
             style={{ marginLeft: "auto", color: "var(--royal)", textDecoration: "none", fontSize: 14 }}

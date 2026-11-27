@@ -4,6 +4,7 @@ import { PrivateMessageNote } from "@/components/nextManager/PrivateMessageNote"
 import { ManagerMatchPanel } from "@/components/nextManager/ManagerMatchPanel";
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import { AVATAR_COLOR } from "@/lib/avatarColor";
 import MypageLayout from "@/app/(jobseeker)/mypage/_components/MypageLayout";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { MeetingMessageCard } from "@/components/meetings/MeetingMessageCard";
@@ -197,9 +198,9 @@ export default function ConversationDetailClient({
           {conversation.kind === "direct_message" ? (
             <div style={{
               width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-              background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
+              background: AVATAR_COLOR.bg, /* ★単色のグレー（2026-11-27） */
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 12, fontWeight: 700, color: "#fff",
+              fontSize: 12, fontWeight: 700, color: AVATAR_COLOR.text,
             }}>
               {displayName[0] ?? "?"}
             </div>
