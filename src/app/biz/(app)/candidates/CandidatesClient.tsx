@@ -60,6 +60,7 @@ import {
    ⚠️ 年齢・性別に関わる軸を足さないこと（労働施策総合推進法9条・均等法5条）。 */
 import { sortByPositionFit, type PositionFits, type PositionOption } from "@/lib/business/candidates/positionFitModel";
 import { BizPageTitle } from "@/components/business/BizSectionTitle";
+import { useScrollLock } from "@/hooks/useScrollLock";
 const SORT_OPTIONS = CANDIDATE_SORT_OPTIONS;
 
 /** 月数 → カードに出す1行。未算出（null）は**何も出さない**（「0年」と書かない） */
@@ -322,13 +323,12 @@ export default function CandidatesClient({
   }, [updateSelected]);
   /* ★狭い画面で詳細を重ねているあいだは、下の一覧をスクロールさせない */
   const overlayOpen = isWide === false && !!selected;
+  useScrollLock(overlayOpen);
   useEffect(() => {
     if (!overlayOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const onKey = (ev: KeyboardEvent) => { if (ev.key === "Escape") updateSelected(null); };
     window.addEventListener("keydown", onKey);
-    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
+    return () => { window.removeEventListener("keydown", onKey); };
   }, [overlayOpen, updateSelected]);
 
 

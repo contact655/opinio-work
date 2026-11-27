@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PathsOption, PathsStartView } from "@/lib/paths/server";
 import type { PrevSelection } from "@/lib/people/prevCareer";
 import { PrevCareerFields } from "@/components/people/PrevCareerFields";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 /**
  * ★/people の「すべてのフィルター」（2026-11-12 / 柴さんの指示。LinkedIn の「ユーザーフィルター」を参考にした）。
@@ -41,14 +42,13 @@ export function PeopleFilterDrawer({
   const panelRef = useRef<HTMLDivElement>(null);
   /* 開くたびに、いま効いている条件から始める */
   useEffect(() => { if (open) setDraft(values); }, [open, values]);
+  useScrollLock(open);
   useEffect(() => {
     if (!open) return;
     panelRef.current?.focus();
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+    return () => { document.removeEventListener("keydown", onKey); };
   }, [open, onClose]);
   if (!open) return null;
 

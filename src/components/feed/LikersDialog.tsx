@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { FollowUserButton } from "@/app/(jobseeker)/u/[id]/FollowUserButton";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 /**
  * ★いいねした人の一覧（2026-10-21 / 柴さんの要望。LinkedIn の「リアクション」と同じ形）。
@@ -39,12 +40,11 @@ export function LikersDialog({ postId, onClose }: { postId: string; onClose: () 
     return () => { alive = false; };
   }, [postId]);
 
+  useScrollLock(true);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+    return () => { window.removeEventListener("keydown", onKey); };
   }, [onClose]);
 
   if (!mounted) return null;

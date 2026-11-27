@@ -10,6 +10,7 @@ import type { TenantCompany } from "@/lib/business/dashboard";
 import { LayoutGrid, Building2, Briefcase, Users, Newspaper, ChevronDown, Layers, BarChart2, Inbox, UsersRound, Search, FileText, Calendar, ClipboardList, ExternalLink, HelpCircle, ArrowLeftRight, User, LogOut, PanelLeft, Menu, X } from "lucide-react";
 import { useBizShell } from "./BizShellContext";
 import OpinioLogo from "@/components/common/OpinioLogo";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 type BusinessLayoutVariant = "default" | "fullBleed";
 
@@ -1153,14 +1154,13 @@ function BizMobileTabBar({ permission, badges, isActive, onNavigate, showCompany
   /* ページを移ったら閉じる */
   useEffect(() => { setOpen(false); }, [pathname]);
   /* 開いているあいだは背面をスクロールさせない・Esc で閉じる */
+  useScrollLock(open);
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     window.addEventListener("keydown", onKey);
     const t = setTimeout(() => closeRef.current?.focus(), 30);
-    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); clearTimeout(t); };
+    return () => { window.removeEventListener("keydown", onKey); clearTimeout(t); };
   }, [open]);
 
   const groups = NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((it) => it.needs.some((a) => can(permission, a))) }))

@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 /**
  * ★「すべてのフィルター」の右ドロワー（2026-10-13 / 候補者を探す ステップ5）。
@@ -40,13 +41,8 @@ export function FilterDrawer({
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
-  /* 背景のスクロールを止める。⚠️ 閉じたら元の値に戻す（他の箇所が設定していた値を消さない） */
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, [open]);
+  /* 背景のスクロールを止める（重ねて開いても正しく戻る共通のフック） */
+  useScrollLock(open);
 
   /* 開いたら最初の要素にフォーカス。閉じたら呼び出し元のボタンに戻す */
   useEffect(() => {
