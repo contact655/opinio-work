@@ -893,8 +893,9 @@ export function CompanyEditClient({
                 <div className="cpe-2col">
                   <FormGroup>
                     {/* ★資本金（2026-11-27）。入力は万円、保存は円（ow_companies.capital_amount_yen） */}
-                    <FormLabel optional htmlFor="ce-capital">資本金（万円）</FormLabel>
-                    <FormInput id="ce-capital" value={form.capitalMan} onChange={(v) => update("capitalMan", v.replace(/[^\d.,]/g, "").slice(0, 16))} placeholder="例: 10000（＝1億円）" />
+                    <FormLabel optional htmlFor="ce-capital-amount">資本金（万円）</FormLabel>
+                    {/* ⚠️ id を ce-capital にしない（分類の「資本」の選択肢が使っている。2026-11-27 にぶつかった） */}
+                    <FormInput id="ce-capital-amount" value={form.capitalMan} onChange={(v) => update("capitalMan", v.replace(/[^\d.,]/g, "").slice(0, 16))} placeholder="例: 10000（＝1億円）" />
                     {capitalManToYen(form.capitalMan) === undefined
                       ? <FormHint><span style={{ color: "var(--danger, #DC2626)" }}>数字で入れてください（このままでは保存されません）。</span></FormHint>
                       : <FormHint>企業ページの「企業情報」に「1億円」のように出ます。</FormHint>}
