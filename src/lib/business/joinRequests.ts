@@ -1,3 +1,4 @@
+import { brandOrName } from "@/lib/companies/displayName";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { emailMatchesCompanyDomain } from "@/lib/constants/emailDomains";
 
@@ -243,7 +244,7 @@ export async function fetchOpenJoinRequests(admin: Client): Promise<OpenJoinRequ
     out.push({
       id: r.id as string,
       companyId,
-      companyName: company.brand_name ?? company.name ?? "—",
+      companyName: brandOrName(company.brand_name, company.name ?? "—"),
       companyUrl: company.url,
       userId,
       userName: user.name ?? "—",

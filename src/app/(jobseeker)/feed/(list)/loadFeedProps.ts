@@ -1,3 +1,4 @@
+import { brandOrName } from "@/lib/companies/displayName";
 import { announcementsInStream } from "@/lib/feed/streamMode";
 import { nextFeedPage } from "@/lib/feed/cursor";
 import "server-only";
@@ -357,7 +358,7 @@ export async function loadFeedProps() {
         salary_max: j.salary_max as number | null,
         salary_negotiable: j.salary_negotiable === true,
         employment_type: (j.employment_type as string | null) ?? null,
-        companyName: co?.brand_name ?? co?.name ?? null,
+        companyName: co ? brandOrName(co.brand_name, co.name) : null,
       };
     });
   }

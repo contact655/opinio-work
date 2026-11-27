@@ -1,3 +1,4 @@
+import { brandOrName } from "@/lib/companies/displayName";
 /**
  * システム投稿（company_joined / job_posted / article_published）の生成。
  *
@@ -21,7 +22,7 @@ export const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001";
 
 /** 表示に使う社名。brand_name があればそちら（backfill もこの規則で本文を作っている） */
 export function displayCompanyName(co: { name?: string | null; brand_name?: string | null }): string {
-  return co.brand_name ?? co.name ?? "";
+  return brandOrName(co.brand_name, co.name ?? "");
 }
 
 export function companyJoinedContent(co: { name?: string | null; brand_name?: string | null; tagline?: string | null }): string {
