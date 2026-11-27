@@ -1950,7 +1950,7 @@ export default function ProfileTab({
               <TextareaField
                 value={basicInfo.aboutMe}
                 onChange={(v) => setBasicInfo((prev) => ({ ...prev, aboutMe: v }))}
-                placeholder="例：リクルートで4年間営業を経験後、SaaS 企業に転じてカスタマーサクセスを担当。「人と組織の可能性を広げる仕事」を軸に、次のキャリアを模索しています。"
+                placeholder="例）法人営業を6年。いまは中小企業向けSaaSの新規開拓を担当しています。次はカスタマーサクセスに挑戦したいと考えています。"
                 softLimit={200}
                 rows={5}
                 ariaLabel="自己紹介"

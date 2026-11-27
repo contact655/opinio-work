@@ -7,7 +7,7 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { NO_REASON_PROMPT, type ForYouReaction } from "@/lib/forYou/weights";
 import InterestConfirmDialog from "@/components/interest/InterestConfirmDialog";
 import { ALL_COMPANIES_SECTION_TITLE, OTHER_COMPANIES_TITLE } from "./fitPageText";
-import { BTN, CARD_STYLE, CautionBox, NameLabel, Phrases, ReasonBox } from "./FitCardParts";
+import { BTN, CARD_STYLE, CautionBox, NameLabel, Phrases, ReasonBox, ReasonCheck } from "./FitCardParts";
 import { RailBox, RAIL_THUMB } from "@/components/feed/railKit";
 
 /**
@@ -229,7 +229,7 @@ export default function ForYouSection({
   /* ★リスト（2026-10-23 / 柴さんの指示）。1社1行で流し読みできる形。説明は理由（無ければ一言）を1行だけ */
   const row = (c: ForYouView, g: { label: string | null }) => {
     const reason = (g.label ? c.reasons[1] : c.reasons[0]) ?? null;
-    const text = reason ? `✓ ${reason}` : c.tagline;
+    const text = reason ?? c.tagline;
     const open = declining === c.id;
     return (
       <li key={c.id} data-company-id={c.id} data-rank={c.rank} className="fy-row">
@@ -242,7 +242,7 @@ export default function ForYouSection({
             {c.hasOpenJobs && <NameLabel state="fit-tag-jobs">募集あり</NameLabel>}
             {c.phaseLabel && <NameLabel state="fit-tag-phase">{c.phaseLabel}</NameLabel>}
           </div>
-          {text && <div className="fy-row-text" title={text} style={reason ? { color: "#14532D" } : undefined}>{text}</div>}
+          {text && <div className="fy-row-text" title={text} style={reason ? { color: "#14532D" } : undefined}>{reason && <ReasonCheck />}{text}</div>}
         </div>
         <div className={open || c.interested ? "fy-row-actions is-open" : "fy-row-actions"}>{actionsFor(c)}</div>
         {errFor(c)}
@@ -256,7 +256,7 @@ export default function ForYouSection({
   const tile = (c: ForYouView, g: { label: string | null }) => {
     if (expanded === c.id) return fullCard(c, g, () => setExpanded(null));
     const reason = (g.label ? c.reasons[1] : c.reasons[0]) ?? null;
-    const text = reason ? `✓ ${reason}` : c.tagline;
+    const text = reason ?? c.tagline;
     return (
       <li key={c.id} data-company-id={c.id} data-rank={c.rank} className="fy-tile">
         <button type="button" className="fy-tile-head" onClick={() => setExpanded(c.id)} aria-expanded={false} data-action="tile-open"
@@ -264,7 +264,7 @@ export default function ForYouSection({
           <CompanyLogo name={c.name} logoUrl={c.logoUrl} size="sm" />
           <span className="fy-name" style={{ fontSize: 13.5, fontWeight: 700, maxWidth: "100%" }}>{c.name}</span>
           {c.phaseLabel && <span style={{ fontSize: 11, color: "var(--ink-mute)" }}>{c.phaseLabel}</span>}
-          {text && <span className="fy-tile-text" style={reason ? { color: "#14532D" } : undefined}>{text}</span>}
+          {text && <span className="fy-tile-text" style={reason ? { color: "#14532D" } : undefined}>{reason && <ReasonCheck size={12} />}{text}</span>}
         </button>
         <div className="fy-tile-foot">
           {c.interested ? (
@@ -294,7 +294,7 @@ export default function ForYouSection({
             {groupCompanies(list).map((g) => (
               <section key={g.label ?? "__other"} data-state={g.label ? "for-you-group" : "for-you-group-other"} aria-label={g.label ?? OTHER_COMPANIES_TITLE}>
                 {(g.label || groupCompanies(list).length > 1) && <h3 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 8px", color: g.label ? "#14532D" : "var(--ink-soft)" }}>
-                  {g.label ? `✓ ${g.label}` : OTHER_COMPANIES_TITLE}
+                  {g.label ? <><ReasonCheck size={14} />{g.label}</> : OTHER_COMPANIES_TITLE}
                   <span style={{ fontWeight: 400, color: "var(--ink-soft)", marginLeft: 6, fontSize: 12 }}>{g.items.length}社</span>
                 </h3>}
                 {view === "list"
@@ -497,7 +497,7 @@ function CompactItem(props: {
 }) {
   const { c } = props;
   const reason = c.reasons[0] ?? null;
-  const text = reason ? `✓ ${reason}` : c.tagline;
+  const text = reason ?? c.tagline;
   const menuBtn: React.CSSProperties = { display: "block", width: "100%", textAlign: "left", padding: "8px 10px", border: "none", background: "none", fontSize: 13, color: "var(--ink)", cursor: "pointer", fontFamily: "inherit", borderRadius: 6 };
   return (
     <li data-company-id={c.id} data-rank={c.rank} className="fy-c-item">
@@ -507,7 +507,7 @@ function CompactItem(props: {
           <div className="fy-name fy-c-name" title={c.name}>
             {c.href ? <Link href={c.href} className="fit-company-link">{c.name}</Link> : c.name}
           </div>
-          {text && <div className="fy-c-text" title={text} style={reason ? { color: "#14532D" } : undefined}>{text}</div>}
+          {text && <div className="fy-c-text" title={text} style={reason ? { color: "#14532D" } : undefined}>{reason && <ReasonCheck size={12} />}{text}</div>}
         </div>
       </div>
       {props.declining ? (

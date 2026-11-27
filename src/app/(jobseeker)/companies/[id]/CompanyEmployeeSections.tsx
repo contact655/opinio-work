@@ -14,6 +14,7 @@
 
 import type React from "react";
 import { createContext, useContext, useState } from "react";
+import { Lock, Users } from "lucide-react";
 import { DMButton } from "@/components/profile/DMButton";
 import { useCompanyEmployees } from "@/lib/companies/useCompanyEmployees";
 import { SecTitle } from "./SecTitle";
@@ -354,7 +355,8 @@ export function CurrentEmployeesSection({
         }}>
           {hiddenCount > 0 ? (
             <>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>🔐</div>
+              {/* ★絵文字をやめて線のアイコン（2026-11-27） */}
+              <Lock size={32} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ marginBottom: 12 }} />
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 6 }}>
                 ログインすると{hiddenCount}名のプロフィールが見られます
               </div>
@@ -364,7 +366,7 @@ export function CurrentEmployeesSection({
             </>
           ) : (
             <>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>📸</div>
+              <Users size={32} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ marginBottom: 12 }} />
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 6 }}>
                 現在登録されている社員情報はありません
               </div>
@@ -604,7 +606,7 @@ export function AlumniSection({ alumni, hiddenCount = 0, totalCount, limit, more
         }}>
           {hiddenCount > 0 ? (
             <>
-              <div style={{ fontSize: 32, marginBottom: 4 }}>🔐</div>
+              <Lock size={28} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ marginBottom: 4 }} />
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 4 }}>
                 ログインすると{hiddenCount}名のプロフィールが見られます
               </div>

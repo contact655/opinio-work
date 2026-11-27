@@ -24,7 +24,7 @@ export default function MeetingFlowNote() {
         color: "var(--ink-soft)",
         lineHeight: 1.6,
       }}>
-        💬 気軽に話すだけでOK。選考なし・完全無料。
+        選考ではありません。費用はかかりません。
       </p>
       <p style={{
         margin: "4px 0 0",

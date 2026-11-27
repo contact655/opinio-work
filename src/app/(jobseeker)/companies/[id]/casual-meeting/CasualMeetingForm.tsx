@@ -33,8 +33,8 @@ function SuccessScreen({ companyName, contactEmail }: { companyName: string; con
           </svg>
         </div>
         <h1 style={{
-          fontFamily: 'var(--font-noto-serif)', fontSize: 22,
-          fontWeight: 600, color: "var(--ink)", marginBottom: 12,
+          fontSize: 22,
+          fontWeight: 700, color: "var(--ink)", marginBottom: 12,
         }}>
           申し込みを受け付けました
         </h1>
@@ -176,9 +176,10 @@ export default function CasualMeetingForm({
     background: "#fff", border: "1px solid var(--line)",
     borderRadius: 14, padding: "24px 28px", marginBottom: 16,
   };
+  /* ★見出しはゴシック（2026-11-27 / 柴さんの指示）。明朝に戻さないこと */
   const sectionTitleStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-noto-serif)', fontSize: 15,
-    fontWeight: 600, color: "var(--ink)", marginBottom: 6,
+    fontSize: 15,
+    fontWeight: 700, color: "var(--ink)", marginBottom: 6,
   };
   const sectionDescStyle: React.CSSProperties = {
     fontSize: 12, color: "var(--ink-soft)", lineHeight: 1.8, marginBottom: 16,
@@ -196,14 +197,14 @@ export default function CasualMeetingForm({
           ← {companyName}
         </Link>
         <h1 style={{
-          fontFamily: 'var(--font-noto-serif)', fontSize: 24,
-          fontWeight: 600, color: "var(--ink)", marginBottom: 6,
+          fontSize: 24,
+          fontWeight: 700, color: "var(--ink)", marginBottom: 6,
         }}>
           カジュアル面談を申し込む
         </h1>
         <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.8 }}>
-          まずは気軽に、企業の方とオンラインで30分お話ししませんか？<br />
-          選考前の段階でも OK。<strong>転職を決めていなくても大丈夫です。</strong>
+          企業の担当者と、オンラインで30分話せます。選考ではありません。<br />
+          <strong>転職を決めていなくても大丈夫です。</strong>
         </p>
       </div>
 
@@ -271,7 +272,7 @@ export default function CasualMeetingForm({
         <section style={sectionStyle}>
           <h2 style={sectionTitleStyle}>OPINIOプロフィールが企業に共有されます</h2>
           <p style={sectionDescStyle}>
-            お申し込みにあたり、あなたのプロフィール情報（氏名・職歴など）が企業側に共有されます。企業側が事前にあなたのキャリアを確認できるため、<strong>面談当日の対話がスムーズ</strong>になります。
+            お申し込みにあたり、あなたのプロフィール情報（氏名・職歴など）が企業側に共有されます。企業側は面談の前に、あなたのキャリアを確認できます。
           </p>
         </section>
 
@@ -279,8 +280,8 @@ export default function CasualMeetingForm({
         <section style={sectionStyle}>
           <h2 style={sectionTitleStyle}>興味を持ったきっかけ・聞きたいこと</h2>
           <p style={sectionDescStyle}>
-            企業に興味を持った理由や、面談で聞きたいことを自由に書いてください。<br />
-            どちらも任意ですが、書いていただくと面談がより充実します。
+            企業に興味を持った理由や、面談で聞きたいことを自由に書いてください（どちらも任意）。<br />
+            書いておくと、当日の話が早く進みます。
           </p>
           <div style={{ marginBottom: 20 }}>
             <label htmlFor="cm-interest-reason" style={labelStyle}>
@@ -392,7 +393,8 @@ export default function CasualMeetingForm({
 
         {/* Submit */}
         <div style={{
-          background: "linear-gradient(135deg, var(--royal) 0%, #1E40AF 100%)",
+          /* ★紺の単色（2026-11-27）。グラデーションをやめた */
+          background: "var(--royal)",
           borderRadius: 14, padding: "28px 32px", textAlign: "center",
         }}>
           <div style={{
@@ -405,9 +407,6 @@ export default function CasualMeetingForm({
               <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
             3営業日以内に企業から連絡が来ます
-          </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 6, fontFamily: 'var(--font-noto-serif)' }}>
-            まずは、気軽に話してみましょう。
           </div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", marginBottom: 20, lineHeight: 1.7 }}>
             転職を決めていなくても、大丈夫です。
