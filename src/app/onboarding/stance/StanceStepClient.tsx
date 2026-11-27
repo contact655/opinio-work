@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { StanceQuestion } from "@/components/onboarding/StanceQuestion";
+import OpinioLogo from "@/components/common/OpinioLogo";
 import { APPROACH_DEFAULT_NOTICE } from "@/lib/constants/companyApproaches";
 
 /**
@@ -68,14 +69,16 @@ export default function StanceStepClient({ next }: { next: string }) {
     }}>
       <div style={{ width: "100%", maxWidth: 480 }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 20, fontWeight: 700, color: "var(--royal)" }}>
-            OPINIO
+          {/* ★ロゴは OpinioLogo（2026-11-27）。明朝の文字で「OPINIO」と書いていた */}
+          <span style={{ display: "inline-flex", color: "var(--brand-ink)" }}>
+            <OpinioLogo height={24} />
           </span>
         </div>
 
         <div style={{
           background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 20, padding: "32px 28px", boxShadow: "var(--shadow-md)",
+          /* ★角丸14px・線1px・影なし（2026-11-27） */
+          borderRadius: 14, padding: "32px 28px",
         }}>
           <StanceQuestion value={stance} onChange={setStance} headingTag="h1" disabled={saving} />
 

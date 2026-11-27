@@ -852,8 +852,8 @@ function OnboardingInner({
         {/* 入力カード */}
         <div style={{
           background: "#fff", border: "1px solid var(--line)",
-          borderRadius: 20, padding: "32px 28px", marginBottom: 16,
-          boxShadow: "var(--shadow-sm)",
+          /* ★角丸14px・線1px・影なし（2026-11-27 / 柴さんの指示） */
+          borderRadius: 14, padding: "32px 28px", marginBottom: 16,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--royal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -862,8 +862,9 @@ function OnboardingInner({
             </svg>
           </div>
 
+          {/* ★見出しはゴシック（2026-11-27 / 柴さんの指示）。3画面ぶんこの1つの h2 から出る。明朝に戻さないこと */}
           <h2 style={{
-            fontFamily: "var(--font-noto-serif)", fontSize: 20, fontWeight: 700,
+            fontSize: 20, fontWeight: 700,
             color: "var(--ink)", marginBottom: 6, lineHeight: 1.45,
             /* ★2026-10-19: 375〜390px で「直近のお勤め先を教えてください」の「い」が1文字だけ次の行に落ちていた。行の長さを揃える */
             textWrap: "balance",
@@ -1471,9 +1472,8 @@ function OnboardingInner({
               disabled={saving || !ctaReady}
               style={{
                 flex: 1, minWidth: 0, padding: "13px 20px",
-                background: ctaReady
-                  ? "linear-gradient(135deg, var(--royal), #3B5FD9)"
-                  : "var(--line)",
+                /* ★紺の単色（2026-11-27）。グラデーションに戻さないこと */
+                background: ctaReady ? "var(--royal)" : "var(--line)",
                 color: ctaReady ? "#fff" : "var(--ink-mute)",
                 border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700,
                 cursor: saving ? "wait" : !ctaReady ? "default" : "pointer",
@@ -1752,8 +1752,9 @@ function CompanyPicker({
               >
                 <div style={{
                   width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                  background: "linear-gradient(135deg, var(--royal), #3B5FD9)",
-                  display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
+                  /* ★頭文字の四角は単色（2026-11-27）。LOGO_PLACEHOLDER と同じ値 */
+                  background: "var(--royal-50)",
+                  display: "flex", alignItems: "center", justifyContent: "center", color: "var(--royal)",
                   fontSize: 12, fontWeight: 700,
                 }}>
                   {companyLabel(c).charAt(0)}

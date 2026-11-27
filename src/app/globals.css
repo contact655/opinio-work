@@ -190,8 +190,8 @@
         動的なトークン名の組み立ても0件）。説明は「scheduled」だったが、その役割は
         現在 `--purple` が担っており（`components/common/StatusPill.tsx` の
         `scheduled` は purple）、**同じ意味を主張するトークンが2つある**状態だった。
-     ⚠️ `#DB2777` はアバターのグラデーション（`companies/[id]/avatarGradients.tsx` ほか）に
-        直書きで残っている。**あれはトークンとは無関係**なので、混同して消さないこと。 */
+     ⚠️ `#DB2777` を直書きしていたアバターのグラデーション（`companies/[id]/avatarGradients.tsx`）は
+        使い手0件だったので 2026-11-27 にファイルごと削除した（アバターは単色。lib/avatarColor.ts）。 */
 
   /* === Spacing Scale (8px grid) === */
   --space-1:   4px;   /* atomic — アイコンとテキスト間など極小間隔 */
@@ -1195,7 +1195,7 @@ textarea:focus-visible {
       **入力欄を恒久的に隠さない。** 貼っている間に裏へ流れる内容は、
       白い帯（背景 #fff）で隠れる。カードの背景も #fff なので継ぎ目は出ない。
    ⚠️ 幅はカードの内容幅のまま。**負のマージンで左右へ広げないこと**
-      （カードの角丸 20px と噛み合わず、角に白い四角が出る）。
+      （カードの角丸と噛み合わず、角に白い四角が出る。角丸は 2026-11-27 に 20px → 14px）。
    ⚠️ デスクトップには効かせない。1280px では CTA まで 1,993px（≒2.2画面）で足りている。 */
 @media (max-width: 767px) {
   .onb-cta-sticky {
@@ -1583,7 +1583,7 @@ body {
   left: 0;
   right: 0;
   z-index: 150;
-  background: linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%);
+  background: var(--royal); /* ★単色（2026-11-27）。使い手0件のクラス */
   border-top: 1px solid rgba(255,255,255,0.12);
   padding: 12px 0;
   box-shadow: 0 -4px 20px rgba(0,0,0,0.22);
@@ -1672,7 +1672,7 @@ body {
 .ca-submit-btn {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #002366, #3B5FD9);
+  background: var(--royal); /* ★単色（2026-11-27）。使い手0件のクラス */
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -2375,9 +2375,9 @@ body {
           flex-shrink: 0;
         }
 
-        /* ② 現職エントリー背景: 緑のグラデーションティント */
+        /* ② 現職エントリー背景: ★単色（2026-11-27）。緑のグラデーションをやめた（緑は「プラスの一致」専用） */
         .tl-row-current {
-          background: linear-gradient(90deg, rgba(5,150,105,0.06) 0%, transparent 60%);
+          background: var(--bg-tint);
           border-radius: 8px;
         }
 
