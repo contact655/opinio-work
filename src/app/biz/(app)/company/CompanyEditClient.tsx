@@ -1,5 +1,7 @@
 "use client";
 
+import { MilestonesEditor } from "@/components/companies/MilestonesEditor";
+import { CEO_MESSAGE_MAX, capitalManToYen } from "@/lib/companies/milestones";
 import { useState, useRef, useEffect } from "react";
 import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
@@ -850,6 +852,22 @@ export function CompanyEditClient({
                     placeholder="例: 創業期のプロダクトづくりに、職種をこえて関われます。" ariaLabel="入社する理由・魅力" />
                   <FormHint>求人ページの「企業について」に、企業説明と一緒に出ます。</FormHint>
                 </FormGroup>
+                <FormGroup>
+                  {/* ★代表メッセージ（2026-11-27）。企業が自分で書く。運営は文章を作らない */}
+                  <FormLabel optional htmlFor="ce-ceo-message">代表メッセージ</FormLabel>
+                  <FormTextarea id="ce-ceo-message" value={form.ceoMessage} onChange={(v) => update("ceoMessage", v)} rows={5} maxLength={CEO_MESSAGE_MAX}
+                    placeholder="例: 代表から、この会社で実現したいことを" ariaLabel="代表メッセージ" />
+                  <FormHint>企業ページの「ミッション・カルチャー」に出ます（{CEO_MESSAGE_MAX}字まで）。</FormHint>
+                </FormGroup>
+                {/* ★これまでの歩み（2026-11-27）。⚠️ 管理者だけ（表の書き込みは会社の管理者に限っている）。
+                       ⚠️ 読み込めなかったとき（null）は出さない（空で保存して既存の行を消さないため） */}
+                {canEditBasic && form.milestones !== null && (
+                  <FormGroup>
+                    <FormLabel optional htmlFor="ce-milestones-year-0">これまでの歩み</FormLabel>
+                    <MilestonesEditor idPrefix="ce-milestones" value={form.milestones} onChange={(v) => update("milestones", v)} />
+                    <FormHint>企業ページに年月の順で並びます。「変更を公開する」で反映されます。</FormHint>
+                  </FormGroup>
+                )}
               </Section>
 
               {/* ── 働き方 ── */}
@@ -870,6 +888,17 @@ export function CompanyEditClient({
                     {/* ⚠️ 保存は founded_year（整数）。月は保存されないので「設立年」にした（2026-10-12） */}
                     <FormLabel htmlFor="ce-founded">設立年</FormLabel>
                     <FormInput id="ce-founded" value={form.foundedAt} onChange={(v) => update("foundedAt", v.replace(/[^\d]/g, "").slice(0, 4))} placeholder="例: 2017" maxLength={4} />
+                  </FormGroup>
+                </div>
+                <div className="cpe-2col">
+                  <FormGroup>
+                    {/* ★資本金（2026-11-27）。入力は万円、保存は円（ow_companies.capital_amount_yen） */}
+                    <FormLabel optional htmlFor="ce-capital-amount">資本金（万円）</FormLabel>
+                    {/* ⚠️ id を ce-capital にしない（分類の「資本」の選択肢が使っている。2026-11-27 にぶつかった） */}
+                    <FormInput id="ce-capital-amount" value={form.capitalMan} onChange={(v) => update("capitalMan", v.replace(/[^\d.,]/g, "").slice(0, 16))} placeholder="例: 10000（＝1億円）" />
+                    {capitalManToYen(form.capitalMan) === undefined
+                      ? <FormHint><span style={{ color: "var(--danger, #DC2626)" }}>数字で入れてください（このままでは保存されません）。</span></FormHint>
+                      : <FormHint>企業ページの「企業情報」に「1億円」のように出ます。</FormHint>}
                   </FormGroup>
                 </div>
                 <div className="cpe-2col">

@@ -24,7 +24,7 @@ export const JOB_PEOPLE_CSS = `
   .jpc-card { flex: 0 1 132px; scroll-snap-align: start; border: 1px solid var(--line); border-radius: 12px; padding: 16px 10px 14px;
     display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; text-decoration: none; color: var(--ink); background: #fff; min-width: 0; }
   .jpc-avatar { position: relative; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-noto-serif); font-weight: 700; font-size: 24px; margin-bottom: 6px; border: 2px solid var(--line-soft); flex-shrink: 0; }
+    font-weight: 700; font-size: 24px; margin-bottom: 6px; border: 2px solid var(--line-soft); flex-shrink: 0; }
   .jpc-avatar img { width: 100%; height: 100%; object-fit: cover; }
   .jpc-name { font-size: 13.5px; font-weight: 700; line-height: 1.4; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .jpc-role { font-size: 12px; color: var(--ink-mute); line-height: 1.45; min-height: 2.9em; max-width: 100%;

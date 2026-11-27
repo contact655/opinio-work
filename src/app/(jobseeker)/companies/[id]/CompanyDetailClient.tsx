@@ -158,181 +158,13 @@ export function RecentlyViewedTracker({ id, name, logoUrl, logoLetter }: {
 }
 
 // ─── Sticky Section Navigation ────────────────────────────────────────────────
-
-/**
- * @property count 件数バッジ。**求人タブだけが使う**。
- *   0 や undefined のときはバッジごと出さない（「0」を見せない）。
- */
-type NavItem = { id: string; label: string; count?: number };
-
-export function CompanyStickyNav({ items }: { items: NavItem[] }) {
-  const [activeId, setActiveId] = useState<string>("");
-  const navRef = useRef<HTMLDivElement>(null);
-  const btnRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-
-  useEffect(() => {
-    /* ★タブに無いセクションを、どのタブとして扱うか（2026-10-03）。
-       OB/OG（#alumni）はタブを持たず「社員・OB/OG」タブの一部なので、そちらを点ける。
-       ⚠️ これが無いと、OB/OG を見ている間は直前のタブ（現役社員より上の「働く環境」など）が
-          点いたままになる。 */
-    const ALIAS: Record<string, string> = {
-      /* ★2026-11-26 から「働く人」タブは company-people（人の流れ・決め手・現役・OB/OG をまとめた入れ物）を指す */
-      alumni: "company-people", "current-employees": "company-people", "company-flow": "company-people", "company-reasons": "company-people",
-    };
-    const ids = items.map((i) => i.id);
-    // 別名は「行き先のタブがあり、自分自身はタブに無い」ものだけ見張る
-    const watchIds = [...ids, ...Object.keys(ALIAS).filter((k) => ids.includes(ALIAS[k]) && !ids.includes(k))];
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setActiveId(ALIAS[entry.target.id] ?? entry.target.id);
-            break;
-          }
-        }
-      },
-      { rootMargin: "-20% 0px -70% 0px", threshold: 0 }
-    );
-
-    /* ★★**後から描かれるセクションも拾う**（2026-10-03）。
-       現役社員・OB/OG（CompanyEmployeeSections）は**ブラウザで API を引いてから描く**ので、
-       この effect が走った時点ではまだ DOM に無い（サーバーの HTML に id が0件）。
-       ⚠️ 最初の1回だけ getElementById していたため、**社員のセクションは一度も監視されず**、
-          スクロールしてもタブが「働く環境」のまま動かなかった。
-       ⚠️ 全部見つかったら MutationObserver は外す（DOM の変化を見張り続けない）。 */
-    const observed = new Set<Element>();
-    const attach = () => {
-      for (const id of watchIds) {
-        const el = document.getElementById(id);
-        if (el && !observed.has(el)) {
-          observer.observe(el);
-          observed.add(el);
-        }
-      }
-      if (observed.size >= watchIds.length) mutation.disconnect();
-    };
-    const mutation = new MutationObserver(attach);
-    mutation.observe(document.body, { childList: true, subtree: true });
-    attach();
-
-    return () => {
-      mutation.disconnect();
-      observer.disconnect();
-    };
-  }, [items]);
-
-  // アクティブなタブを自動スクロールで中央に表示
-  useEffect(() => {
-    if (!activeId) return;
-    const nav = navRef.current;
-    const btn = btnRefs.current.get(activeId);
-    if (!nav || !btn) return;
-    const navCenter = nav.scrollLeft + nav.clientWidth / 2;
-    const btnCenter = btn.offsetLeft + btn.offsetWidth / 2;
-    nav.scrollTo({ left: btnCenter - navCenter + nav.scrollLeft, behavior: "smooth" });
-  }, [activeId]);
-
-  const scrollTo = (id: string) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    /* ★見出しがタブの下に隠れないよう、タブの貼り付く位置＋高さから決める（2026-10-29）。
-          それまでは 100 の即値で、タブ（約56px）と合わせると16px ほど足りなかった */
-    const nav = navRef.current;
-    const offset = nav ? (parseFloat(getComputedStyle(nav).top) || 0) + nav.offsetHeight + 8 : 100;
-    const top = el.getBoundingClientRect().top + window.scrollY - offset;
-    window.scrollTo({ top, behavior: "smooth" });
-  };
-
-  return (
-    /* ★貼り付く位置（top）は globals.css の .cd-sticky-nav が持つ（2026-10-29）。
-          ⚠️ インラインに戻さないこと（幅で変えられなくなる） */
-    <nav
-      ref={navRef}
-      className="cd-sticky-nav"
-      style={{
-        position: "sticky", zIndex: 40,
-        background: "rgba(255,255,255,0.97)",
-        backdropFilter: "blur(12px)",
-        borderBottom: "1px solid var(--line)",
-        overflowX: "auto",
-      }}
-    >
-      <div
-        className="sticky-nav"
-        style={{
-          display: "flex", gap: 4,
-          paddingTop: "6px", paddingBottom: "6px",
-          maxWidth: "var(--max-w-wide)", margin: "0 auto",
-          alignItems: "center",
-          width: "max-content", minWidth: "100%",
-          boxSizing: "border-box",
-        }}
-      >
-        {/* ⚠️ **選択状態は下線だけで表す（2026-08-23）。**
-               以前は求人タブだけ黄色の塗り（`isJobs` 分岐）で、下線の付いたタブと
-               同時に存在していた。選択状態が2つあるように見えるうえ、
-               塗りのほうが強いので「求人が選ばれている」と誤読される。
-               件数は塗りではなく、ラベル右のニュートラルなバッジで示す。 */}
-        {items.map(({ id, label, count }) => {
-          const active = activeId === id;
-          return (
-            <button
-              type="button"
-              key={id}
-              ref={(el) => { if (el) btnRefs.current.set(id, el); }}
-              onClick={() => scrollTo(id)}
-              /* 選択中のタブ。読み上げに伝えるのと、検証で文字列を当てずに判定するため（2026-10-03） */
-              aria-current={active ? "location" : undefined}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                padding: "6px 13px",
-                fontSize: "var(--text-sm)",
-                fontWeight: active ? 700 : 500,
-                color: active ? "var(--royal)" : "var(--ink-mute)",
-                background: "none",
-                border: "none",
-                borderBottom: active ? "2px solid var(--royal)" : "2px solid transparent",
-                borderRadius: 0,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                transition: "color 0.18s, border-color 0.18s",
-                letterSpacing: active ? "0.01em" : 0,
-                flexShrink: 0,
-                marginBottom: -1,
-              }}
-            >
-              {label}
-              {typeof count === "number" && count > 0 && (
-                <span
-                  style={{
-                    /* ⚠️ 12px 未満にしない（2026-08-30）。 */
-                    fontSize: 12,
-                    fontWeight: 600,
-                    lineHeight: 1,
-                    padding: "3px 6px",
-                    borderRadius: 999,
-                    background: "var(--line-soft)",
-                    color: "var(--ink-mute)",
-                  }}
-                >
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </nav>
-  );
-}
+/* ★ページ内タブは components/detail/DetailSectionNav.tsx に移した（2026-11-26。募集詳細と同じ部品）。 */
 
 // ─── FollowButton ─────────────────────────────────────────────────────────────
 
 /** @param tone primary … 未フォローのときに青い枠（主なボタンとして目立たせる。ホームの企業カード。2026-10-19） */
-export function FollowButton({ companyId, tone = "default" }: { companyId: string; tone?: "default" | "primary" }) {
+/** @param label 未フォローのときの文言（既定「フォロー」）。企業ページの「受付中の募集はありません」のカードが渡す */
+export function FollowButton({ companyId, tone = "default", label = "フォロー" }: { companyId: string; tone?: "default" | "primary"; label?: string }) {
   /* ⚠️ 状態はサーバーから props で受け取らずここで取る。
         サーバーで引くとページ全体が動的化して ISR が効かなくなるため。 */
   const viewer = useCompanyViewerState(companyId);
@@ -388,7 +220,7 @@ export function FollowButton({ companyId, tone = "default" }: { companyId: strin
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
         <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
       </svg>
-      {followed ? "フォロー中" : "フォロー"}
+      {followed ? "フォロー中" : label}
     </button>
   );
 }

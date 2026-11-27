@@ -72,7 +72,7 @@ const DIVISION_ORDER = ["Sales", "Inside Sales", "Solution Engineering", "Custom
 function SecTitle({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
   return (
     /* ★企業ページ・求人ページの見出しと同じ形（明朝体 18px・四角いアイコン。2026-11-25） */
-    <h2 style={{ margin: 0, display: "flex", alignItems: "center", gap: "var(--space-3)", fontSize: 18, fontWeight: 700, color: "var(--ink)", fontFamily: "var(--font-noto-serif)", letterSpacing: "0.01em", lineHeight: 1.3 }}>
+    <h2 style={{ margin: 0, display: "flex", alignItems: "center", gap: "var(--space-3)", fontSize: 18, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4 }}>
       {icon && (
         <span style={{
           width: 30, height: 30, borderRadius: 8, background: "var(--royal-50)",

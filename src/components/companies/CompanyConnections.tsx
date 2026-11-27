@@ -44,7 +44,7 @@ export function CompanyConnectionsView({ connections }: { connections: Connectio
   if (connections.length === 0) return null;
   return (
     <section className="company-connections" data-connections-count={connections.length}
-      style={{ border: "1px solid var(--line)", borderRadius: 12, background: "var(--bg-tint, #F7F9FC)", marginBottom: 24 }}>
+      style={{ border: "1px solid var(--line)", borderRadius: 14, background: "#fff" }}>
       <style>{`
         .company-connections { padding: 16px 18px; }
         .company-connections-list { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 10px 0 0; padding: 0; list-style: none; }

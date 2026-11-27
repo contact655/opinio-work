@@ -159,6 +159,12 @@ export type CompanyDetail = {
   listedExchange?: string | null;
   capitalNotes?: string | null;
   globalEmployeeCount?: string | null;
+  /** ★資金調達ステージ（ow_companies.funding_stage。2026-11-26 から企業ページに出す） */
+  fundingStage?: string | null;
+  /** ★資本金の表示用の文字（フェーズ3で列を足す。2026-11-26） */
+  capitalAmountText?: string | null;
+  /** ★代表メッセージ（フェーズ3で列を足す。2026-11-26） */
+  ceoMessage?: string | null;
   // ⑧ 拠点・勤務地
   headquartersAddress?: string | null;
   branchLocations?: string[] | null;

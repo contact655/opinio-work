@@ -31,6 +31,17 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
     notFound();
   }
 
+  /* ★これまでの歩み（2026-11-27）。⚠️ 読み込めなければ null（画面は編集させず、保存でも送らない） */
+  const milestonesResult = await supabase
+    .from('ow_company_milestones')
+    .select('year, month, event')
+    .eq('company_id', params.id)
+    .order('year').order('month', { nullsFirst: true }).order('sort_order');
+  if (milestonesResult.error) console.error('[admin/companies] milestones:', milestonesResult.error.message);
+  const milestones = milestonesResult.error ? null
+    : ((milestonesResult.data ?? []) as { year: number; month: number | null; event: string }[])
+        .map((m) => ({ year: String(m.year), month: m.month ? String(m.month) : '', event: m.event }));
+
   // アクティブなジャンル一覧
   const { data: genres } = await supabase
     .from('ow_genres')
@@ -82,6 +93,7 @@ export default async function AdminCompanyDetailPage({ params, searchParams }: P
       admins={admins ?? []}
       allToolMasters={allToolMasters}
       companyTools={companyTools}
+      milestones={milestones}
     />
     </>
   );

@@ -6,12 +6,13 @@ import { enterTestViewMode, jobPath, companyPath, TEST_COMPANY_NOTICE } from "@/
  * 求人詳細の本体。**公開ページとプレビューで同じものを描く。**
  *
  * ★2026-11-26 に構成を作り直した（柴さんの指示。フェーズ0は docs/phase0-job-detail-20261126.md）。
- *   上から順に読むだけで「条件 → 仕事内容 → 応募要件 → 募集要項 → 選考 → 会社」が分かる形。
- *     パンくず → ヘッダーカード（題名・メタ行・主要条件・ボタン）
- *     → 2カラム（左: 本文カード1枚 ／ 右: 採用担当・この会社で働く人・会社概要・この会社の他の募集）
- *   1023px 以下はサイドバーのカードを本文カードの下に同じ順で並べる（同じ部品。マークアップを2つ持たない）。
- *   ⚠️ 見出しと本文、表、ボタンだけで作る。数字を大きく出すカード・ステップの図・追従するサイドバーを足さないこと。
- *   ⚠️ 値が無い項目・セクションは出さない。「未登録」「なし」などの空の表示を足さないこと。
+ *   同日、企業詳細と同じ部品にそろえた（components/detail/*）:
+ *     パンくず → 冒頭のカード（DetailHero）→ ページ内タブ（DetailSectionNav）
+ *     → 2カラム（左: セクションごとのカード4枚＝仕事内容／募集要項／選考フロー／会社概要
+ *                右: 行動カード（貼り付く）・この会社で働く人・この会社の他の募集）
+ *   1023px 以下はサイドバーのカードを本文の下に同じ順で並べる（同じ部品。マークアップを2つ持たない）。
+ *   ⚠️ 値が無い項目・セクション・タブは出さない。「未登録」「なし」などの空の表示を足さないこと。
+ *   ⚠️ 貼り付くのはサイドバーの一番上の行動カードだけ。他のカードは流れる。
  *
  * ⚠️★**`/jobs/[id]` は ISR（`revalidate = 60`）で応答がキャッシュ共有される。**
  *    だからあのページに「閲覧者が管理者なら下書きも見せる」という分岐を足してはいけない
@@ -36,8 +37,10 @@ import { BookmarkButton } from "@/components/jobseeker/BookmarkButton";
 import { JobMobileStickyBar } from "@/components/jobs/JobMobileStickyBar";
 import { JobInlineShare } from "@/components/jobs/JobShareButton";
 import { CompanyLogo } from "@/components/common/CompanyLogo";
-import { SpecTable, specLines } from "@/components/common/SpecTable";
-import { CompanyMiniCard } from "@/components/companies/CompanyMiniCard";
+import { DefinitionRows, specLines } from "@/components/detail/DefinitionRows";
+import { DetailHero, HeroChip } from "@/components/detail/DetailHero";
+import { SectionCard } from "@/components/detail/SectionCard";
+import { DetailSectionNav } from "@/components/detail/DetailSectionNav";
 import { JobSidePeople } from "@/components/jobs/JobSidePeople";
 import { getSalesSegmentLabel, getHunterFarmerLabel } from "@/lib/constants/salesFields";
 import { isBusinessRole } from "@/lib/roles/jobRoles";
@@ -51,23 +54,12 @@ import ViewBeacon from "@/components/views/ViewBeacon";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 import { OwnCompanyNote } from "@/components/companies/OwnCompanyNote";
 import { jobDateRows, shortAddress } from "@/lib/jobs/heroFacts";
-import { isHeadingLine } from "@/lib/jobs/jobBody";
 
 // ─── 見た目の部品（このページだけ） ─────────────────────────────────────────
-
-/** 本文カードの見出し（19px 太字）。⚠️ 左に色の付いた縦線を付けない・アイコンを付けない */
-function H2({ children }: { children: React.ReactNode }) {
-  return <h2 style={{ margin: "0 0 14px", fontSize: 19, fontWeight: 700, color: "var(--ink)", lineHeight: 1.4 }}>{children}</h2>;
-}
 
 /** サイドバーのカードの見出し */
 function SideTitle({ children }: { children: React.ReactNode }) {
   return <h2 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 700, color: "var(--ink)" }}>{children}</h2>;
-}
-
-/** 本文カードの中の1セクション。2つ目から上に細い区切り線 */
-function Sec({ id, state, children }: { id?: string; state?: string; children: React.ReactNode }) {
-  return <section id={id} data-state={state} className="jd-sec">{children}</section>;
 }
 
 /** 箇条書き（点は小さい丸）。⚠️ 項目が0件なら呼び出し側でセクションごと出さない */
@@ -92,17 +84,7 @@ function salaryRange(min: number, max: number): string | null {
   return null;
 }
 
-/** ヘッダーカードの主要条件の1項目 */
-function Fact({ icon, children, strong = false }: { icon: React.ReactNode; children: React.ReactNode; strong?: boolean }) {
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, color: "var(--ink)", fontWeight: strong ? 700 : 500, whiteSpace: "nowrap" }}>
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>{icon}</svg>
-      {children}
-    </span>
-  );
-}
-
-/** 「話を聞いてみたい」「応募する」。ヘッダーカードと締めの応募ブロックで同じものを使う */
+/** 「話を聞いてみたい」「応募する」。冒頭のカードとサイドバーの行動カードで同じものを使う */
 function MainActions({ casualHref, applyHref }: { casualHref?: string; applyHref?: string }) {
   if (!casualHref && !applyHref) return null;
   const base: React.CSSProperties = {
@@ -197,8 +179,7 @@ export async function JobDetailView({
   const casualHref = companyHref && company.accepting_casual_meetings ? `${casualBase}/casual-meeting?job_id=${job.id}` : undefined;
   const applyHref = company.application_open ? `/jobs/${job.id}/apply` : undefined;
 
-  /* ── ヘッダーカード ── */
-  const coverUrl = companyDetail?.headerImageUrl ?? null;
+  /* ── 冒頭のカード ──（⚠️ カバー画像は描かない。2026-11-26 時点で持つ会社は0社。DetailHero の注記） */
   const dateRows = jobDateRows(job.published_at, job.updated_at);
   const metaItems = [
     ...dateRows.map((r) => `${r.key} ${r.value}`),
@@ -225,6 +206,9 @@ export async function JobDetailView({
   const benefitLines = (company.benefits ?? [])
     .map((b) => ({ value: b.detail ? `${b.name}（${b.detail}）` : b.name }));
   const specRows = [
+    /* ★応募要件は募集要項の表の先頭に入れた（2026-11-26。本文のカードを4枚にしたため） */
+    { label: "必須の要件", value: job.required_skills.length > 0 ? <Bullets items={job.required_skills} /> : null },
+    { label: "歓迎の要件", value: job.preferred_skills.length > 0 ? <Bullets items={job.preferred_skills} /> : null },
     { label: "雇用形態", value: specLines([
       { value: job.employment_type },
       { label: "契約期間", value: laborVal("契約期間") },
@@ -265,7 +249,7 @@ export async function JobDetailView({
     if (!usedLabor.has(l.label)) specRows.push({ label: l.label, value: l.value });
   }
 
-  /* ── 会社概要の表 ── ⚠️ 値が無い行は SpecTable が落とす */
+  /* ── 会社概要の表 ── ⚠️ 値が無い行は DefinitionRows が落とす */
   const companyRows = [
     { label: "会社名", value: company.name },
     { label: "事業内容", value: company.about },
@@ -275,9 +259,33 @@ export async function JobDetailView({
   ];
 
   const points = jobPointLines(job.highlight);
-  /* 本文が「■」「【】」の見出しを持っているか。持っていれば見出しをそのまま使い、「仕事内容」の見出しは付けない */
-  const bodyHasHeadings = !!job.overview && job.overview.split(/\r?\n/).some(isHeadingLine);
   const hasActions = !!casualHref || !!applyHref;
+  const hasOverview = points.length > 0 || !!job.overview;
+  const hasSpec = specRows.some((r) => r.value);
+  const hasCompanyRows = companyRows.some((r) => r.value);
+
+  /* ★要点チップ（年収・勤務地・雇用形態・働き方）。値があるものだけ */
+  const heroChips = [
+    payText && <HeroChip key="pay" strong icon={<><circle cx="12" cy="12" r="9"/><path d="M8 7l4 5 4-5M12 12v6M9 13h6M9 16h6"/></>}>{payText}</HeroChip>,
+    oteText && <HeroChip key="ote" icon={<><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></>}>OTE {oteText}</HeroChip>,
+    shortAddress(job.location) && <HeroChip key="loc" icon={<><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>}>{shortAddress(job.location)}</HeroChip>,
+    job.employment_type && <HeroChip key="emp" icon={<><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></>}>{job.employment_type}</HeroChip>,
+    job.work_style && <HeroChip key="ws" icon={<><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></>}>{job.work_style}</HeroChip>,
+  ].filter(Boolean);
+
+  /* ★サイドバーの行動カード：想定年収 → 勤務地・雇用形態・働き方 → ボタン */
+  const actionPay = salaryText
+    ? { label: payLabel(job.employment_type) === "報酬" ? "想定報酬" : "想定年収", value: salaryText }
+    : job.salary_negotiable ? { label: payLabel(job.employment_type) === "報酬" ? "報酬" : "年収", value: payNegotiableText(job.employment_type) } : null;
+  const actionFacts = [shortAddress(job.location), job.employment_type, job.work_style].filter((v): v is string => !!v);
+
+  /* ★ページ内タブ。中身の無いセクションは出さない */
+  const navItems = [
+    ...(hasOverview ? [{ id: "job-overview", label: "仕事内容" }] : []),
+    ...(hasSpec ? [{ id: "job-spec", label: "募集要項" }] : []),
+    ...(job.selection_flow.length > 0 ? [{ id: "job-selection", label: "選考フロー" }] : []),
+    ...(hasCompanyRows ? [{ id: "job-company", label: "会社概要" }] : []),
+  ];
 
   const otherJobs = relatedJobs;
 
@@ -379,124 +387,66 @@ export async function JobDetailView({
       </nav>
 
       <div className="jd-page">
-        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-4 pt-3 pb-10 md:px-12 md:pb-12">
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="px-4 pt-3 pb-4 md:px-12">
+          {/* ── 冒頭のカード（企業詳細と同じ部品） ── */}
+          <DetailHero
+            state="job-header"
+            logo={
+              <CompanyLogo name={company.name} logoUrl={company.logo_url} logoLetter={company.logo_letter}
+                logoGradient={company.gradient} size={72} borderRadius={14}
+                style={{ border: "1px solid var(--line)" }} />
+            }
+            category={companyHref
+              ? <Link href={companyHref} style={{ color: "var(--royal)", textDecoration: "none" }}>{company.name}</Link>
+              : <span>{company.name}</span>}
+            /* ★運営会社の開示（2026-10-10）。会社名のすぐ下に1行 */
+            note={isOwnCompany ? <OwnCompanyNote style={{ marginTop: 4 }} /> : undefined}
+            title={job.role}
+            chips={heroChips.length > 0 ? <>{heroChips}</> : undefined}
+            meta={metaItems}
+            actions={<>
+              <MainActions casualHref={casualHref} applyHref={applyHref} />
+              <BookmarkButton targetType="job" targetId={job.id} label="保存" variant="inline" />
+              <JobInlineShare jobId={job.id} jobTitle={job.role} companyName={company.name} />
+            </>}
+          />
+        </div>
 
-          {/* ── ヘッダーカード ── */}
-          <header className="jd-card jd-head" data-state="job-header">
-            {/* カバー画像は会社に入っているときだけ。無ければロゴから始める */}
-            {coverUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={coverUrl} alt="" className="jd-cover" />
-            )}
-            <div className="jd-head-body">
-              <div className={coverUrl ? "jd-head-logo jd-head-logo--over" : "jd-head-logo"}>
-                <CompanyLogo
-                  name={company.name}
-                  logoUrl={company.logo_url}
-                  logoLetter={company.logo_letter}
-                  logoGradient={company.gradient}
-                  size={72}
-                  borderRadius={14}
-                  style={{ border: "3px solid #fff", boxShadow: "0 1px 4px rgba(15,23,42,0.12)" }}
-                />
-              </div>
-              <div style={{ marginTop: 12 }}>
-                {companyHref ? (
-                  <Link href={companyHref} style={{ fontSize: 15, fontWeight: 700, color: "var(--royal)", textDecoration: "none", overflowWrap: "anywhere" }}>{company.name}</Link>
-                ) : (
-                  <span style={{ fontSize: 15, fontWeight: 700, color: "var(--ink)", overflowWrap: "anywhere" }}>{company.name}</span>
-                )}
-              </div>
-              {/* ★運営会社の開示（2026-10-10）。会社名のすぐ下に1行 */}
-              {isOwnCompany && <OwnCompanyNote style={{ marginTop: 4 }} />}
-              <h1 className="jd-title">{job.role}</h1>
-              {metaItems.length > 0 && (
-                <p data-state="job-meta" style={{ margin: "8px 0 0", fontSize: 13, color: "var(--ink-mute)", lineHeight: 1.7 }}>
-                  {metaItems.map((m, i) => (
-                    <span key={m} style={{ whiteSpace: "nowrap" }}>{i > 0 && <span aria-hidden style={{ margin: "0 8px" }}>・</span>}{m}</span>
-                  ))}
-                </p>
-              )}
-              {/* 主要条件（年収・勤務地・雇用形態・働き方）。幅が足りなければ折り返す。項目の中では折り返さない */}
-              <div data-state="job-facts" style={{ display: "flex", flexWrap: "wrap", gap: "8px 20px", marginTop: 16 }}>
-                {payText && (
-                  <Fact strong icon={<><circle cx="12" cy="12" r="9"/><path d="M8 7l4 5 4-5M12 12v6M9 13h6M9 16h6"/></>}>{payText}</Fact>
-                )}
-                {oteText && (
-                  <Fact icon={<><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></>}>OTE {oteText}</Fact>
-                )}
-                {shortAddress(job.location) && (
-                  <Fact icon={<><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>}>{shortAddress(job.location)}</Fact>
-                )}
-                {job.employment_type && (
-                  <Fact icon={<><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></>}>{job.employment_type}</Fact>
-                )}
-                {job.work_style && (
-                  <Fact icon={<><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></>}>{job.work_style}</Fact>
-                )}
-              </div>
-              <div data-state="job-header-actions" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, marginTop: 20 }}>
-                <MainActions casualHref={casualHref} applyHref={applyHref} />
-                <BookmarkButton targetType="job" targetId={job.id} label="保存" variant="inline" />
-                <JobInlineShare jobId={job.id} jobTitle={job.role} companyName={company.name} />
-              </div>
-            </div>
-          </header>
+        {/* 下の固定バー（1023px 以下）。冒頭のカードを過ぎたら出す */}
+        <JobMobileStickyBar casualHref={casualHref} applyHref={applyHref} />
 
-          {/* 下の固定バー（1023px 以下）。ヘッダーカードを過ぎたら出す */}
-          <JobMobileStickyBar casualHref={casualHref} applyHref={applyHref} />
+        {/* ★ページ内タブ（企業詳細と同じ部品。2026-11-26）。⚠️ 数字は入れない・中身の無いタブは出さない */}
+        <DetailSectionNav items={navItems} />
 
+        {/* ★`cd-body` は左右の余白（--cd-pad-x）と見出しの位置合わせ（scroll-margin）。企業詳細と共通 */}
+        <div style={{ maxWidth: "var(--max-w-page)", margin: "0 auto" }} className="cd-body px-4 pt-5 pb-10 md:px-12 md:pb-12">
           {/* ── 2カラム（1024px 以上）／1カラム ──
                  ⚠️ 1fr ではなく minmax(0,1fr)（長い英数字で列が広がり、375px ではみ出すのを防ぐ）。
-                 ⚠️ サイドバーは追従させない（sticky にしない） */}
-          <div className="jd-cols">
-            <article className="jd-card jd-body" data-state="job-body">
-              {points.length > 0 && (
-                <Sec state="job-points">
-                  <H2>この募集のポイント</H2>
-                  <Bullets items={points} />
-                </Sec>
-              )}
-
-              {job.overview && (
-                <Sec id="job-overview" state="job-overview">
-                  {/* ⚠️ 本文が自由記述のときは、本文の見出し（■・【】）をそのまま使う。
-                         「ポジション概要」「入社後の流れ」などの見出しを当てはめない（2026-11-26 / 柴さんの指示）。
-                         見出しが1つも無い本文にだけ「仕事内容」を付ける。
-                      ⚠️ 折りたたまない（全文を出す。2026-11-26） */}
-                  {!bodyHasHeadings && <H2>仕事内容</H2>}
-                  <Markdown jobBody sectionHeadings>{job.overview}</Markdown>
-                </Sec>
-              )}
-
-              {(job.required_skills.length > 0 || job.preferred_skills.length > 0) && (
-                <Sec id="job-requirements" state="job-requirements">
-                  <H2>応募要件</H2>
-                  {job.required_skills.length > 0 && (
-                    <div style={{ marginBottom: job.preferred_skills.length > 0 ? 18 : 0 }}>
-                      <h3 className="jd-h3">必須</h3>
-                      <Bullets items={job.required_skills} />
+                 ★本文はセクションごとに1枚のカード（2026-11-26 / 柴さんの指示）：仕事内容／募集要項／選考フロー／会社概要 */}
+          <div className="dt-cols">
+            <div className="dt-stack" data-state="job-body">
+              {hasOverview && (
+                <SectionCard id="job-overview" state="job-overview" title="仕事内容">
+                  {points.length > 0 && (
+                    <div data-state="job-points" style={{ marginBottom: job.overview ? 22 : 0 }}>
+                      <h3 className="dt-h3">この募集のポイント</h3>
+                      <Bullets items={points} />
                     </div>
                   )}
-                  {job.preferred_skills.length > 0 && (
-                    <div>
-                      <h3 className="jd-h3">歓迎</h3>
-                      <Bullets items={job.preferred_skills} />
-                    </div>
-                  )}
-                </Sec>
+                  {/* ⚠️ 本文の「■」「【】」の見出しは小見出し（h3・16px）として出す。文字は変えない（■も消さない）。
+                         ⚠️ 折りたたまない（全文を出す。2026-11-26） */}
+                  {job.overview && <Markdown jobBody>{job.overview}</Markdown>}
+                </SectionCard>
               )}
 
-              {specRows.some((r) => r.value) && (
-                <Sec id="job-spec" state="job-spec">
-                  <H2>募集要項</H2>
-                  <SpecTable rows={specRows} ariaLabel="募集要項" />
-                </Sec>
+              {hasSpec && (
+                <SectionCard id="job-spec" state="job-spec" title="募集要項">
+                  <DefinitionRows rows={specRows} ariaLabel="募集要項" />
+                </SectionCard>
               )}
 
               {job.selection_flow.length > 0 && (
-                <Sec id="job-selection" state="job-selection">
-                  <H2>選考フロー</H2>
+                <SectionCard id="job-selection" state="job-selection" title="選考フロー">
                   <p style={{ margin: 0, fontSize: 15, lineHeight: 1.9, color: "var(--ink)" }}>
                     {job.selection_flow.map((s, i) => (
                       <span key={i}>
@@ -512,41 +462,51 @@ export async function JobDetailView({
                   {job.selection_note && (
                     <p style={{ margin: "12px 0 0", fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.8, whiteSpace: "pre-line" }}>{job.selection_note}</p>
                   )}
-                </Sec>
+                </SectionCard>
               )}
 
-              {companyRows.some((r) => r.value) && (
-                <Sec id="job-company" state="job-company">
-                  <H2>会社概要</H2>
-                  <SpecTable rows={companyRows} ariaLabel="会社概要" />
-                </Sec>
+              {hasCompanyRows && (
+                <SectionCard id="job-company" state="job-company" title="会社概要">
+                  <DefinitionRows rows={companyRows} ariaLabel="会社概要" />
+                  {companyHref && (
+                    <p style={{ margin: "14px 0 0" }}>
+                      <Link href={companyHref} data-state="job-company-link" style={{ fontSize: 14, fontWeight: 700, color: "var(--royal)", textDecoration: "none" }}>企業ページを見る →</Link>
+                    </p>
+                  )}
+                </SectionCard>
               )}
+            </div>
 
-              {hasActions && (
-                <Sec state="job-closing">
-                  <div style={{ background: "var(--bg-tint)", borderRadius: 12, padding: "22px 20px", textAlign: "center" }}>
-                    <p style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "var(--ink)" }}>この募集が気になったら</p>
-                    {casualHref && (
-                      <p style={{ margin: "6px 0 0", fontSize: 14, color: "var(--ink-soft)" }}>まずはカジュアルに話を聞くこともできます</p>
-                    )}
-                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10, marginTop: 16 }}>
+            {/* ── サイドバー（1023px 以下は本文の下に同じ順で並ぶ） ── */}
+            <aside className="dt-side" aria-label="この募集の条件と担当者">
+              {/* ★行動カード（2026-11-26）。1024px 以上はヘッダーとタブの下に貼り付く（.dt-action） */}
+              {(actionPay || actionFacts.length > 0 || hasActions) && (
+                <div className="jd-card jd-side-card dt-action" data-state="job-action-card">
+                  {actionPay && (
+                    <div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink-mute)" }}>{actionPay.label}</div>
+                      <div style={{ fontSize: 19, fontWeight: 700, color: "var(--ink)", lineHeight: 1.5 }}>{actionPay.value}</div>
+                      {oteText && <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>OTE {oteText}</div>}
+                    </div>
+                  )}
+                  {actionFacts.length > 0 && (
+                    <ul style={{ margin: actionPay ? "12px 0 0" : 0, padding: 0, listStyle: "none", display: "grid", gap: 4 }}>
+                      {actionFacts.map((f) => (
+                        <li key={f} style={{ fontSize: 13.5, color: "var(--ink-soft)", lineHeight: 1.7, overflowWrap: "anywhere" }}>{f}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {hasActions && (
+                    <div className="dt-action-btns">
                       <MainActions casualHref={casualHref} applyHref={applyHref} />
                     </div>
-                  </div>
-                </Sec>
+                  )}
+                </div>
               )}
-            </article>
-
-            {/* ── サイドバー（1023px 以下は本文カードの下に同じ順で並ぶ） ── */}
-            <aside className="jd-side" aria-label="この募集の担当者と会社">
               {/* ★「この募集に関わる人」と「この会社で働く人」（2026-11-26）。どちらもブラウザで取りに行く。
                      0人ならカードごと消えるので、枠も部品の中に持たせる */}
               <JobSidePeople jobId={job.id} companyId={job.company_id} companyHref={companyHref} preview={preview}
                 peopleTitle={<SideTitle>この会社で働く人</SideTitle>} />
-              <div className="jd-card jd-side-card">
-                <SideTitle>会社概要</SideTitle>
-                <CompanyMiniCard company={company} href={companyHref} />
-              </div>
               {otherJobs.length > 0 && (
                 <div className="jd-card jd-side-card" data-state="job-other-jobs">
                   <SideTitle>この会社の他の募集</SideTitle>
@@ -570,33 +530,14 @@ export async function JobDetailView({
         </div>
       </div>
 
-      {/* ⚠️ style タグの中に不等号・バッククォートを書かない（ハイドレーションが壊れる） */}
+      {/* ⚠️ style タグの中に不等号・バッククォート・引用符を書かない（ハイドレーションが壊れる）。
+             .dt-* は企業詳細も同じ定義を持つ（globals.css）。ここには募集だけの見た目を置く */}
       <style>{`
         .jd-page { background: var(--bg-tint); }
-        .jd-head { overflow: hidden; margin-bottom: 20px; }
-        .jd-cover { display: block; width: 100%; height: 200px; object-fit: cover; }
-        .jd-head-body { padding: 24px 32px 28px; }
-        .jd-head-logo--over { margin-top: -60px; }
-        .jd-title { margin: 6px 0 0; font-size: 28px; font-weight: 700; color: var(--ink); line-height: 1.45; overflow-wrap: anywhere; }
-        .jd-cols { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
-        .jd-body { padding: 8px 32px; }
-        .jd-sec { padding: 28px 0; }
-        .jd-sec + .jd-sec { border-top: 1px solid var(--line); }
-        .jd-h3 { margin: 0 0 8px; font-size: 15px; font-weight: 700; color: var(--ink-soft); }
-        .jd-body .md-sec { margin: 28px 0 12px; padding-top: 28px; border-top: 1px solid var(--line); font-size: 19px; font-weight: 700; color: var(--ink); line-height: 1.4; }
-        .jd-body .opinio-md .md-sec:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
-        .jd-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-        @media (max-width: 1023px) {
-          .jd-cols { grid-template-columns: minmax(0, 1fr); }
-        }
-        @media (max-width: 640px) {
-          .jd-head-body { padding: 18px 18px 22px; }
-          .jd-title { font-size: 22px; }
-          .jd-body { padding: 4px 18px; }
-          .jd-sec { padding: 22px 0; }
-        }
+        .dt-h3 { margin: 0 0 8px; font-size: 16px; font-weight: 700; color: var(--ink); line-height: 1.6; }
+        .dt-action-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+        .dt-action-btns a { width: 100%; }
       `}</style>
     </>
   );
 }
-

@@ -1,3 +1,4 @@
+import { formatCapitalYen } from "@/lib/companies/milestones";
 import { laborFromRow } from "@/lib/jobs/laborTerms";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { keepJobsAtRespondingCompanies, respondingCompanyIds } from "@/lib/jobs/respondingJobs";
@@ -436,6 +437,9 @@ function buildCompanyDetail(row: Record<string, any>, jobs: Record<string, any>[
     listedExchange: (row.listed_exchange as string | null) ?? null,
     capitalNotes: (row.capital_notes as string | null) ?? null,
     globalEmployeeCount: (row.global_employee_count as string | null) ?? null,
+    capitalAmountText: formatCapitalYen(typeof row.capital_amount_yen === "number" ? row.capital_amount_yen : row.capital_amount_yen != null ? Number(row.capital_amount_yen) : null),
+    ceoMessage: typeof row.ceo_message === "string" && row.ceo_message.trim() ? row.ceo_message.trim() : null,
+    fundingStage: typeof row.funding_stage === "string" && row.funding_stage.trim() ? row.funding_stage.trim() : null,
     // ⑧ 拠点・勤務地
     headquartersAddress: (row.headquarters_address as string | null) ?? null,
     branchLocations: Array.isArray(row.branch_locations) && (row.branch_locations as string[]).length > 0
@@ -722,7 +726,9 @@ const COMPANY_DETAIL_COLS = [
   "location", "url", "company_features", "why_join",
   // Numbers section (Commit AA)
   "avg_salary", "avg_age", "paid_leave_rate",
-  "avg_overtime_hours", "female_ratio", "funding_total",
+  "avg_overtime_hours", "female_ratio", "funding_total", "funding_stage",
+  /* ★資本金・代表メッセージ（2026-11-27）。⚠️ migration 20261127090000 を当てる前にこのコードを出すと企業ページが開かない */
+  "capital_amount_yen", "ceo_message",
   // Benefits section (Commit BB)
   "nearest_station", "work_time_system", "workstyle_description",
   "benefits", "evaluation_system",

@@ -1,5 +1,8 @@
 'use client';
 
+import { MilestonesEditor } from '@/components/companies/MilestonesEditor';
+import { CEO_MESSAGE_MAX, capitalManToYen, capitalYenToMan, type MilestoneInput } from '@/lib/companies/milestones';
+
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -68,6 +71,8 @@ type Props = {
   companyTools: CompanyToolRow[];
   /** `?tab=` の値。知らない綴りは 'basic' に落とす */
   initialTab?: string;
+  /** ★これまでの歩み（2026-11-27）。null は読み込めなかった（そのときは送らない＝消さない） */
+  milestones: MilestoneInput[] | null;
 };
 
 type FormData = {
@@ -101,6 +106,9 @@ type FormData = {
   founded_year: string; // 入力は文字列、保存時に Number() 変換
   url: string;
   ceo_name: string;
+  /** ★代表メッセージ・資本金（万円。保存は円）（2026-11-27） */
+  ceo_message: string;
+  capital_man: string;
   headquarters_address: string;
   nearest_station: string;
   // 採用担当者タブ
@@ -127,7 +135,7 @@ function buildRecruiterAvatarPath(companyId: string, filename: string): string {
 
 // ── コンポーネント ──────────────────────────────────────────────────────────
 
-export function CompanyDetailClient({ company, masters, initialClassification, stageCandidate, allGenres, companyGenres, admins: initialAdmins, allToolMasters, companyTools, initialTab }: Props) {
+export function CompanyDetailClient({ company, masters, initialClassification, stageCandidate, allGenres, companyGenres, admins: initialAdmins, allToolMasters, companyTools, initialTab, milestones: initialMilestones }: Props) {
   const router = useRouter();
 
   // ── フォーム state ─────────────────────────────────────────────────────
@@ -153,6 +161,8 @@ export function CompanyDetailClient({ company, masters, initialClassification, s
     founded_year: company.founded_year != null ? String(company.founded_year) : '',
     url: company.url ?? '',
     ceo_name: company.ceo_name ?? '',
+    ceo_message: company.ceo_message ?? '',
+    capital_man: capitalYenToMan(company.capital_amount_yen ?? null),
     headquarters_address: company.headquarters_address ?? '',
     nearest_station: company.nearest_station ?? '',
     // 採用担当者
@@ -164,6 +174,9 @@ export function CompanyDetailClient({ company, masters, initialClassification, s
     // Opinio独自
     opinio_comment: company.opinio_comment ?? '',
   });
+
+  // ── これまでの歩み state（2026-11-27）────────────────────────────────
+  const [milestones, setMilestones] = useState<MilestoneInput[] | null>(initialMilestones);
 
   // ── ジャンル state ─────────────────────────────────────────────────────
   const initialApproved = new Set<string>(
@@ -322,6 +335,14 @@ export function CompanyDetailClient({ company, masters, initialClassification, s
         /* ★業種は「分類」タブの値（2026-10-12） */
         industry_id: cls.industryId,
         founded_year: formData.founded_year !== '' ? Number(formData.founded_year) : null,
+        /* ★資本金は万円 → 円（2026-11-27）。⚠️ 数字でなければ止める（黙って捨てない） */
+        capital_amount_yen: (() => {
+          const v = capitalManToYen(formData.capital_man);
+          if (v === undefined) throw new Error('資本金は数字（万円）で入れてください');
+          return v;
+        })(),
+        /* ⚠️ 読み込めなかったとき（null）は送らない（空で保存して既存の行を消さない） */
+        ...(milestones !== null ? { milestones } : {}),
       };
 
       // 1. 企業情報を PUT
@@ -655,6 +676,18 @@ export function CompanyDetailClient({ company, masters, initialClassification, s
                   />
                 </div>
                 <div>
+                  <label htmlFor="acd-capital" className={labelCls}>資本金（万円）</label>
+                  <input
+                    id="acd-capital"
+                    type="text"
+                    inputMode="decimal"
+                    value={formData.capital_man}
+                    onChange={(e) => update('capital_man', e.target.value.replace(/[^\d.,]/g, ''))}
+                    placeholder="例: 10000（＝1億円）"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
                   <label htmlFor="acd-url" className={labelCls}>企業 URL</label>
                   <input
                     id="acd-url"
@@ -752,6 +785,24 @@ export function CompanyDetailClient({ company, masters, initialClassification, s
                   placeholder="チームの雰囲気・文化・バリューなどを記入してください"
                   className={inputCls}
                 />
+              </div>
+              {/* ★代表メッセージ・これまでの歩み（2026-11-27）。⚠️ 企業が書いた文章を写すだけ。運営が文章を作らない */}
+              <div>
+                <label htmlFor="acd-ceo-message" className={labelCls}>代表メッセージ</label>
+                <textarea
+                  id="acd-ceo-message"
+                  value={formData.ceo_message}
+                  onChange={(e) => update('ceo_message', e.target.value)}
+                  rows={4}
+                  maxLength={CEO_MESSAGE_MAX}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label htmlFor="acd-milestones-year-0" className={labelCls}>これまでの歩み</label>
+                {milestones === null
+                  ? <p className="text-sm text-red-600">これまでの歩みを読み込めませんでした（保存しても変わりません）。</p>
+                  : <MilestonesEditor idPrefix="acd-milestones" value={milestones} onChange={setMilestones} />}
               </div>
             </div>
           </section>

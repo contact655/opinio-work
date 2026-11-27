@@ -40,7 +40,7 @@ export default async function BizCompanyPage() {
         ⚠️ `publishedGenresResult`（この企業に付いているジャンル）は**引き続き要る。**
            下書きに `genres` が無いときの初期値で、これが無いと
            **「変更を公開する」を押した瞬間に既存のジャンルが消える。** */
-  const [initialPhotos, publishedGenresResult, masters, companyDomainsResult, listingRequestResult, customersResult] = await Promise.all([
+  const [initialPhotos, publishedGenresResult, masters, companyDomainsResult, listingRequestResult, customersResult, milestonesResult] = await Promise.all([
     fetchOfficePhotosForCompany(supabase, ctx.tenantId),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (adminClient as any)
@@ -72,6 +72,9 @@ export default async function BizCompanyPage() {
       .maybeSingle(),
     /* ★お客さまの業界（公開中の値）。下書きに無いときの初期値 */
     adminClient.from("ow_company_customer_industries").select("industry_id").eq("company_id", ctx.tenantId),
+    /* ★これまでの歩み（公開中の値。2026-11-27）。下書きに無いときの初期値 */
+    adminClient.from("ow_company_milestones").select("year, month, event").eq("company_id", ctx.tenantId)
+      .order("year").order("month", { nullsFirst: true }).order("sort_order"),
     /* ⚠️ 開示充実度の計算に使っていた4本（公開求人数・公開ストーリー数・取材項目・ツール数）は
           2026-09-21 に外した。この画面から開示充実度を外したため（ダッシュボードに出している） */
   ]);
@@ -90,6 +93,7 @@ export default async function BizCompanyPage() {
   }
   const companyDomainRows = (companyDomainsResult.data ?? []) as { domain_id: string; is_primary: boolean }[];
   if (customersResult.error) console.error("[biz/company] お客さまの業界の取得に失敗:", customersResult.error.message);
+  if (milestonesResult.error) console.error("[biz/company] これまでの歩みの取得に失敗:", milestonesResult.error.message);
 
   /* ★下書きを読み戻す（`withDraft: true`。この画面だけ）。事業領域は下書きに無ければ公開中の値で初期化する。
      ⚠️ `/biz/dashboard` は同じ関数を `withDraft` 無しで呼ぶ（開示充実度は求職者に見えている値で出すため） */
@@ -100,6 +104,9 @@ export default async function BizCompanyPage() {
       primaryId: companyDomainRows.find((r) => r.is_primary)?.domain_id ?? null,
     },
     publishedCustomerIds: (customersResult.data ?? []).map((r) => r.industry_id as string),
+    /* ⚠️ 読み込めなかったときは渡さない（＝入力欄を出さず、空で保存して既存の行を消さない） */
+    publishedMilestones: milestonesResult.error ? undefined : ((milestonesResult.data ?? []) as { year: number; month: number | null; event: string }[])
+      .map((m) => ({ year: String(m.year), month: m.month ? String(m.month) : "", event: m.event })),
   });
 
   if (!companyRaw) redirect("/biz/dashboard");
