@@ -57,6 +57,8 @@ const ITEMS = [
     desc: "★2026-10-27〜。実データでは決め手・1年後・職種の変化が下限に届かないので、ここで全項目とログインしていない人の見え方を見る" },
   { href: "/dev/preview/job-change", label: "現職の会社名を変えたとき（転職／会社名の修正）",
     desc: "2026-11-04。保存の前に出す確認と、辞めた月の入力（入社月より前・今月より後はエラー）" },
+  { href: "/dev/preview/candidate-list-nudge", label: "企業の候補者一覧に表示される項目（/mypage の案内）",
+    desc: "2026-11-27。意向が積極的など・空いている項目だけ・90日より前なら更新の1行" },
   { href: "/dev/preview/stance-reconfirm", label: "転職意欲の「変わりありませんか？」（/home のダイアログ）",
     desc: "★90日たった人に出す。同じ値なら確かめた日時だけ・違えば値を変える" },
   { href: "/dev/preview/join-checkin", label: "入社後のふり返り（入社3か月・1年）",

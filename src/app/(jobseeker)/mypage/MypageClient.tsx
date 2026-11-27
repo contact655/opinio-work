@@ -22,6 +22,8 @@ import { PostComposer } from "@/components/profile/PostComposer";
 import { IndustryMatchSection } from "@/components/mypage/IndustryMatchSection";
 import { HiringEntryCard } from "@/components/nextManager/HiringEntryCard";
 import type { IndustryMatchBlock } from "@/lib/companies/industryMatchText";
+import CandidateListNudge from "@/components/mypage/CandidateListNudge";
+import type { CandidateListNudge as CandidateListNudgeData } from "@/lib/profile/candidateListFields";
 
 /* ⚠️ **`ProfileEditor` の OwUser と同じ形にすること**（2026-08-16）。
       `/mypage` が編集フォームにそのまま渡すので、片方に列を足してもう片方に
@@ -223,6 +225,7 @@ export default function MypageClient({
   /* ⚠️ 分割代入で取り出す。取り出さないと `...editorProps` に入って ProfileEditor へ流れる */
   inbox,
   isNewUser = false,
+  candidateListNudge = null,
   schoolPeerCounts = {},
   recentPosts = [],
   likedPostIds = [],
@@ -256,6 +259,8 @@ export default function MypageClient({
   /** ★「届いているもの」のカード（2026-10-09）。数え方は lib/mypage/navBadges.ts */
   inbox?: { proposals: number | null; messageRequests: number; approaches?: number | null };
   isNewUser?: boolean;
+  /** ★「企業の候補者一覧に表示される項目」の案内（2026-11-27）。出さない人は null */
+  candidateListNudge?: CandidateListNudgeData | null;
   schoolPeerCounts?: Record<string, number>;
   /* ── ★公開プロフィールと同じ構成にするための3つ（2026-08-25 / 柴さんの指示）──
         ⚠️ 取得は `page.tsx` が持つ。ここは**受け取って渡すだけ**。 */
@@ -346,6 +351,8 @@ export default function MypageClient({
       }}
       roles={intentProps.roles ?? []}
       desiredRoleOptions={intentProps.desiredRoleOptions}
+      /* ★案内の「希望する職種」「転職への意向」から来たとき（/mypage?focus=intent）は編集を開く */
+      initialOpen={(editorProps as { initialFocus?: string | null }).initialFocus === "intent"}
     />
   );
 
@@ -535,6 +542,9 @@ export default function MypageClient({
       )}
 
 
+
+      {/* ★企業の候補者一覧に表示される項目の案内（2026-11-27）。出すかどうかは lib/profile/candidateListFields.ts */}
+      <CandidateListNudge nudge={candidateListNudge} />
 
       {(
         <DashboardView

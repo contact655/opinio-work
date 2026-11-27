@@ -923,7 +923,10 @@ export default function ProfileTab({
     } catch { /* URL が読めなくても寄せるのは変わらない */ }
     if (initialFocus === "photo") { openPhotoEditor(); return; }
     if (initialFocus === "headline") { openHeadlineEditor(); return; }
-    const id = initialFocus === "about" ? "about" : "education";
+    if (initialFocus === "location") { openLocationEditor(); return; }
+    /* ⚠️ 転職の状況の編集は IntentCard が自分で開く（MypageClient が initialOpen を渡す） */
+    if (initialFocus === "intent") return;
+    const id = initialFocus === "about" ? "about" : initialFocus === "experience" ? "career" : "education";
     const t = window.setTimeout(() => scrollSectionIntoView(id), 400);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 開いたときに1回だけ
