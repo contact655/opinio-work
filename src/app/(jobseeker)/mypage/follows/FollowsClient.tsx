@@ -3,6 +3,7 @@ import { companyBrandName } from "@/lib/companies/displayName";
 
 import { useState } from "react";
 import Link from "next/link";
+import { AVATAR_COLOR, solidBackground } from "@/lib/avatarColor";
 import CompanyLogoImg from "@/components/profile/CompanyLogoImg";
 import MypageLayout from "../_components/MypageLayout";
 
@@ -135,9 +136,10 @@ export function FollowsClient({ companies, users }: { companies: FollowedCompany
               ) : (
                 <div style={{
                   width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-                  background: u.avatar_color ?? "linear-gradient(135deg, var(--royal), var(--accent))",
+                  /* ★単色のグレー（2026-11-27）。DB に残るグラデーションは使わない */
+                  background: solidBackground(u.avatar_color, AVATAR_COLOR.bg),
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontWeight: 700, fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)",
+                  color: AVATAR_COLOR.text, fontWeight: 700, fontSize: 16, fontFamily: "var(--font-inter), var(--font-noto)",
                 }}>
                   {(u.name ?? "?").charAt(0)}
                 </div>

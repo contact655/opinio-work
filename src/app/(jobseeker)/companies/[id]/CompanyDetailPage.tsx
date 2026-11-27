@@ -708,7 +708,7 @@ function MobileBottomCTA({ company }: { company: Company }) {
               hasMeeting
                 ? { background: "#fff", color: "var(--royal)", border: "1.5px solid var(--royal)" }
                 : /* 募集しか無い企業では、これが唯一の主導線なので塗りにする（従来どおり） */
-                  { background: "linear-gradient(135deg, var(--royal) 0%, var(--accent) 100%)", color: "#fff", boxShadow: "0 3px 12px rgba(0,35,102,0.25)" }
+                  { background: "var(--royal)", color: "#fff" } /* ★紺の単色・影なし（2026-11-27） */
             }
           >
             募集を見る

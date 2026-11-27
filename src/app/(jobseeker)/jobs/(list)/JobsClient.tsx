@@ -1266,7 +1266,7 @@ export default function JobsClient({
                 <Link href="/companies" style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
                   padding: "10px 20px", borderRadius: 8,
-                  background: "linear-gradient(135deg, var(--royal), var(--accent))",
+                  background: "var(--royal)", /* ★紺の単色（2026-11-27） */
                   color: "#fff", fontSize: "var(--text-sm)", fontWeight: 600, textDecoration: "none",
                 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
@@ -1378,7 +1378,7 @@ export default function JobsClient({
           position: absolute;
           bottom: 0; left: 0; right: 0;
           padding: 20px 16px 14px;
-          background: linear-gradient(to top, rgba(0,35,102,0.85) 0%, rgba(0,35,102,0) 100%);
+          background: var(--royal); /* ★単色（2026-11-27）。グラデーションの重ねをやめた */
           color: #fff;
           font-size: 12px;
           font-weight: 700;

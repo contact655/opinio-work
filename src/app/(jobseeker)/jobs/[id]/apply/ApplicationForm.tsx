@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LOGO_PLACEHOLDER, solidBackground } from "@/lib/avatarColor";
 
 type Props = {
   jobId: string;
@@ -65,7 +66,7 @@ export default function ApplicationForm({
       }}>
         <div style={{
           width: 64, height: 64,
-          background: "linear-gradient(135deg, var(--success), #10B981)",
+          background: "var(--success)", /* ★単色（2026-11-27） */
           borderRadius: "50%", display: "flex", alignItems: "center",
           justifyContent: "center", margin: "0 auto 20px",
         }}>
@@ -73,7 +74,7 @@ export default function ApplicationForm({
             <path d="M20 6L9 17l-5-5" />
           </svg>
         </div>
-        <div style={{ fontFamily: 'var(--font-noto-serif)', fontSize: 22, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
+        <div style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>
           応募が完了しました
         </div>
         {/* ⚠️★★**「{企業名}の採用担当者があなたの応募を確認します」と書かないこと**
@@ -97,7 +98,7 @@ export default function ApplicationForm({
             onClick={() => router.push("/mypage/applications")}
             style={{
               padding: "11px 24px",
-              background: "linear-gradient(135deg, var(--royal), var(--accent))",
+              background: "var(--royal)", /* ★紺の単色（2026-11-27） */
               color: "#fff", border: "none", borderRadius: 8,
               fontSize: 13, fontWeight: 700, cursor: "pointer",
             }}
@@ -143,7 +144,7 @@ export default function ApplicationForm({
           borderRadius: 16, marginBottom: 16,
         }}>
           <h2 style={{
-            fontFamily: 'var(--font-noto-serif)', fontSize: 20, fontWeight: 700,
+            fontSize: 20, fontWeight: 700,
             color: "var(--ink)", marginBottom: 6,
           }}>
             応募フォーム
@@ -261,9 +262,7 @@ export default function ApplicationForm({
             disabled={isSubmitting}
             style={{
               width: "100%", padding: "14px 0",
-              background: isSubmitting
-                ? "var(--line)"
-                : "linear-gradient(135deg, var(--royal), var(--accent))",
+              background: isSubmitting ? "var(--line)" : "var(--royal)", /* ★紺の単色（2026-11-27） */
               color: isSubmitting ? "var(--ink-mute)" : "#fff",
               border: "none", borderRadius: 10,
               fontSize: 15, fontWeight: 700,
@@ -291,9 +290,10 @@ export default function ApplicationForm({
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid var(--line)" }}>
           <div style={{
             width: 40, height: 40, borderRadius: 10,
-            background: companyGradient,
+            /* ★ロゴの代わりは単色（2026-11-27）。グラデーションの値は使わない */
+            background: solidBackground(companyGradient, LOGO_PLACEHOLDER.bg),
             display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontWeight: 700, fontSize: 16, flexShrink: 0,
+            color: LOGO_PLACEHOLDER.text, fontWeight: 700, fontSize: 16, flexShrink: 0,
           }}>
             {companyInitial}
           </div>

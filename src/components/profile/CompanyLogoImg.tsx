@@ -21,6 +21,7 @@
 
 import { useState } from "react";
 import { getLogoLetter, usableLogoUrl } from "@/lib/utils/companyLogo";
+import { LOGO_PLACEHOLDER } from "@/lib/avatarColor";
 
 type CompanyLogoImgProps = {
   logoUrl: string | null | undefined;
@@ -60,7 +61,7 @@ export default function CompanyLogoImg({
         borderRadius: radius,
         overflow: "hidden",
         flexShrink: 0,
-        background: logoGradient ?? "var(--ink-mute)",
+        background: LOGO_PLACEHOLDER.bg,
         position: "relative",
       }}
     >
@@ -73,7 +74,7 @@ export default function CompanyLogoImg({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#fff",
+            color: LOGO_PLACEHOLDER.text,
           /* ⚠️ 端数を出さない（2026-08-30）。`size * 0.42` は 38px のとき
                 15.959999999999999px になり、実測でその1種類だけ他と揃わなかった。
                 `components/ui/InitialAvatar.tsx` は元から `Math.round` している。 */
@@ -108,12 +109,12 @@ export default function CompanyLogoImg({
 /** logo_url が使えないときの文字の四角 */
 export function LetterCircle({
   letter,
-  gradient,
   size = 36,
   borderRadius,
 }: {
   letter: string | null;
-  gradient: string | null;
+  /** ⚠️ 2026-11-27 から使っていない（色は LOGO_PLACEHOLDER の単色）。呼び出し側を壊さないため型だけ残す */
+  gradient?: string | null;
   size?: number;
   borderRadius?: number;
 }) {
@@ -123,12 +124,13 @@ export function LetterCircle({
         width: size,
         height: size,
         borderRadius: borderRadius ?? size * 0.2,
-        background: gradient ?? "linear-gradient(135deg, #001233, #002366)",
+        /* ★単色（2026-11-27）。DB の logo_gradient は使わない（ui-conventions「サイト全体の見た目の決まり」。色の種類を増やさない） */
+        background: LOGO_PLACEHOLDER.bg,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
-        color: "#fff",
+        color: LOGO_PLACEHOLDER.text,
         /* ⚠️ 端数を出さない（上と同じ理由） */
         fontSize: Math.round(size * 0.42),
         fontWeight: 700,

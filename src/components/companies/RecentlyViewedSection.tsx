@@ -5,6 +5,7 @@ import { useRecentlyViewed } from "@/lib/hooks/useRecentlyViewed";
 import type { CompanyForCarousel } from "@/types/genre";
 import { usableLogoUrl } from "@/lib/utils/companyLogo";
 import { companyBrandName } from "@/lib/companies/displayName";
+import { LOGO_PLACEHOLDER } from "@/lib/avatarColor";
 
 /* ⚠️★ここにあった「資金調達ステージ」のバッジは 2026-08-29 に削除した。**戻さないこと。**
 
@@ -128,13 +129,13 @@ export function RecentlyViewedSection() {
                 すぐ上の一覧の「Salesforce」と別の会社に見えた */
           const name = companyBrandName(c);
           const initial = c.logo_letter ?? name.slice(0, 1);
-          const gradient = c.logo_gradient ?? "linear-gradient(135deg, #001233 0%, #002366 60%, #1a3569 100%)";
+          /* ★ロゴ帯は単色（2026-11-27）。logo_gradient は使わない */
 
           return (
             <Link key={c.id} href={`/companies/${c.slug ?? c.id}`} className="rv-mini-card">
               {/* 上段: ロゴ帯 */}
               <div style={{
-                height: 52, background: gradient,
+                height: 52, background: LOGO_PLACEHOLDER.bg,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 position: "relative", overflow: "hidden", flexShrink: 0,
               }}>
@@ -142,7 +143,7 @@ export function RecentlyViewedSection() {
                 <span style={{
                   position: "absolute", right: -4, bottom: -8,
                   fontSize: 38, fontWeight: 900,
-                  color: "rgba(255,255,255,0.1)",
+                  color: "rgba(0,35,102,0.06)",
                   fontFamily: "var(--font-inter), var(--font-noto)", lineHeight: 1,
                   userSelect: "none", pointerEvents: "none",
                 }}>{initial}</span>
@@ -158,7 +159,7 @@ export function RecentlyViewedSection() {
                 ) : (
                   <span style={{
                     fontSize: 20, fontWeight: 800,
-                    color: "rgba(255,255,255,0.9)",
+                    color: LOGO_PLACEHOLDER.text,
                     fontFamily: "var(--font-inter), var(--font-noto)",
                     position: "relative", zIndex: 1,
                   }}>{initial}</span>
