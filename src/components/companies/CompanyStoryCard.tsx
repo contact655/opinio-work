@@ -43,7 +43,7 @@ export function CompanyStoryCard({ title, body, category, coverImageUrl, publish
             {catLabel}
           </span>
         )}
-        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.5, fontFamily: "var(--font-noto-serif)" }}>
+        <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "var(--ink)", lineHeight: 1.5 }}>
           {title}
         </h3>
         {text && (long ? (

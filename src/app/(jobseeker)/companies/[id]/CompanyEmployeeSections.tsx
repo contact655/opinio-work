@@ -356,7 +356,7 @@ export function CurrentEmployeesSection({
           {hiddenCount > 0 ? (
             <>
               {/* ★絵文字をやめて線のアイコン（2026-11-27） */}
-              <Lock size={32} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ marginBottom: 12 }} />
+              <Lock size={32} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ display: "block", margin: "0 auto 12px" }} />
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 6 }}>
                 ログインすると{hiddenCount}名のプロフィールが見られます
               </div>
@@ -366,7 +366,7 @@ export function CurrentEmployeesSection({
             </>
           ) : (
             <>
-              <Users size={32} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ marginBottom: 12 }} />
+              <Users size={32} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ display: "block", margin: "0 auto 12px" }} />
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 6 }}>
                 現在登録されている社員情報はありません
               </div>
@@ -606,7 +606,7 @@ export function AlumniSection({ alumni, hiddenCount = 0, totalCount, limit, more
         }}>
           {hiddenCount > 0 ? (
             <>
-              <Lock size={28} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ marginBottom: 4 }} />
+              <Lock size={28} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ display: "block", margin: "0 auto 4px" }} />
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 4 }}>
                 ログインすると{hiddenCount}名のプロフィールが見られます
               </div>

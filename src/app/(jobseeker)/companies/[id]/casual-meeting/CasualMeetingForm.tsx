@@ -3,6 +3,7 @@
 import { CASUAL_MEETING_FORMAT_OPTIONS, type CasualMeetingFormat } from "@/lib/constants/casualMeetingFormats";
 import { useState } from "react";
 import Link from "next/link";
+import { LOGO_PLACEHOLDER, solidBackground } from "@/lib/avatarColor";
 
 type Format = CasualMeetingFormat;
 
@@ -238,11 +239,13 @@ export default function CasualMeetingForm({
         borderRadius: 12, padding: "16px 20px", marginBottom: 20,
         display: "flex", alignItems: "center", gap: 14,
       }}>
+        {/* ★会社の頭文字。DB の色がグラデーションなら使わず、白地に紺の文字にする（2026-11-27。周りの箱が紺系の薄い地なので白で分ける） */}
         <div style={{
           width: 44, height: 44, borderRadius: 10, flexShrink: 0,
-          background: companyGradient,
+          background: solidBackground(companyGradient, "#fff"),
+          border: solidBackground(companyGradient, "") ? "none" : "1px solid var(--royal-100)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          color: "#fff", fontSize: 18, fontWeight: 700,
+          color: solidBackground(companyGradient, "") ? "#fff" : LOGO_PLACEHOLDER.text, fontSize: 18, fontWeight: 700,
         }}>
           {companyInitial}
         </div>

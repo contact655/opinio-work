@@ -140,7 +140,6 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
           <span style={{ fontSize: 12, color: "var(--royal)", fontWeight: 600 }}>{cat.label}</span>
         </div>
         <h1 style={{
-          fontFamily: "var(--font-noto-serif, 'Noto Serif JP', serif)",
           fontSize: "clamp(22px, 3vw, 32px)",
           fontWeight: 700,
           color: "var(--ink)",
@@ -174,7 +173,7 @@ export default async function JobDeptPage({ params }: { params: { slug: string }
       {filteredJobs.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--ink-mute)" }}>
           {/* ★絵文字をやめて線のアイコン（2026-11-27） */}
-          <ClipboardList size={32} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ marginBottom: 12 }} />
+          <ClipboardList size={32} strokeWidth={1.75} color="var(--ink-mute)" aria-hidden style={{ display: "block", margin: "0 auto 12px" }} />
           <p style={{ fontSize: 15, margin: 0 }}>現在この職種の募集はありません</p>
           <Link href="/jobs" style={{ display: "inline-block", marginTop: 16, fontSize: 13, color: "var(--royal)", fontWeight: 600, textDecoration: "none" }}>
             すべての募集を見る →

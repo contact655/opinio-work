@@ -97,7 +97,7 @@ function DashboardView({
               marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid var(--line)",
             }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                <span style={{ fontFamily: "var(--font-noto-serif)", fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>
+                <span style={{ fontSize: 17, fontWeight: 600, color: "var(--ink)" }}>
                   あなたの母校
                 </span>
                 <span style={{ fontFamily: "var(--font-inter), var(--font-noto)", fontSize: 12, fontWeight: 700, color: "var(--ink-mute)", letterSpacing: "0.15em", textTransform: "uppercase" as const }}>
