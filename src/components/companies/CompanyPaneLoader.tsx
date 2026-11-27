@@ -45,7 +45,7 @@ export async function CompanyPaneLoader({ slugOrId }: { slugOrId: string }) {
 
   return (
     <>
-      {/* ⚠️ 正式名称をそのまま読み上げる（`companyDisplayName` の省略形だと
+      {/* ⚠️ 正式名称をそのまま読み上げる（`companyBrandName` の短い名前だと
              「Salesforce」のように英名だけになり、聞いただけでは同定しにくい） */}
       <span className="sr-only" aria-live="polite">{result.company.name} の概要を表示しました</span>
       <CompanyPane

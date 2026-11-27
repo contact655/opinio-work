@@ -1,4 +1,4 @@
-import { brandOrName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { emailMatchesCompanyDomain } from "@/lib/constants/emailDomains";
 
@@ -196,7 +196,7 @@ export async function fetchOpenJoinRequests(admin: Client): Promise<OpenJoinRequ
   const [{ data: users, error: uErr }, { data: companies, error: cErr }, { data: admins, error: aErr }] =
     await Promise.all([
       admin.from("ow_users").select("id, name, email, is_test").in("id", userIds),
-      admin.from("ow_companies").select("id, name, brand_name, url").in("id", companyIds),
+      admin.from("ow_companies").select("id, name, name_en, brand_name, url").in("id", companyIds),
       admin
         .from("ow_company_admins")
         .select("company_id, user_id, ow_users!user_id(email)")
@@ -216,7 +216,7 @@ export async function fetchOpenJoinRequests(admin: Client): Promise<OpenJoinRequ
   ]));
   const companyById = new Map((companies ?? []).map((c) => [
     (c as { id: string }).id,
-    c as { id: string; name: string | null; brand_name: string | null; url: string | null },
+    c as { id: string; name: string | null; name_en: string | null; brand_name: string | null; url: string | null },
   ]));
 
   /* 企業ごとの「通知が届く人数」と、「既に担当者になっている (company_id, user_id)」 */
@@ -244,7 +244,7 @@ export async function fetchOpenJoinRequests(admin: Client): Promise<OpenJoinRequ
     out.push({
       id: r.id as string,
       companyId,
-      companyName: brandOrName(company.brand_name, company.name ?? "—"),
+      companyName: company.name ? companyBrandName({ name: company.name, name_en: company.name_en, brand_name: company.brand_name }) : "—",
       companyUrl: company.url,
       userId,
       userName: user.name ?? "—",

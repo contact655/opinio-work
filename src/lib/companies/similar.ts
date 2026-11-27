@@ -1,7 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { filterListedCompanies } from "@/lib/companies/visibility";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { respondingCompanyIds } from "@/lib/jobs/respondingJobs";
 
@@ -44,10 +44,10 @@ export async function getSimilarCompanies(companyId: string): Promise<SimilarCom
   if (ids.length === 0) return [];
 
   const { data: cos, error: cErr } = await filterListedCompanies(
-    db.from("ow_companies").select("id, slug, name, name_en, logo_url, logo_letter").in("id", ids),
+    db.from("ow_companies").select("id, slug, name, name_en, brand_name, logo_url, logo_letter").in("id", ids),
   );
   if (cErr) { console.error("[similarCompanies] companies:", cErr.message); return []; }
-  const listed = (cos ?? []) as { id: string; slug: string | null; name: string; name_en: string | null; logo_url: string | null; logo_letter: string | null }[];
+  const listed = (cos ?? []) as { id: string; slug: string | null; name: string; name_en: string | null; brand_name: string | null; logo_url: string | null; logo_letter: string | null }[];
   if (listed.length === 0) return [];
   const listedIds = listed.map((c) => c.id);
 
@@ -76,7 +76,7 @@ export async function getSimilarCompanies(companyId: string): Promise<SimilarCom
     .map((c): SimilarCompany => ({
       id: c.id,
       slug: c.slug,
-      name: companyDisplayName(c.name, c.name_en).displayName,
+      name: companyBrandName(c),
       logoUrl: c.logo_url,
       logoLetter: c.logo_letter,
       domainName: domainOf.get(c.id) ?? null,

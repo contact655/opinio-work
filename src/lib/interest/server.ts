@@ -8,7 +8,7 @@ import { proposalIntroLine } from "@/lib/constants/proposalResponses";
 import { notifyCompanyProposalRaised } from "@/lib/notify/proposalNotification";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
 import { filterCompaniesWithRespondingStaff } from "@/lib/companies/respondingStaff";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import {
   INTEREST_CONSENT_VERSION, INTEREST_NOTE_MAX, isNoReplyDue,
   type InterestSource, type InterestStatus,
@@ -42,7 +42,7 @@ export type InterestEligibility =
 export async function checkInterestEligibility(owUserId: string, companyId: string, db: Db = createAdminClient()): Promise<InterestEligibility> {
   const [{ data: me, error: mErr }, { data: co, error: cErr }, ownId] = await Promise.all([
     db.from("ow_users").select("id, auth_id, is_test").eq("id", owUserId).maybeSingle(),
-    db.from("ow_companies").select("id, name, name_en, is_test, is_published, listing_status").eq("id", companyId).maybeSingle(),
+    db.from("ow_companies").select("id, name, name_en, brand_name, is_test, is_published, listing_status").eq("id", companyId).maybeSingle(),
     getOwnCompanyId(),
   ]);
   if (mErr || cErr) { console.error("[interest] eligibility:", mErr?.message ?? cErr?.message); return { ok: false }; }
@@ -60,7 +60,7 @@ export async function checkInterestEligibility(owUserId: string, companyId: stri
   return {
     ok: true,
     companyId,
-    companyName: companyDisplayName(co.name as string, (co.name_en as string | null) ?? null).displayName,
+    companyName: companyBrandName({ name: co.name as string, name_en: (co.name_en as string | null) ?? null, brand_name: (co.brand_name as string | null) ?? null }),
     companyIsTest: co.is_test === true,
     hasResponder: responders?.has(companyId) === true,
     authId: me.auth_id as string,

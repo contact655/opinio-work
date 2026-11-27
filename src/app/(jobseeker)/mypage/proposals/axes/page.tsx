@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { FIT_AXES, buildFitAxesPrompt, fitAxesEnabledFor } from "@/lib/fitAxes/axes";
 import { loadFitAxes } from "@/lib/fitAxes/load";
 import { JOIN_REASON_LABELS } from "@/lib/constants/careerReasons";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import MypageLayout from "../../_components/MypageLayout";
 import AxesClient from "./AxesClient";
 
@@ -36,16 +36,16 @@ export default async function AxesPage() {
     loadFitAxes(me.id as string),
     /* 参考: 本人が以前、入社の決め手に挙げたもの（⚠️ join_reasons は authenticated に SELECT が無い。admin で本人の分だけ） */
     db.from("ow_experiences")
-      .select("join_reasons, started_at, company_text, ow_companies!company_id(name, name_en)")
+      .select("join_reasons, started_at, company_text, ow_companies!company_id(name, name_en, brand_name)")
       .eq("user_id", me.id as string)
       .order("started_at", { ascending: false }),
   ]);
   if (expRes.error) console.error("[axes] ow_experiences:", expRes.error.message);
   const pastReasons = (expRes.data ?? [])
     .map((e) => {
-      const co = e.ow_companies as unknown as { name: string; name_en: string | null } | null;
+      const co = e.ow_companies as unknown as { name: string; name_en: string | null; brand_name: string | null } | null;
       const labels = ((e.join_reasons as string[] | null) ?? []).map((s) => JOIN_REASON_LABELS[s]).filter(Boolean);
-      return { company: co ? companyDisplayName(co.name, co.name_en).displayName : ((e.company_text as string | null) ?? "（会社名なし）"), labels };
+      return { company: co ? companyBrandName(co) : ((e.company_text as string | null) ?? "（会社名なし）"), labels };
     })
     .filter((r) => r.labels.length > 0);
 

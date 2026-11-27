@@ -64,8 +64,8 @@ export type PickedCompanyRow = {
         LP から出るリンクだけが正規URLでない状態だった。 */
   slug: string | null;
   name: string;
-  /* ⚠️ **表示名は `brand_name` から作らない。** LP も含め、企業名を出す箇所は
-        `companyDisplayName(name, name_en)` を通す（2026-09-16）。
+  /* ⚠️ **表示名を `brand_name ?? name` で作らない。** LP も含め、企業名を出す箇所は
+        `companyBrandName()` を通す（2026-09-16。2026-11-27 から brand_name を優先）。
         `brand_name` には**空文字の行がある**（株式会社Opinio）ので `?? ` では拾えず、
         **カードの社名が空のまま**出ていた。 */
   brand_name: string | null;

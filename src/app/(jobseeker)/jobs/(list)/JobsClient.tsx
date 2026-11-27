@@ -1,5 +1,5 @@
 "use client";
-import { brandOrName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 
 import { SearchAllLink } from "@/components/jobseeker/SearchAllLink";
 import { ActiveFilterRow, FilterButton, ListFilterDrawer, type FilterSection, type FilterValues } from "@/components/common/ListFilterDrawer";
@@ -287,7 +287,7 @@ export default function JobsClient({
         setFetchedCompany({
           key: companyParam,
           company: c
-            ? { id: c.id, slug: c.slug ?? null, name: c.name, brand_name: null, tagline: c.tagline ?? "",
+            ? { id: c.id, slug: c.slug ?? null, name: c.name, name_en: c.name_en ?? null, brand_name: c.brand_name ?? null, tagline: c.tagline ?? "",
                 phase: "", url: null, employee_count: null, business_domains: [], is_published: true,
                 gradient: "", logo_letter: null, logo_url: null }
             : null,
@@ -311,7 +311,7 @@ export default function JobsClient({
 
   /** チップ・空状態に出す企業名。求人カードと同じ綴り（brand_name 優先） */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const companyFilterName = companyFilter ? brandOrName((companyFilter as any).brand_name, companyFilter.name) : "";
+  const companyFilterName = companyFilter ? companyBrandName(companyFilter) : "";
 
   // 複数選択用: カンマ区切り文字列 → Set
   const categorySet = useMemo(() => new Set(category ? category.split(",") : []), [category]);
@@ -417,7 +417,7 @@ export default function JobsClient({
           title: job.role,
           /* ⚠️ 社名は一覧のカード（JobListItem）と同じ出し方 */
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          companyName: c ? brandOrName((c as any).brand_name, c.name) : "",
+          companyName: c ? companyBrandName(c) : "",
           logoUrl: c?.logo_url ?? null,
           logoLetter: c?.logo_letter ?? null,
           logoGradient: c?.gradient ?? null,

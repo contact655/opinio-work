@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import {
   buildIndustryTree,
   expandIndustryWithAncestors,
@@ -141,7 +141,7 @@ export async function fetchIndustryMatchBlocks(owUserId: string): Promise<Indust
   /* ⚠️ `.select()` には**1本の文字列リテラル**を渡す（配列 join や `+` の連結だと型が落ちる）。 */
   const { data: companyRows, error: cErr } = await db
     .from("ow_companies")
-    .select("id, slug, name, name_en, tagline, logo_url, logo_letter, logo_gradient, listing_status, is_test, is_published, customer_all_industries")
+    .select("id, slug, name, name_en, brand_name, tagline, logo_url, logo_letter, logo_gradient, listing_status, is_test, is_published, customer_all_industries")
     .in("id", candidateIds);
 
   if (cErr) {
@@ -207,7 +207,7 @@ export async function fetchIndustryMatchBlocks(owUserId: string): Promise<Indust
           slug: co.slug,
           /* ⚠️ 表示名の組み立ては `lib/companies/displayName.ts` に集約されている。
                 ここで独自に組まない（3箇所に割れていたのを 2026-08-13 に集約した経緯がある）。 */
-          name: companyDisplayName(co.name, co.name_en).displayName,
+          name: companyBrandName(co),
           tagline: co.tagline,
           logoUrl: co.logo_url,
           logoLetter: co.logo_letter,

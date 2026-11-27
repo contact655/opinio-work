@@ -586,7 +586,7 @@ export async function listIncomingRequests(meId: string): Promise<IncomingReques
   const db = createAdminClient();
   const { data, error } = await db
     .from("ow_conversations")
-    .select("id, requested_at, request_topic, request_format, request_company:ow_companies!request_company_id(name, name_en), requester:ow_users!candidate_user_id(id, name, headline, avatar_url, avatar_color, username)")
+    .select("id, requested_at, request_topic, request_format, request_company:ow_companies!request_company_id(name, name_en, brand_name), requester:ow_users!candidate_user_id(id, name, headline, avatar_url, avatar_color, username)")
     .eq("kind", "direct_message")
     .eq("partner_user_id", meId)
     .eq("request_status", "pending")

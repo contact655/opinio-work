@@ -6,6 +6,7 @@ import { mutateOne } from "@/lib/supabase/mutate";
 import { sendEmail } from "@/lib/notify/email";
 import { joinRequestApprovedTemplate } from "@/lib/notify/templates";
 import { revalidatePath } from "next/cache";
+import { companyBrandName } from "@/lib/companies/displayName";
 
 export type ActionResult = { ok: boolean; error?: string };
 
@@ -106,13 +107,13 @@ export async function approveJoinRequest(requestId: string): Promise<ActionResul
      ⚠️ 黙らない。届かなかったことはログに残す。 */
   const { data: user } = await admin.from("ow_users").select("name, email").eq("id", userId).maybeSingle();
   const { data: company } = await admin
-    .from("ow_companies").select("name, brand_name").eq("id", companyId).maybeSingle();
+    .from("ow_companies").select("name, name_en, brand_name").eq("id", companyId).maybeSingle();
   if (user?.email) {
     try {
       await sendEmail(joinRequestApprovedTemplate({
         to: user.email as string,
         requesterName: (user.name as string | null) ?? "ご担当者",
-        companyName: (company?.brand_name as string | null) ?? (company?.name as string | null) ?? "貴社",
+        companyName: company?.name ? companyBrandName({ name: company.name as string, name_en: (company.name_en as string | null) ?? null, brand_name: (company.brand_name as string | null) ?? null }) : "貴社",
       }));
     } catch (e) {
       console.error("[admin/join-requests] 承認メールの送信に失敗:", e);

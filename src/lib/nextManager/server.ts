@@ -1,7 +1,7 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { mutateOne, mutateMany } from "@/lib/supabase/mutate";
 import type { HiringBadge, MatchPatch, MatchResult } from "./constants";
 export type { HiringBadge } from "./constants";
@@ -62,7 +62,7 @@ export async function getMyHiringRows(owUserId: string, db: Db = createAdminClie
   const ids = [...adminIds, ...selfCandidateIds];
   if (ids.length === 0) return [];
   const [{ data: cos, error: cErr }, { data: jobs, error: jErr }, { data: links, error: lErr }] = await Promise.all([
-    db.from("ow_companies").select("id, name, name_en, is_test, suspended_at").in("id", ids),
+    db.from("ow_companies").select("id, name, name_en, brand_name, is_test, suspended_at").in("id", ids),
     adminIds.length
       ? db.from("ow_jobs").select("id, company_id, title, status").in("company_id", adminIds)
         .in("status", ["published", "draft"]).order("created_at", { ascending: false })
@@ -73,7 +73,7 @@ export async function getMyHiringRows(owUserId: string, db: Db = createAdminClie
   const coOf = new Map((cos ?? []).map((c) => [c.id as string, c]));
   const nameOf = (cid: string) => {
     const c = coOf.get(cid);
-    return c ? companyDisplayName(c.name as string, (c.name_en as string | null) ?? null).displayName : "（会社名を取得できません）";
+    return c ? companyBrandName({ name: c.name as string, name_en: (c.name_en as string | null) ?? null, brand_name: (c.brand_name as string | null) ?? null }) : "（会社名を取得できません）";
   };
   const linked = new Set((links ?? []).map((l) => l.job_id as string));
   const seen = new Set<string>();
@@ -278,12 +278,12 @@ export async function listAllSelfHiring(): Promise<SelfHiringRow[] | null> {
   const [valid, { data: users, error: uErr }, { data: cos, error: cErr }] = await Promise.all([
     loadValidSelfHiring(db, { userIds: uids }),
     db.from("ow_users").select("id, name").in("id", uids),
-    db.from("ow_companies").select("id, name, name_en").in("id", cids),
+    db.from("ow_companies").select("id, name, name_en, brand_name").in("id", cids),
   ]);
   if (!valid || uErr || cErr) { if (uErr || cErr) console.error("[nextManager] self all:", uErr?.message ?? cErr?.message); return null; }
   const listed = new Set(valid.map((v) => `${v.userId}|${v.companyId}`));
   const nameOf = new Map((users ?? []).map((u) => [u.id as string, (u.name as string | null) ?? ""]));
-  const coName = new Map((cos ?? []).map((c) => [c.id as string, companyDisplayName(c.name as string, (c.name_en as string | null) ?? null).displayName]));
+  const coName = new Map((cos ?? []).map((c) => [c.id as string, companyBrandName({ name: c.name as string, name_en: (c.name_en as string | null) ?? null, brand_name: (c.brand_name as string | null) ?? null })]));
   return rows.map((r) => ({
     userId: r.user_id as string,
     userName: nameOf.get(r.user_id as string) || "（名前を取得できません）",
@@ -497,7 +497,7 @@ export async function getHiringBadges(viewerIsTest: boolean, db: Db = createAdmi
   const cids = Array.from(new Set(all.map((r) => r.companyId)));
   const uids = Array.from(new Set(all.map((r) => r.userId)));
   const [{ data: cos, error: cErr }, { data: links, error: lErr }] = await Promise.all([
-    db.from("ow_companies").select("id, name, name_en, is_test, suspended_at").in("id", cids),
+    db.from("ow_companies").select("id, name, name_en, brand_name, is_test, suspended_at").in("id", cids),
     db.from("ow_job_hiring_managers").select("user_id, ow_jobs!job_id(company_id, title, status, is_test)").in("user_id", uids),
   ]);
   if (cErr || lErr) { console.error("[nextManager] badges:", cErr?.message ?? lErr?.message); return null; }
@@ -519,7 +519,7 @@ export async function getHiringBadges(viewerIsTest: boolean, db: Db = createAdmi
     const uid = r.userId;
     if (out[uid]) continue;
     out[uid] = {
-      companyName: companyDisplayName(co.name as string, (co.name_en as string | null) ?? null).displayName,
+      companyName: companyBrandName({ name: co.name as string, name_en: (co.name_en as string | null) ?? null, brand_name: (co.brand_name as string | null) ?? null }),
       note: r.note,
       /* ⚠️ 申告した人は募集に紐づかない（担当者だけ） */
       jobTitles: r.self ? [] : titlesOf.get(`${uid}|${r.companyId}`) ?? [],
@@ -663,7 +663,7 @@ export async function getPanelForConversation(conversationId: string, viewerOwUs
   const cid = m.company_id as string;
   const [{ count, error: aErr }, { data: co, error: cErr }, { data: cand, error: uErr }, { data: jobs, error: jErr }] = await Promise.all([
     db.from("ow_company_admins").select("id", { count: "exact", head: true }).eq("user_id", viewerOwUserId).eq("company_id", cid).eq("is_active", true),
-    db.from("ow_companies").select("name, name_en").eq("id", cid).maybeSingle(),
+    db.from("ow_companies").select("name, name_en, brand_name").eq("id", cid).maybeSingle(),
     db.from("ow_users").select("name").eq("id", m.candidate_user_id as string).maybeSingle(),
     db.from("ow_jobs").select("id, title, status").eq("company_id", cid).in("status", ["published", "draft", "private"]).order("created_at", { ascending: false }),
   ]);
@@ -672,7 +672,7 @@ export async function getPanelForConversation(conversationId: string, viewerOwUs
   if (!selfDeclared && (count ?? 0) === 0) return null;
   return {
     id: m.id as string,
-    companyName: co ? companyDisplayName(co.name as string, (co.name_en as string | null) ?? null).displayName : "",
+    companyName: co ? companyBrandName({ name: co.name as string, name_en: (co.name_en as string | null) ?? null, brand_name: (co.brand_name as string | null) ?? null }) : "",
     candidateName: (cand?.name as string | null) ?? "（名前を取得できません）",
     matchedAt: m.matched_at as string,
     jobId: (m.job_id as string | null) ?? null,

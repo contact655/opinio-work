@@ -1,7 +1,7 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { isDesiredRoleCandidate } from "@/lib/roles/desiredRoleOptions";
 import { PREFECTURES } from "@/lib/utils/location";
 import { COMPANY_SIZE_GROUPS, isCompanySizeGroup } from "@/lib/constants/employeeBand";
@@ -182,7 +182,7 @@ export async function countCompaniesInRange(owUserId: string): Promise<number | 
 
 export type ApproachBlockedCompany = { companyId: string; name: string };
 
-/** 受け取らない企業。⚠️ 社名は `companyDisplayName` を通す（ピッカーと同じ名前で見せる）。失敗したら null */
+/** 受け取らない企業。⚠️ 社名は `companyBrandName` を通す（ピッカーと同じ名前で見せる）。失敗したら null */
 export async function listApproachBlockedCompanies(owUserId: string): Promise<ApproachBlockedCompany[] | null> {
   const db = createAdminClient();
   const { data, error } = await db.from("ow_approach_blocked_companies")
@@ -193,7 +193,7 @@ export async function listApproachBlockedCompanies(owUserId: string): Promise<Ap
   }
   const ids = (data ?? []).map((r) => r.company_id as string);
   if (ids.length === 0) return [];
-  const { data: comps, error: cErr } = await db.from("ow_companies").select("id, name, name_en").in("id", ids);
+  const { data: comps, error: cErr } = await db.from("ow_companies").select("id, name, name_en, brand_name").in("id", ids);
   if (cErr) {
     console.error("[approach-range] blocks companies:", cErr.message);
     return null;
@@ -201,7 +201,7 @@ export async function listApproachBlockedCompanies(owUserId: string): Promise<Ap
   const byId = new Map((comps ?? []).map((c) => [c.id as string, c]));
   return ids.flatMap((id) => {
     const c = byId.get(id);
-    return c ? [{ companyId: id, name: companyDisplayName(c.name as string, (c.name_en as string | null) ?? null).displayName }] : [];
+    return c ? [{ companyId: id, name: companyBrandName({ name: c.name as string, name_en: (c.name_en as string | null) ?? null, brand_name: (c.brand_name as string | null) ?? null }) }] : [];
   });
 }
 

@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-/* ★会社名はプロフィールの職歴と同じ日本語名（法人格を落とす）。英語名を優先する companyDisplayName にすると
+/* ★会社名はプロフィールの職歴と同じ日本語名（法人格を落とす）。英語名を優先する companyDisplayName（2026-11-27 に companyBrandName へ改めた）にすると
       「KAIKOU DENGYOのこと」のように、プロフィールの「海光電業」と別の名前に見える（2026-10-22） */
 import { stripLegalSuffix } from "@/lib/companies/displayName";
 import { topicsFor, type MessageTopic, type TopicCompany, type TopicSection } from "@/lib/constants/messageTopics";

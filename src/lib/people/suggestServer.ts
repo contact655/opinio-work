@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { PATHS_EXCLUDED_COMPANY_IDS } from "@/lib/constants/demoCompanies";
 import { isSuggestDismissActive, pickUserSuggestions, type SuggestPerson } from "@/lib/people/suggest";
 
@@ -28,10 +28,10 @@ const FALLBACK_GRADIENT = "linear-gradient(135deg, #002366, #3B5FD9)";
 type ExpRow = {
   user_id: string; role_category_id: string | null; is_current: boolean | null; started_at: string | null; ended_at: string | null;
   company_id: string | null; visibility_company: string | null;
-  ow_companies: { name: string | null; name_en: string | null; industry_id: string | null; is_test: boolean | null } | null;
+  ow_companies: { name: string | null; name_en: string | null; brand_name: string | null; industry_id: string | null; is_test: boolean | null } | null;
 };
 
-const EXP_COLS = "user_id, role_category_id, is_current, started_at, ended_at, company_id, visibility_company, ow_companies!company_id(name, name_en, industry_id, is_test)" as const;
+const EXP_COLS = "user_id, role_category_id, is_current, started_at, ended_at, company_id, visibility_company, ow_companies!company_id(name, name_en, brand_name, industry_id, is_test)" as const;
 
 /** 現職（いちばん新しく始めた現職）、無ければいちばん新しく始めた職歴 */
 function representative(rows: ExpRow[]): ExpRow | null {
@@ -112,7 +112,7 @@ export async function getUserSuggestions(viewer: { owUserId: string; isTest: boo
       roleId: rep?.role_category_id ?? null,
       currentCompanies: rows.filter((e) => e.is_current === true && e.company_id).map((e) => ({
         companyId: e.company_id as string,
-        nameIfShown: shown(e) && e.ow_companies?.name ? companyDisplayName(e.ow_companies.name, e.ow_companies.name_en).displayName : null,
+        nameIfShown: shown(e) && e.ow_companies?.name ? companyBrandName({ name: e.ow_companies.name, name_en: e.ow_companies.name_en, brand_name: e.ow_companies.brand_name }) : null,
       })),
       pastSteps: rows
         .filter((e) => e.ended_at && e.is_current !== true && shown(e) && !(e.company_id && PATHS_EXCLUDED_COMPANY_IDS.has(e.company_id)))

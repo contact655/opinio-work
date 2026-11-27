@@ -27,7 +27,7 @@ import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { filterListedCompanies } from "@/lib/companies/visibility";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
 import { MIN_EVIDENCE_FOR_PROPOSAL } from "@/lib/evidence/engine";
 import { buildMoves, countMovesInto } from "@/lib/evidence/transitions";
@@ -94,7 +94,7 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
 
   const [{ data: companyRows, error: coErr }, { data: expRows, error: expErr }] = await Promise.all([
     /* ⚠️ `.eq("listing_status","listed")` を直書きしないこと（CLAUDE.md） */
-    filterListedCompanies(db.from("ow_companies").select("id, name, name_en")),
+    filterListedCompanies(db.from("ow_companies").select("id, name, name_en, brand_name")),
     /* ★職歴は全件を1,000行ずつ最後まで読む（2026-10-22。1,000行で黙って切れるため） */
     readAll("evidenceGaps experiences", (f, t) => db
       .from("ow_experiences")
@@ -110,7 +110,7 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
   const exps = ((expRows ?? []) as unknown as ExpRow[]).filter(
     (e) => visible(e.ow_users) && e.visibility_company === "real", // ★2026-10-27: 会社名を伏せた行（masked）も外す。出してよいのは 'real' だけ（hidden だけ外していた）
   );
-  const listed = (companyRows ?? []) as { id: string; name: string; name_en: string | null }[];
+  const listed = (companyRows ?? []) as { id: string; name: string; name_en: string | null; brand_name: string | null }[];
   const listedIds = new Set(listed.map((c) => c.id));
 
   const { data: jobs, error: jobErr } = await db.from("ow_jobs").select("company_id").match(PUBLIC_JOB_MATCH);
@@ -173,7 +173,7 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
 
     return {
       companyId: c.id,
-      companyName: companyDisplayName(c.name, c.name_en).displayName,
+      companyName: companyBrandName(c),
       pathCurrent: pc, pathAlumni: pa,
       motiveCurrent: mc, motiveAlumni: ma,
       openJobs: jobCount.get(c.id) ?? 0,
@@ -199,7 +199,7 @@ export async function fetchEvidenceGaps(): Promise<EvidenceGapsResult | null> {
   if (authErr) console.error("[evidenceGaps] listUsers:", authErr.message);
   for (const u of authList?.users ?? []) lastSignIn.set(u.id, u.last_sign_in_at ?? null);
 
-  const nameById = new Map(listed.map((c) => [c.id, companyDisplayName(c.name, c.name_en).displayName]));
+  const nameById = new Map(listed.map((c) => [c.id, companyBrandName(c)]));
   const unansweredMap = new Map<string, UnansweredPerson>();
   const { data: users, error: uErr } = await readAll("evidenceGaps users", (f, t) => db
     .from("ow_users")

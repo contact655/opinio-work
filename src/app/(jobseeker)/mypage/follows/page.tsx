@@ -55,7 +55,7 @@ export default async function FollowsPage() {
       /* ⚠️ サブテキストは**事業領域**。`industry`(text) は廃止予定で新規企業では空。 */
       /* ⚠️★`is_published` / `is_test` を**必ず取る**（2026-09-27）。落とすと `undefined` に
             なり、下の判定が静かに「生きている」側へ倒れる。 */
-      .select("id, slug, name, brand_name, logo_url, logo_letter, logo_gradient, is_published, is_test, ow_company_business_domains(is_primary, ow_business_domains(name))")
+      .select("id, slug, name, name_en, brand_name, logo_url, logo_letter, logo_gradient, is_published, is_test, ow_company_business_domains(is_primary, ow_business_domains(name))")
       .in("id", companyIds);
     if (qErr) console.error("[mypage/follows] ow_companies:", qErr.message);
     /* ⚠️ 埋め込みを `industry` に**畳んでから**渡す。畳まないと FollowsClient 側は

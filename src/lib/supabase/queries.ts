@@ -1,4 +1,5 @@
 import { formatCapitalYen } from "@/lib/companies/milestones";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { laborFromRow } from "@/lib/jobs/laborTerms";
 import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { keepJobsAtRespondingCompanies, respondingCompanyIds } from "@/lib/jobs/respondingJobs";
@@ -661,11 +662,11 @@ export async function getListedCompanyParams(): Promise<{ id: string; slug: stri
  *   それまでは getCompaniesForList() を使っており、3社を出すために**全社の求人・写真・全員の職歴**まで引いていた
  *   （職歴は1回の問い合わせの上限 1,000 行で黙って切れる）。並びは getCompaniesForList() と同じ。
  */
-export async function getFeedSidebarCompanies(limit = 3): Promise<{ companies: { id: string; slug: string | null; name: string; tagline: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null }[]; total: number }> {
+export async function getFeedSidebarCompanies(limit = 3): Promise<{ companies: { id: string; slug: string | null; name: string; name_en: string | null; brand_name: string | null; tagline: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null }[]; total: number }> {
   const supabase = createAdminClient();
   const [rows, count] = await Promise.all([
     filterListedCompanies(supabase.from("ow_companies")
-      .select("id, slug, name, tagline, logo_letter, logo_gradient, logo_url"))
+      .select("id, slug, name, name_en, brand_name, tagline, logo_letter, logo_gradient, logo_url"))
       .order("sort_order", { ascending: true, nullsFirst: false })
       .order("updated_at", { ascending: false })
       .limit(limit),
@@ -675,7 +676,8 @@ export async function getFeedSidebarCompanies(limit = 3): Promise<{ companies: {
   if (count.error) console.error("[getFeedSidebarCompanies] count", count.error.message);
   return {
     companies: (rows.data ?? []).map((c) => ({
-      id: c.id as string, slug: (c.slug as string | null) ?? null, name: c.name as string, tagline: (c.tagline as string | null) ?? null,
+      id: c.id as string, slug: (c.slug as string | null) ?? null, name: c.name as string,
+      name_en: (c.name_en as string | null) ?? null, brand_name: (c.brand_name as string | null) ?? null, tagline: (c.tagline as string | null) ?? null,
       logo_letter: (c.logo_letter as string | null) ?? null, logo_gradient: (c.logo_gradient as string | null) ?? null, logo_url: (c.logo_url as string | null) ?? null,
     })),
     total: count.count ?? (rows.data ?? []).length,
@@ -1948,7 +1950,7 @@ export async function getCompanyEmployees(companyId: string): Promise<{
       .from("ow_experiences")
       /* ⚠️★`!company_id` を外さない（2026-09-12）。出向先の FK が増えて曖昧になり、
             PGRST201 で**この節が丸ごと空**になる。 */
-      .select("user_id, role_title, company_text, ow_companies!company_id(name, brand_name)")
+      .select("user_id, role_title, company_text, ow_companies!company_id(name, name_en, brand_name)")
       .in("user_id", alumniUserIds)
       .eq("is_current", true)
       /* ★2026-10-27: いまの職歴の会社名を伏せている人（masked / hidden）は「現在：」に出さない */
@@ -1966,7 +1968,8 @@ export async function getCompanyEmployees(companyId: string): Promise<{
           nextMap.set(uid, {
             roleTitle: (row.role_title as string | null) ?? null,
             companyName: (co?.name as string | null) ?? (row.company_text as string | null) ?? null,
-            companyBrandName: (co?.brand_name as string | null) ?? null,
+            /* ★ブランド名（companyBrandName。brand_name → 英語社名 → 法人格を外した社名）。会社が引けない（自由入力）ときは null */
+            companyBrandName: co?.name ? companyBrandName({ name: co.name as string, name_en: (co.name_en as string | null) ?? null, brand_name: (co.brand_name as string | null) ?? null }) : null,
           });
         }
       }

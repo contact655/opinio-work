@@ -1,7 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows, inChunks } from "@/lib/supabase/paging";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { isRegisteredUser } from "@/lib/users/registered";
 import { PATHS_EXCLUDED_COMPANY_IDS } from "@/lib/constants/demoCompanies";
 import { PREV_PARAM } from "@/lib/people/prevCareer";
@@ -132,11 +132,11 @@ export async function getCareerMoveBlocks(viewerOwId: string): Promise<CareerMov
     const companyIds = Array.from(new Set(all.flatMap((m) => [m.from.company_id, m.to.company_id, myCompanyId]).filter((x): x is string => !!x)));
     const roleIds = Array.from(new Set([...all.map((m) => m.latest.role_category_id), myRoleId].filter((x): x is string => !!x)));
     const [{ data: cos, error: cErr }, { data: roles, error: rErr }] = await Promise.all([
-      inChunks(companyIds, (part, from, to) => db.from("ow_companies").select("id, name, name_en, logo_url, slug, is_published, listing_status, is_test, suspended_at").in("id", part).order("id").range(from, to), "careerMoves companies"),
+      inChunks(companyIds, (part, from, to) => db.from("ow_companies").select("id, name, name_en, brand_name, logo_url, slug, is_published, listing_status, is_test, suspended_at").in("id", part).order("id").range(from, to), "careerMoves companies"),
       inChunks(roleIds, (part, from, to) => db.from("ow_roles").select("id, name, slug, parent_id").in("id", part).order("id").range(from, to), "careerMoves roles"),
     ]);
     if (cErr || rErr) { console.error("[careerMoves] names:", cErr ?? rErr); return []; }
-    type Co = { id: string; name: string; name_en: string | null; logo_url: string | null; slug: string | null; is_published: boolean | null; listing_status: string | null; is_test: boolean | null; suspended_at: string | null };
+    type Co = { id: string; name: string; name_en: string | null; brand_name: string | null; logo_url: string | null; slug: string | null; is_published: boolean | null; listing_status: string | null; is_test: boolean | null; suspended_at: string | null };
     const coById = new Map(((cos ?? []) as Co[]).map((c) => [c.id, c]));
     const roleRows = (roles ?? []) as { id: string; name: string; slug: string | null; parent_id: string | null }[];
     const roleById = new Map(roleRows.map((r) => [r.id, r.name]));
@@ -159,7 +159,7 @@ export async function getCareerMoveBlocks(viewerOwId: string): Promise<CareerMov
     };
     const co = (e: Exp): MoveCompany => {
       const c = e.company_id ? coById.get(e.company_id) : undefined;
-      if (c) return { name: companyDisplayName(c.name, c.name_en).displayName, logoUrl: c.logo_url };
+      if (c) return { name: companyBrandName(c), logoUrl: c.logo_url };
       return { name: (e.company_text ?? "").trim(), logoUrl: null };
     };
     const toPerson = (m: MoveRow) => {
@@ -181,7 +181,7 @@ export async function getCareerMoveBlocks(viewerOwId: string): Promise<CareerMov
     const out: CareerMoveBlock[] = [];
     if (blockA.length > 0 && myCompanyId) {
       const c = coById.get(myCompanyId);
-      const name = c ? companyDisplayName(c.name, c.name_en).displayName : "いまの勤務先";
+      const name = c ? companyBrandName(c) : "いまの勤務先";
       out.push({
         key: "company",
         title: `${name} から次に進んだ人`,

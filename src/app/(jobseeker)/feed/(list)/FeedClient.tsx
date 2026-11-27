@@ -1,5 +1,5 @@
 "use client";
-import { brandOrName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 
 import { ANNOUNCEMENT_POST_TYPES } from "@/lib/feed/streamMode";
 import { Fragment, useState, useRef, useCallback, useEffect } from "react";
@@ -37,7 +37,7 @@ type PostUser = {
   company?: string | null;
 };
 
-type RefCompany = { id: string; slug?: string | null; name: string; brand_name: string | null; tagline?: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry?: string | null; employee_count?: string | null; employee_count_band?: string | null; location?: string | null; founded_year?: number | null; listing_status?: string | null } | null;
+type RefCompany = { id: string; slug?: string | null; name: string; name_en?: string | null; brand_name: string | null; tagline?: string | null; logo_letter: string | null; logo_gradient: string | null; logo_url: string | null; industry?: string | null; employee_count?: string | null; employee_count_band?: string | null; location?: string | null; founded_year?: number | null; listing_status?: string | null } | null;
 type RefJob = { id: string; slug?: string | null; title: string; salary_min: number | null; salary_max: number | null; work_style: string | null; company?: RefCompany } | null;
 type RefArticle = { id: string; slug: string; title: string; eyecatch_gradient?: string | null; company_initial_text?: string | null; company_gradient_text?: string | null; company_name_text?: string | null } | null;
 
@@ -252,7 +252,7 @@ function resolveActor(post: PostItem): Actor {
   if (co) {
     return {
       kind: "company", id: co.id, slug: co.slug ?? null,
-      name: brandOrName(co.brand_name, co.name),
+      name: companyBrandName(co),
       logoUrl: co.logo_url ?? null, logoLetter: co.logo_letter ?? null, logoGradient: co.logo_gradient ?? null,
     };
   }
@@ -1403,8 +1403,8 @@ function FeedSidebar({
           <div style={RAIL_LIST_STYLE}>
             {companies.map((co) => (
               <RailRow key={co.id} href={`/companies/${co.slug ?? co.id}`}
-                thumb={<CompanyLogoImg logoUrl={co.logo_url} logoLetter={co.logo_letter} logoGradient={co.logo_gradient} name={brandOrName(co.brand_name, co.name)} size={RAIL_THUMB} borderRadius={8} />}
-                name={brandOrName(co.brand_name, co.name)} sub={co.industry} />
+                thumb={<CompanyLogoImg logoUrl={co.logo_url} logoLetter={co.logo_letter} logoGradient={co.logo_gradient} name={companyBrandName(co)} size={RAIL_THUMB} borderRadius={8} />}
+                name={companyBrandName(co)} sub={co.industry} />
             ))}
           </div>
         </RailBox>
@@ -1428,8 +1428,8 @@ function FeedSidebar({
         <div style={RAIL_LIST_STYLE}>
           {follows.map((co) => (
             <RailRow key={co.id} href={`/companies/${co.slug ?? co.id}`}
-              thumb={<CompanyLogoImg logoUrl={co.logo_url} logoLetter={co.logo_letter} logoGradient={co.logo_gradient} name={brandOrName(co.brand_name, co.name)} size={RAIL_THUMB} borderRadius={8} />}
-              name={brandOrName(co.brand_name, co.name)} />
+              thumb={<CompanyLogoImg logoUrl={co.logo_url} logoLetter={co.logo_letter} logoGradient={co.logo_gradient} name={companyBrandName(co)} size={RAIL_THUMB} borderRadius={8} />}
+              name={companyBrandName(co)} />
           ))}
         </div>
       </RailBox>
@@ -1485,7 +1485,7 @@ function FeedJobBox({ job, company }: { job: NonNullable<RefJob>; company: RefCo
               logoUrl={company.logo_url}
               logoLetter={company.logo_letter}
               logoGradient={company.logo_gradient}
-              name={brandOrName(company.brand_name, company.name)}
+              name={companyBrandName(company)}
               size={38} borderRadius={8}
             />
           ) : (
@@ -2259,7 +2259,7 @@ function buildHomeRailItems(activePosts: PostItem[], blockPosts: PostItem[], inc
       if (!j || seen.has(j.id)) continue;
       seen.add(j.id);
       const c = j.company;
-      const name = c ? brandOrName(c.brand_name, c.name) : "";
+      const name = c ? companyBrandName(c) : "";
       const salary = j.salary_min && j.salary_max && j.salary_max > j.salary_min
         ? `${j.salary_min.toLocaleString()}〜${j.salary_max.toLocaleString()}万円`
         : j.salary_min ? `${j.salary_min.toLocaleString()}万円〜` : null;
@@ -2301,8 +2301,8 @@ function buildHomeRailItems(activePosts: PostItem[], blockPosts: PostItem[], inc
       if (c.listing_status !== "listed") continue;
       seen.add(c.id);
       newCompanies.push({
-        id: c.id, href: `/companies/${c.slug ?? c.id}`, name: brandOrName(c.brand_name, c.name),
-        logoUrl: c.logo_url, logoLetter: c.logo_letter ?? brandOrName(c.brand_name, c.name).charAt(0),
+        id: c.id, href: `/companies/${c.slug ?? c.id}`, name: companyBrandName(c),
+        logoUrl: c.logo_url, logoLetter: c.logo_letter ?? companyBrandName(c).charAt(0),
         domain: c.industry ?? null, tagline: c.tagline ?? null,
       });
     }

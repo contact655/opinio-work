@@ -1,7 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mutateAllowNone, mutateOne } from "@/lib/supabase/mutate";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { companyKey, oldest, type ExpRow } from "@/lib/experiences/reasonAnswers";
 import { loadMasters, type ReviewMasters } from "@/lib/workplaceReview/server";
 import { computeTendency, type Tendency, type TendencyReview } from "@/lib/workplaceReview/tendency";
@@ -242,11 +242,11 @@ export async function loadCheckinTendency(owUserId: string): Promise<Tendency | 
 
   const [ax, exps] = await Promise.all([
     admin.from("ow_join_checkin_axes").select("experience_id, checkpoint, axis_key, value").in("experience_id", anchors),
-    admin.from("ow_experiences").select("id, company_text, ow_companies!company_id(name, name_en)").eq("user_id", owUserId).in("id", anchors),
+    admin.from("ow_experiences").select("id, company_text, ow_companies!company_id(name, name_en, brand_name)").eq("user_id", owUserId).in("id", anchors),
   ]);
   if (ax.error || exps.error) { console.error("[joinCheckin] tendency children:", ax.error?.message ?? exps.error?.message); return null; }
-  const nameById = new Map(((exps.data ?? []) as unknown as { id: string; company_text: string | null; ow_companies: { name: string; name_en: string | null } | null }[])
-    .map((e) => [e.id, e.ow_companies ? companyDisplayName(e.ow_companies.name, e.ow_companies.name_en).displayName : (e.company_text ?? "")]));
+  const nameById = new Map(((exps.data ?? []) as unknown as { id: string; company_text: string | null; ow_companies: { name: string; name_en: string | null; brand_name: string | null } | null }[])
+    .map((e) => [e.id, e.ow_companies ? companyBrandName(e.ow_companies) : (e.company_text ?? "")]));
   const axesOf = (id: string, cp: CheckpointKey) => Object.fromEntries(
     ((ax.data ?? []) as { experience_id: string; checkpoint: string; axis_key: string; value: number }[])
       .filter((x) => x.experience_id === id && x.checkpoint === cp)

@@ -5,7 +5,7 @@ import { fetchAllRows, inChunks } from "@/lib/supabase/paging";
 import { buildMoves, type TransitionExperience } from "@/lib/evidence/transitions";
 import { AGGREGATE_USER_COLUMNS, isAggregatableUser, type AggregateUser } from "@/lib/aggregate/population";
 import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { flowLine, type CompanyContactItem } from "@/lib/business/candidates/candidateGroups";
 
 /**
@@ -112,9 +112,9 @@ export async function getCompanyContacts(params: {
           .filter((b) => b.companyId && (fromCount.get(b.key)?.size ?? 0) >= MIN_AGGREGATE_COUNT).map((b) => b.companyId as string)));
         const names = new Map<string, string>();
         if (needNames.length > 0) {
-          const { data: cos, error: cErr } = await db.from("ow_companies").select("id, name, name_en").in("id", needNames);
+          const { data: cos, error: cErr } = await db.from("ow_companies").select("id, name, name_en, brand_name").in("id", needNames);
           if (cErr) console.error("[companyContacts] 社名:", cErr.message);
-          for (const c of cos ?? []) names.set(c.id as string, companyDisplayName(c.name as string, (c.name_en as string | null) ?? null).displayName);
+          for (const c of cos ?? []) names.set(c.id as string, companyBrandName({ name: c.name as string, name_en: (c.name_en as string | null) ?? null, brand_name: (c.brand_name as string | null) ?? null }));
         }
         for (const [uid, b] of Array.from(baseByCand.entries())) {
           const name = b.companyId ? names.get(b.companyId) ?? null : (b.text?.trim() || null);

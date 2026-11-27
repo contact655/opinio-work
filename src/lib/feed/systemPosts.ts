@@ -1,4 +1,4 @@
-import { brandOrName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 /**
  * システム投稿（company_joined / job_posted / article_published）の生成。
  *
@@ -20,18 +20,18 @@ import { brandOrName } from "@/lib/companies/displayName";
 
 export const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001";
 
-/** 表示に使う社名。brand_name があればそちら（backfill もこの規則で本文を作っている） */
-export function displayCompanyName(co: { name?: string | null; brand_name?: string | null }): string {
-  return brandOrName(co.brand_name, co.name ?? "");
+/** 表示に使う社名（companyBrandName。2026-11-27 から brand_name が空なら短い名前。それ以前の投稿の本文は正式社名で始まっている） */
+export function displayCompanyName(co: { name?: string | null; name_en?: string | null; brand_name?: string | null }): string {
+  return co.name ? companyBrandName({ name: co.name, name_en: co.name_en, brand_name: co.brand_name }) : (co.brand_name ?? "");
 }
 
-export function companyJoinedContent(co: { name?: string | null; brand_name?: string | null; tagline?: string | null }): string {
+export function companyJoinedContent(co: { name?: string | null; name_en?: string | null; brand_name?: string | null; tagline?: string | null }): string {
   const taglinePart = co.tagline ? ` ${co.tagline}` : "";
   return `${displayCompanyName(co)}がOPINIOに掲載されました。${taglinePart}`;
 }
 
 export function jobPostedContent(
-  co: { name?: string | null; brand_name?: string | null },
+  co: { name?: string | null; name_en?: string | null; brand_name?: string | null },
   job: { title?: string | null },
 ): string {
   return `${displayCompanyName(co)}が「${job.title ?? "—"}」の募集を開始しました。`;
@@ -54,7 +54,7 @@ export type SystemPostRow = {
 
 export function buildCompanyJoinedRow(
   companyId: string,
-  co: { name?: string | null; brand_name?: string | null; tagline?: string | null },
+  co: { name?: string | null; name_en?: string | null; brand_name?: string | null; tagline?: string | null },
   createdAt?: string,
 ): SystemPostRow {
   return {
@@ -69,7 +69,7 @@ export function buildCompanyJoinedRow(
 export function buildJobPostedRow(
   jobId: string,
   companyId: string,
-  co: { name?: string | null; brand_name?: string | null },
+  co: { name?: string | null; name_en?: string | null; brand_name?: string | null },
   job: { title?: string | null },
   createdAt?: string,
 ): SystemPostRow {

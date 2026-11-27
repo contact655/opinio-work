@@ -1072,7 +1072,9 @@ sitemap・LP）から外した。** migration は `20260914160000_unlist_61_comp
 ⚠️★**求職者に見せる一覧・検索・サジェストを新しく作るときは `filterListedCompanies`。**
    「この会社は存在するか」を聞く画面（ピッカー・重複チェック・ブロック）は**マスタの軸**。
 
-#### ⚠️★★社名を画面へ返す口では必ず `companyDisplayName` を通す（**3回踏んだ**）
+#### ⚠️★★社名を画面へ返す口では必ず `companyBrandName` を通す（**3回踏んだ**。2026-11-27 に `companyDisplayName` から改名）
+
+★**社名の関数は2つ（2026-11-27 / 柴さんの判断）: 会社を見分ける場所（一覧・見出し・カード・フィード・検索・メッセージ・通知）は `companyBrandName()`（brand_name → 英語社名 → 法人格を外した社名）、正式な名前が要る場所（企業詳細の正式社名の行・候補に添える正式社名・運営向けメール・契約や請求）は `companyLegalName()`。select に `brand_name` と `name_en` を入れ忘れないこと（抜けても黙って別の名前になる）。**
 
 **`lookup` が表示名（「Adobe」「Box」「テスト」）を返すので、別の口が生の
 `ow_companies.name`（「アドビ株式会社」「株式会社Box Japan」「株式会社テスト」）を
@@ -1165,7 +1167,7 @@ URL も記録されていた。**登記は本店、公式サイトはオフィ�
 
 | 何を | 今回の結果 |
 |---|---|
-| 表示名 | **変わらない。** `companyDisplayName(name, name_en)` は `name_en` を優先する（5社とも保有） |
+| 表示名 | **変わらない。** `companyDisplayName(name, name_en)`（いまの `companyBrandName`）は `name_en` を優先する（5社とも保有） |
 | `normalized_name` | **トリガー `trg_ow_companies_normalized_name` が作り直す。** 法人格は落ちるので Box/Datadog/Zendesk は同値、**オクタとウォークミーだけ変わる**（衝突・UNIQUE ともに無し） |
 | ★**カタカナで探せるか** | **`search_aliases` に退避する** |
 
@@ -4743,7 +4745,7 @@ flex_time / side_job_ok について（2026-07-28 記録）:
 **表示名だけだと、打った社名と違って見えて自分の勤務先だと気づけない。**
 
 ```
- S   Salesforce                          ← 主は表示名（companyDisplayName）
+ S   Salesforce                          ← 主は表示名（companyBrandName）
      株式会社セールスフォース・ジャパン      ← 11px / var(--ink-mute)
 ```
 

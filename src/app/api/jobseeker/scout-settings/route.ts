@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { UNKNOWN_COMPANY_LABEL } from "@/lib/experiences/companyName";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { mutateOne } from "@/lib/supabase/mutate";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +52,7 @@ export async function GET() {
            求職者側の画面はどこも表示名（「Adobe」）で出している。
            候補のピッカーは `/api/companies/lookup` 経由で畳まれているので、
            **ここを生のままにすると同じ画面で社名が食い違う。**
-        ⚠️ `companyDisplayName` には `name_en` が要るが RPC は返さないので、
+        ⚠️ `companyBrandName` には `name_en` と `brand_name` が要るが RPC は返さないので、
            **id でまとめて1回引く**（N+1 にしない）。
         ⚠️ 引けなかったら RPC の `name` に倒す。**「不明な企業」にしない** ——
            社名は取れているのに、畳む材料が無いだけ。 */
@@ -63,14 +63,14 @@ export async function GET() {
   if (blockCompanyIds.length > 0) {
     const { data: nameRows, error: nameErr } = await admin
       .from("ow_companies")
-      .select("id, name, name_en")
+      .select("id, name, name_en, brand_name")
       .in("id", blockCompanyIds);
     // ⚠️ 握りつぶさない。失敗しても RPC の名前で出せるので、一覧は消さない
     if (nameErr) console.error("[scout-settings] 社名の解決に失敗:", nameErr.message);
     for (const r of nameRows ?? []) {
       nameById.set(
         r.id as string,
-        companyDisplayName(r.name as string, r.name_en as string | null).displayName,
+        companyBrandName({ name: r.name as string, name_en: (r.name_en as string | null) ?? null, brand_name: (r.brand_name as string | null) ?? null }),
       );
     }
   }

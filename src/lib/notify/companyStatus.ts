@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/notify/email";
 import { getCompanyNotificationTarget } from "@/lib/notify/recipients";
 import { companyApprovedTemplate, companyListedTemplate } from "@/lib/notify/templates";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 /**
  * ★審査の完了・企業ページの公開を企業へメールする（2026-10-19）。
  *   企業の画面は「審査が完了次第メールでご連絡します」と書いているが、それまで1通も送っていなかった。
@@ -15,7 +15,7 @@ import { companyDisplayName } from "@/lib/companies/displayName";
 export async function notifyCompanyStatus(companyId: string, kind: "approved" | "listed"): Promise<void> {
   try {
     const admin = createAdminClient();
-    const { data: co, error } = await admin.from("ow_companies").select("name, name_en, slug, is_test").eq("id", companyId).maybeSingle();
+    const { data: co, error } = await admin.from("ow_companies").select("name, name_en, brand_name, slug, is_test").eq("id", companyId).maybeSingle();
     if (error || !co) {
       console.error(`[notifyCompanyStatus:${kind}] company:`, error?.message ?? "not found");
       return;
@@ -26,7 +26,7 @@ export async function notifyCompanyStatus(companyId: string, kind: "approved" | 
       console.info(`[notifyCompanyStatus:${kind}] 企業に宛先が無いので送らない company=${companyId}`);
       return;
     }
-    const companyName = companyDisplayName(co.name as string, (co.name_en as string | null) ?? null).displayName;
+    const companyName = companyBrandName({ name: co.name as string, name_en: (co.name_en as string | null) ?? null, brand_name: (co.brand_name as string | null) ?? null });
     const companyPath = `/companies/${encodeURIComponent((co.slug as string | null) ?? companyId)}`;
     for (const to of target.to) {
       await sendEmail(kind === "approved"

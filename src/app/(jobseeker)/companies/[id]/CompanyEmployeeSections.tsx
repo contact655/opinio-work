@@ -22,7 +22,6 @@ import { AVATAR_COLOR } from "@/lib/avatarColor";
 import type { CompanyEmployee } from "@/lib/supabase/queries";
 import { JOB_PEOPLE_CSS } from "@/components/jobs/JobPeopleCards";
 import { formatMonths } from "@/lib/profile/tenure";
-import { brandOrName } from "@/lib/companies/displayName";
 
 /*
  * ⚠️ 2026-08-13 に「社員の声」セクション（EmployeeVoicesSection）を削除した。復活させないこと。
@@ -408,9 +407,9 @@ function AlumniCard({ employee }: { employee: CompanyEmployee }) {
   ) : null;
 
   /* ★今の会社と職種は**1行にまとめて「現在：」を付ける**（2026-10-03）。
-     ⚠️ 値そのものは変えていない（会社名は brand_name、無ければ name ——空の brand_name は brandOrName が name に戻す。職種は自己申告の役職名）。
+     ⚠️ 値そのものは変えていない（会社名はブランド名＝companyBrandName を queries.ts で作ってある。会社が引けないときは自由入力の社名。職種は自己申告の役職名）。
      ⚠️ 在籍時の部署・役職（roleTitle）は**出さない**（変更前と同じ）。 */
-  const currentDisplayName = brandOrName(employee.currentCompanyBrandName, employee.currentCompanyName ?? "");
+  const currentDisplayName = employee.currentCompanyBrandName ?? employee.currentCompanyName ?? "";
   const current = [currentDisplayName, employee.currentRoleTitle].filter(Boolean).join("・");
 
   return (

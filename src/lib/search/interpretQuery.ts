@@ -64,7 +64,7 @@ import { PREFECTURES } from "@/lib/utils/location";
 
 const PREFECTURE_STEMS = new Set(PREFECTURES.map((p) => p.replace(/[都道府県]$/, "")));
 import { filterListedCompanies } from "@/lib/companies/visibility";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { parseTransition, industryTermsFor, type IndustryVocab, type TransitionIntent, type Span as TSpan } from "./transitionIntent";
 
 // ── 結果の型 ─────────────────────────────────────────────────────────────────
@@ -345,7 +345,7 @@ const loadVocabulary = cache(async function loadVocabulary(): Promise<Vocabulary
   const companyIndex = new Map<string, { id: string; label: string }[]>();
   let companyMaxLen = 0;
   for (const c of companyRows) {
-    const label = companyDisplayName(c.name, c.name_en).displayName;
+    const label = companyBrandName(c);
     /* ⚠️ 対象は name / brand_name / slug と search_aliases（下）。
           `name_en` は入れていない（短い綴りが多く、誤爆の余地が大きい）。
           実データでは `slug` が短い呼称（salesforce / smarthr）を持っているので、

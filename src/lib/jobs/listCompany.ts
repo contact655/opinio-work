@@ -15,6 +15,7 @@ export type JobsListCompany = Pick<
   | "id"
   | "slug"
   | "name"
+  | "name_en"
   | "brand_name"
   | "tagline"
   | "phase"
@@ -35,6 +36,7 @@ export function toJobsListCompany(c: Company): JobsListCompany {
     id: c.id,
     slug: c.slug ?? null,
     name: c.name,
+    name_en: c.name_en ?? null,
     brand_name: c.brand_name ?? null,
     tagline: c.tagline,
     phase: c.phase,

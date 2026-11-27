@@ -3,6 +3,7 @@ import { PUBLIC_JOB_MATCH } from "@/lib/jobs/publicJobs";
 import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
 import { filterListedCompanies } from "@/lib/companies/visibility";
+import { companyBrandName } from "@/lib/companies/displayName";
 
 /**
  * meta description に載せる代表企業名を、実データから引く。
@@ -20,28 +21,9 @@ import { filterListedCompanies } from "@/lib/companies/visibility";
  * 「件数の多い順 → 名前順」で決定的に並べ、同じデータなら常に同じ結果になるようにする。
  *
  * ── 表示名 ──────────────────────────────────────────────────────────────────
- * brand_name があればそれを使い、無ければ name から法人格を落とす。
+ * companyBrandName（brand_name → 英語社名 → 法人格を落とした社名）。
  * 「株式会社セールスフォース・ジャパン」より「Salesforce」のほうが説明文として読める。
  */
-
-/** "株式会社LayerX" → "LayerX"。components/profile/MergedTimeline.tsx と同じ規則 */
-function shortCompanyName(name: string): string {
-  return (
-    name
-      .replace(/^株式会社\s*/, "")
-      .replace(/\s*株式会社$/, "")
-      .replace(/^合同会社\s*/, "")
-      .replace(/\s*合同会社$/, "")
-      .replace(/^有限会社\s*/, "")
-      .replace(/\s*有限会社$/, "")
-      .replace(/\s+Japan\s+Co\.,?\s*Ltd\.?$/i, "")
-      .replace(/\s+Co\.,?\s*Ltd\.?$/i, "")
-      .replace(/\s*,\s*Inc\.?$/i, "")
-      .replace(/\s+Inc\.?$/i, "")
-      .replace(/\s+Japan$/i, "")
-      .trim() || name
-  );
-}
 
 /**
  * 何を基準に代表を選ぶか。
@@ -60,7 +42,7 @@ async function fetchFeatured(basis: Basis, limit: number): Promise<string[]> {
 
   // 公開企業だけを対象にする。非公開企業を説明文に出さない
   const { data: companies, error } = await filterListedCompanies(
-    db.from("ow_companies").select("id, name, brand_name")
+    db.from("ow_companies").select("id, name, name_en, brand_name")
   );
   if (error || !companies?.length) {
     if (error) console.error("[featuredCompanies]", error.message);
@@ -99,7 +81,7 @@ async function fetchFeatured(basis: Basis, limit: number): Promise<string[]> {
     // 件数基準のときは、実際に持っている企業だけを候補にする
     .filter((c) => basis === "any" || (weight.get(c.id as string) ?? 0) > 0)
     .map((c) => ({
-      label: ((c.brand_name as string | null)?.trim() || shortCompanyName(c.name as string)),
+      label: companyBrandName({ name: c.name as string, name_en: (c.name_en as string | null) ?? null, brand_name: (c.brand_name as string | null) ?? null }),
       n: weight.get(c.id as string) ?? 0,
     }))
     .sort((a, b) => (b.n - a.n) || a.label.localeCompare(b.label, "ja"));

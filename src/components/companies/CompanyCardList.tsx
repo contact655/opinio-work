@@ -11,7 +11,7 @@ import { CompanyLogo } from "@/components/common/CompanyLogo";
 import { showToast } from "@/lib/toast";
 import { formatEmployeeSize } from "@/lib/constants/employeeBand";
 import { fetchCompanyBookmarks, invalidateCompanyBookmarks } from "@/lib/bookmarks/companyBookmarks";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandNameParts } from "@/lib/companies/displayName";
 
 /* ⚠️ 表示名の組み立ては `@/lib/companies/displayName` に集約した（2026-08-13）。
       ここに正規表現を書き戻さないこと。3箇所に別実装があってルールが割れていた。 */
@@ -123,7 +123,7 @@ export function CompanyCardList({ company, compact, activeDomainSlug, openInNewT
     }
   };
 
-  const { displayName, isEnName } = companyDisplayName(company.name, company.name_en);
+  const { name: displayName, isLatin: isEnName } = companyBrandNameParts(company);
   const showSubtitle = displayName !== company.name;
   /* 在籍者のライブ集計。**ライブ値のみを見る**（2026-08-11）。
      ⚠️ `current_member_count` / `obog_count`（@deprecated 静的カラム）への

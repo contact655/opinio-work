@@ -1,7 +1,7 @@
 /* ★サーバー専用。admin クライアントを使う */
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { pickLatestExperience } from "@/lib/experiences/latest";
 import { hostBlockers, sortRouteTalkTags, type RouteTalkTag } from "@/lib/constants/careerRoutes";
 
@@ -75,12 +75,12 @@ export async function currentJobs(userIds: string[]): Promise<Map<string, { comp
   const companyIds = Array.from(new Set(Array.from(latest.values()).map((e) => e.company_id).filter((x): x is string => !!x)));
   const roleIds = Array.from(new Set(Array.from(latest.values()).map((e) => e.role_category_id).filter((x): x is string => !!x)));
   const [cRes, rRes] = await Promise.all([
-    companyIds.length ? db.from("ow_companies").select("id, name, name_en").in("id", companyIds) : Promise.resolve({ data: [], error: null }),
+    companyIds.length ? db.from("ow_companies").select("id, name, name_en, brand_name").in("id", companyIds) : Promise.resolve({ data: [], error: null }),
     roleIds.length ? db.from("ow_roles").select("id, name").in("id", roleIds) : Promise.resolve({ data: [], error: null }),
   ]);
   if (cRes.error) { console.error("[careerRoutes] companies:", cRes.error.message); return null; }
   if (rRes.error) { console.error("[careerRoutes] roles:", rRes.error.message); return null; }
-  const companyName = new Map(((cRes.data ?? []) as { id: string; name: string; name_en: string | null }[]).map((c) => [c.id, companyDisplayName(c.name, c.name_en).displayName]));
+  const companyName = new Map(((cRes.data ?? []) as { id: string; name: string; name_en: string | null; brand_name: string | null }[]).map((c) => [c.id, companyBrandName(c)]));
   const roleName = new Map(((rRes.data ?? []) as { id: string; name: string }[]).map((r) => [r.id, r.name]));
   for (const [uid, e] of Array.from(latest.entries())) {
     const showCompany = e.visibility_company === "real";

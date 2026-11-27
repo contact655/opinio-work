@@ -1,7 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mutateAllowNone, mutateOne } from "@/lib/supabase/mutate";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { companyKey, oldest, type ExpRow } from "@/lib/experiences/reasonAnswers";
 import {
   DECISIVE_REASON_LABELS, NEXT_PRIORITY_LABELS, FIT_GOOD_MIN, FIT_BAD_MAX,
@@ -184,10 +184,10 @@ export async function loadTurnTendency(owUserId: string): Promise<string[] | nul
   const admin = createAdminClient();
   const [turns, all] = await Promise.all([
     admin.from("ow_career_turns").select(TURN_COLS).eq("user_id", owUserId),
-    admin.from("ow_experiences").select("id, started_at, company_id, company_text, company_anonymized, ow_companies!company_id(name, name_en)").eq("user_id", owUserId),
+    admin.from("ow_experiences").select("id, started_at, company_id, company_text, company_anonymized, ow_companies!company_id(name, name_en, brand_name)").eq("user_id", owUserId),
   ]);
   if (turns.error || all.error) { console.error("[careerTurns] tendency:", turns.error?.message ?? all.error?.message); return null; }
-  const exps = (all.data ?? []) as unknown as { id: string; started_at: string; company_id: string | null; company_text: string | null; company_anonymized: string | null; ow_companies: { name: string; name_en: string | null } | null }[];
+  const exps = (all.data ?? []) as unknown as { id: string; started_at: string; company_id: string | null; company_text: string | null; company_anonymized: string | null; ow_companies: { name: string; name_en: string | null; brand_name: string | null } | null }[];
   if (exps.length === 0) return [];
   const byId = new Map(exps.map((e) => [e.id, e]));
   const firstId = exps.slice().sort((a, b) => a.started_at.localeCompare(b.started_at) || a.id.localeCompare(b.id))[0].id;
@@ -196,7 +196,7 @@ export async function loadTurnTendency(owUserId: string): Promise<string[] | nul
     if (t.skipped_at) continue;
     const e = byId.get(t.experience_id);
     if (!e) continue;
-    const name = e.ow_companies ? companyDisplayName(e.ow_companies.name, e.ow_companies.name_en).displayName : (e.company_text ?? e.company_anonymized ?? "この会社");
+    const name = e.ow_companies ? companyBrandName(e.ow_companies) : (e.company_text ?? e.company_anonymized ?? "この会社");
     list.push({
       companyName: name, isFirst: companyKey(e) === companyKey(byId.get(firstId)!), startedAt: e.started_at,
       decisiveReasons: t.decisive_reasons ?? [], nextPriority: t.next_priority, fitAfterYear: t.fit_after_year,

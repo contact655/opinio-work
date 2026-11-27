@@ -1,5 +1,5 @@
 "use client";
-import { brandOrName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 
 import { listAddress } from "@/lib/jobs/heroFacts";
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -252,7 +252,7 @@ export function JobListItem({
                     「Notion Labs Japan合同会社」等が 375px で親（120px）を
                     はみ出して切れていた。固定幅にしてよいのはアイコンやバッジだけ。
                     ⚠️ ellipsis を効かせるには minWidth: 0 が要る（既定の auto では縮まない）。 */
-              title={brandOrName((company as any).brand_name, company.name)}
+              title={companyBrandName(company)}
               style={{
                 /* ⚠️ 13px は求人名（15px）より一段小さい。会社名はここでは**脇役**
                       （主役は求人名）。⚠️ 12px まで落とさない —— 押せるリンクなので。 */
@@ -261,7 +261,7 @@ export function JobListItem({
               }}
             >
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {brandOrName((company as any).brand_name, company.name)}
+              {companyBrandName(company)}
             </span>
             {isApplied && (
               <span style={{ fontSize: 12, fontWeight: 700, padding: "1px 7px", borderRadius: 100, background: "#F0FDF4", color: "#16A34A", border: "1px solid #BBF7D0", flexShrink: 0 }}>

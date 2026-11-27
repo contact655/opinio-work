@@ -7,7 +7,7 @@ import { isAggregatableUser, AGGREGATE_USER_COLUMNS, type AggregateUser } from "
 import { isRegisteredUser } from "@/lib/users/registered";
 import { MIN_AGGREGATE_COUNT } from "@/lib/constants/aggregate";
 import { PATHS_EXCLUDED_COMPANY_IDS } from "@/lib/constants/demoCompanies";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { buildMovePairs, type TransitionExperience } from "@/lib/evidence/transitions";
 import { pickLatestExperience } from "@/lib/experiences/latest";
 import {
@@ -60,7 +60,7 @@ const loadPathsPopulationCached = unstable_cache(async (): Promise<Population | 
       .select(`id, name, avatar_url, avatar_color, email, ${AGGREGATE_USER_COLUMNS}`)
       .order("id").range(from, to), "paths users"),
     fetchAllRows<Record<string, unknown>>((from, to) => db.from("ow_companies")
-      .select("id, slug, name, name_en, is_test, industry_id, is_published, listing_status, suspended_at, logo_url")
+      .select("id, slug, name, name_en, brand_name, is_test, industry_id, is_published, listing_status, suspended_at, logo_url")
       .order("id").range(from, to), "paths companies"),
     fetchAllRows<Record<string, unknown>>((from, to) => db.from("ow_roles")
       .select("id, slug, name, parent_id, is_active, display_order").order("id").range(from, to), "paths roles"),
@@ -96,7 +96,7 @@ const loadPathsPopulationCached = unstable_cache(async (): Promise<Population | 
     companies: companies.data.map((c) => ({
       id: c.id as string,
       slug: (c.slug as string | null) ?? null,
-      name: companyDisplayName(c.name as string, (c.name_en as string | null) ?? null).displayName,
+      name: companyBrandName({ name: c.name as string, name_en: (c.name_en as string | null) ?? null, brand_name: (c.brand_name as string | null) ?? null }),
       industryTopId: c.industry_id ? industryParent.get(c.industry_id as string) ?? null : null,
       isTest: c.is_test === true,
       pageVisible: c.is_published === true && c.is_test !== true && c.suspended_at == null,

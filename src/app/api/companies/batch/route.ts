@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     supabase
       .from("ow_companies")
       .select(
-        "id, slug, name, name_en, tagline, industry, funding_stage, employee_count, employee_count_band, employee_count_as_of, description, " +
+        "id, slug, name, name_en, brand_name, tagline, industry, funding_stage, employee_count, employee_count_band, employee_count_as_of, description, " +
         "accepting_casual_meetings, remote_work_status, location, logo_letter, logo_gradient, logo_url, updated_at, " +
         "current_member_count, obog_count"
       )
@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
   const companies = (rawCompanies ?? []).map((c: any) => ({
     /* ⚠️ `slug` を落とさない。呼び出し側は `/companies/${slug ?? id}` を組むので、
           落とすと**リンクが uuid になる**（動くが URL が読めなくなる）。 */
-    id: c.id, slug: c.slug ?? null, name: c.name, name_en: c.name_en, tagline: c.tagline,
+    id: c.id, slug: c.slug ?? null, name: c.name, name_en: c.name_en, brand_name: c.brand_name ?? null, tagline: c.tagline,
     industry: c.industry, funding_stage: c.funding_stage, employee_count: c.employee_count,
     employee_count_band: c.employee_count_band ?? null, employee_count_as_of: c.employee_count_as_of ?? null,
     description: c.description, accepting_casual_meetings: meetingOpen.has(c.id),

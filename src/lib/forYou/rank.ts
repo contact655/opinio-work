@@ -4,7 +4,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/paging";
 import { getOwnCompanyId } from "@/lib/companies/ownCompany";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { getRoleNameMap } from "@/lib/supabase/queries";
 import { phaseLabel, phaseMatches } from "@/lib/constants/phase";
 import { buildMoves, type TransitionExperience } from "@/lib/evidence/transitions";
@@ -79,7 +79,7 @@ export type ForYouResult =
   | { ok: false; error: string };
 
 type CompanyRow = {
-  id: string; slug: string | null; name: string; name_en: string | null; tagline: string | null;
+  id: string; slug: string | null; name: string; name_en: string | null; brand_name: string | null; tagline: string | null;
   logo_url: string | null; phase: string | null; is_test: boolean | null; is_published: boolean | null;
   published_at: string | null; created_at: string | null;
 };
@@ -133,7 +133,7 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
 
   /* ── 1. 母集団（掲載中の企業）──────────────────────────────────────────────── */
   let coQuery = db.from("ow_companies")
-    .select("id, slug, name, name_en, tagline, logo_url, phase, is_test, is_published, published_at, created_at")
+    .select("id, slug, name, name_en, brand_name, tagline, logo_url, phase, is_test, is_published, published_at, created_at")
     .eq("listing_status", "listed").eq("is_published", true);
   if (!viewerIsTest) coQuery = coQuery.eq("is_test", false);
   const { data: coRows, error: coErr } = await coQuery;
@@ -345,7 +345,7 @@ export async function buildForYou(owUserId: string): Promise<ForYouResult> {
     const score = signals.reduce((s, x) => s + x.points, 0);
     return {
       row: c,
-      displayName: companyDisplayName(c.name, c.name_en).displayName,
+      displayName: companyBrandName(c),
       signals,
       score,
     };

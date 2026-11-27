@@ -1,7 +1,7 @@
 import { createNoStoreAdminClient } from "@/lib/supabase/noStore";
 import { notify } from "@/lib/notify/email";
 import { companyMessageCandidateTemplate } from "@/lib/notify/templates";
-import { companyDisplayName } from "@/lib/companies/displayName";
+import { companyBrandName } from "@/lib/companies/displayName";
 import { unsubscribeFor } from "@/lib/notify/unsubscribe";
 
 /**
@@ -99,9 +99,9 @@ export async function emailCandidateCompanyMessage(params: {
       }
     }
 
-    const { data: co, error: cErr } = await db.from("ow_companies").select("name, name_en").eq("id", params.companyId).maybeSingle();
+    const { data: co, error: cErr } = await db.from("ow_companies").select("name, name_en, brand_name").eq("id", params.companyId).maybeSingle();
     if (cErr) console.error(`${tag} ow_companies:`, cErr.message);
-    const companyName = co?.name ? companyDisplayName(co.name as string, co.name_en as string | null).displayName : "企業";
+    const companyName = co?.name ? companyBrandName({ name: co.name as string, name_en: (co.name_en as string | null) ?? null, brand_name: (co.brand_name as string | null) ?? null }) : "企業";
 
     const url = params.kind === "approach"
       ? `${SITE}/mypage/conversations?tab=unreplied`

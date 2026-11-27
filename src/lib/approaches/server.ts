@@ -305,7 +305,7 @@ export type IncomingApproach = {
   /** ⚠️ 理由と本文は承認前でも全文見せる（2026-10-09 / 柴さんの判断）。承認で区切るのは2通目以降だけ */
   reason: string;
   body: string | null;
-  company: { id: string; name: string; nameEn: string | null; slug: string | null; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null;
+  company: { id: string; name: string; nameEn: string | null; brandName: string | null; slug: string | null; logoUrl: string | null; logoLetter: string | null; logoGradient: string | null;
     /** ★社名をリンクにするか（2026-10-11）。判定は `companyLinkStateFor` の1か所 */
     linkState: CompanyLinkState };
   senderName: string | null;
@@ -371,7 +371,7 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
   const senderIds = Array.from(new Set(shown.map((r) => r.sender_user_id as string | null).filter(Boolean) as string[]));
   const jobIds = Array.from(new Set(shown.map((r) => r.job_id as string | null).filter(Boolean) as string[]));
   const [{ data: comps, error: cErr }, { data: senders, error: sErr }, { data: jobs, error: jErr }, { data: senderRoles, error: rErr }] = await Promise.all([
-    db.from("ow_companies").select("id, name, name_en, slug, logo_url, logo_letter, logo_gradient, is_test").in("id", Array.from(visible)),
+    db.from("ow_companies").select("id, name, name_en, brand_name, slug, logo_url, logo_letter, logo_gradient, is_test").in("id", Array.from(visible)),
     senderIds.length > 0
       ? db.from("ow_users").select("id, name").in("id", senderIds)
       : Promise.resolve({ data: [] as { id: string; name: string }[], error: null }),
@@ -405,6 +405,7 @@ export async function listIncomingApproaches(candidateOwUserId: string): Promise
         id: c.id as string,
         name: c.name as string,
         nameEn: (c.name_en as string | null) ?? null,
+        brandName: (c.brand_name as string | null) ?? null,
         slug: (c.slug as string | null) ?? null,
         logoUrl: (c.logo_url as string | null) ?? null,
         logoLetter: (c.logo_letter as string | null) ?? null,
