@@ -10,6 +10,7 @@ import { normalizeBenefits, serializeBenefits, type Benefit } from "@/lib/compan
 import { isEmployeeBand } from "@/lib/constants/employeeBand";
 import { setCompanyBusinessDomains } from "@/lib/companies/setBusinessDomains";
 import { CEO_MESSAGE_MAX, DRAFT_MILESTONES_KEY } from "@/lib/companies/milestones";
+import { blankToNull } from "@/lib/utils/blankToNull";
 import { replaceCompanyMilestones } from "@/lib/companies/setMilestones";
 import { readDraftBusinessDomains } from "@/lib/companies/companyRequirements";
 import { cleanupCompanyLogoFiles } from "@/lib/companies/logoFiles";
@@ -45,8 +46,9 @@ export type ApplyDraftResult =
 
 /* ★draft_data に無いキーは触らない（undefined を返す）。キーがあって空は null（利用者が消した）。
    ⚠️ 2026-08-26 まで、書いていないキーを null で上書きしていた（説明文と設立年が消える形）。 */
+/* ★空・空白だけの文字列も null（2026-11-27。判定は lib/utils/blankToNull.ts。運営の保存と同じ） */
 const s = (v: unknown): string | null | undefined =>
-  v === undefined ? undefined : typeof v === "string" ? v : null;
+  v === undefined ? undefined : typeof v === "string" ? blankToNull(v) : null;
 const n = (v: unknown): number | null | undefined =>
   v === undefined ? undefined : typeof v === "number" ? v : null;
 const sa = (v: unknown): string[] | null | undefined =>

@@ -10,6 +10,7 @@ import { checkPublishable, publishBlockedMessage } from '@/lib/companies/publish
 import { cleanupCompanyLogoFiles } from '@/lib/companies/logoFiles';
 import { CEO_MESSAGE_MAX, parseMilestones } from '@/lib/companies/milestones';
 import { replaceCompanyMilestones } from '@/lib/companies/setMilestones';
+import { blankToNull } from '@/lib/utils/blankToNull';
 import { VALID_COMPANY_REMOTE_WORK_STATUSES } from "@/lib/constants/workStyle";
 import { isEmployeeBand } from "@/lib/constants/employeeBand";
 import { notifyCompanyStatus } from '@/lib/notify/companyStatus';
@@ -106,11 +107,20 @@ export async function PUT(
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   for (const key of allowedFields) {
     if (key in body) {
-      const val = body[key];
+      /* ★空の入力欄は null で保存する（2026-11-27）。この画面は保存のたびに全項目を "" で送るので、
+            そのまま書くと null だった列が "" に変わっていた。判定は lib/utils/blankToNull.ts の1か所 */
+      const val = blankToNull(body[key]);
+      if (val === null) {
+        /* ⚠️ 企業名は必須（NOT NULL）。空で送られたら止める（黙って "" を書かない） */
+        if (key === "name") return NextResponse.json({ error: "企業名を入力してください。" }, { status: 400 });
+        /* ⚠️ 選択肢の項目も、空なら null（それまでは "" を受けても何もせず、運営画面から消せなかった） */
+        updates[key] = null;
+        continue;
+      }
       if (ENUM_FIELDS[key]) {
         if (typeof val === "string" && ENUM_FIELDS[key].has(val)) {
           updates[key] = val;
-        } else if (val !== "" && val !== null && val !== undefined) {
+        } else if (val !== undefined) {
           /* ⚠️ 黙って捨てない（2026-09-18）。運営には保存できたように見え、
                 開き直すと空欄に戻る、という一番分かりにくい形になっていた。 */
           console.warn(`[admin/companies] ${key} は選択肢の外の値なので保存しませんでした: ${String(val).slice(0, 40)}`);
@@ -133,8 +143,6 @@ export async function PUT(
     }
   }
 
-  /* ★代表メッセージは空なら null（2026-11-27）。⚠️ 上のループは空文字をそのまま書くので、消したのに "" が残っていた */
-  if (typeof updates.ceo_message === "string" && updates.ceo_message.trim() === "") updates.ceo_message = null;
   /* ★資本金（円・2026-11-27）。空は null。0 以上の整数以外は 400（黙って捨てない） */
   if ("capital_amount_yen" in body) {
     const v = body.capital_amount_yen;
