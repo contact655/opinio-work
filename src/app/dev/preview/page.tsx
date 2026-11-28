@@ -113,6 +113,8 @@ const ITEMS = [
     note: "上段（提案）と下段（すべての会社を合う順に）が並ぶ形・押した後の表示はここで見る" },
   { href: "/dev/preview/proposals", label: "根拠つき提案（②⑨）",
     note: "実データは n=1 が最大。比率を出す分岐はここでしか見られない" },
+  { href: "/dev/preview/company-awards-decks", label: "受賞・認定と会社紹介資料（企業ページ）",
+    desc: "受賞の並び順・リンク、公式の発信の一番上の大きいカード" },
   { href: "/dev/preview/benefits",  label: "福利厚生",
     desc: "カテゴリ分けの境界（3カテゴリ目と4カテゴリ目）と、緑にしてよい項目" },
   { href: "/dev/preview/company-employees", label: "現役社員（企業ページ）",

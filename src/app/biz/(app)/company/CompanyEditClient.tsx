@@ -1,6 +1,9 @@
 "use client";
 
 import { MilestonesEditor } from "@/components/companies/MilestonesEditor";
+import { AwardsEditor, DecksEditor } from "@/components/companies/AwardsDecksEditors";
+import { AWARDS_MAX } from "@/lib/companies/awards";
+import { DECKS_MAX } from "@/lib/companies/companyDecks";
 import { CEO_MESSAGE_MAX, capitalManToYen } from "@/lib/companies/milestones";
 import { useState, useRef, useEffect } from "react";
 import { showToast } from "@/lib/toast";
@@ -866,6 +869,22 @@ export function CompanyEditClient({
                     <FormLabel optional htmlFor="ce-milestones-year-0">これまでの歩み</FormLabel>
                     <MilestonesEditor idPrefix="ce-milestones" value={form.milestones} onChange={(v) => update("milestones", v)} />
                     <FormHint>企業ページに年月の順で並びます。「変更を公開する」で反映されます。</FormHint>
+                  </FormGroup>
+                )}
+                {/* ★受賞・認定（2026-11-28）。⚠️ 管理者だけ（表の書き込みは会社の管理者に限っている）。読み込めなかったとき（null）は出さない */}
+                {canEditBasic && form.awards !== null && (
+                  <FormGroup>
+                    <FormLabel optional htmlFor="ce-awards-name-0">受賞・認定</FormLabel>
+                    <AwardsEditor idPrefix="ce-awards" value={form.awards} onChange={(v) => update("awards", v)} />
+                    <FormHint>受賞・認定の正式名称を入れてください（例：くるみん認定、健康経営優良法人2026）。企業ページに新しい年から並びます（{AWARDS_MAX}件まで）。「変更を公開する」で反映されます。</FormHint>
+                  </FormGroup>
+                )}
+                {/* ★会社紹介資料（2026-11-28）。ow_company_external_links の type=deck。⚠️ 管理者だけ。読み込めなかったとき（null）は出さない */}
+                {canEditBasic && form.decks !== null && (
+                  <FormGroup>
+                    <FormLabel optional htmlFor="ce-decks-title-0">会社紹介資料</FormLabel>
+                    <DecksEditor idPrefix="ce-decks" value={form.decks} onChange={(v) => update("decks", v)} />
+                    <FormHint>採用ピッチ資料などの公開ページの URL（https://）を入れてください（{DECKS_MAX}件まで）。企業ページの「公式の発信」の一番上にリンクのカードで出ます。「変更を公開する」で反映されます。</FormHint>
                   </FormGroup>
                 )}
               </Section>

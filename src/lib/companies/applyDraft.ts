@@ -12,6 +12,9 @@ import { setCompanyBusinessDomains } from "@/lib/companies/setBusinessDomains";
 import { CEO_MESSAGE_MAX, DRAFT_MILESTONES_KEY } from "@/lib/companies/milestones";
 import { blankToNull } from "@/lib/utils/blankToNull";
 import { replaceCompanyMilestones } from "@/lib/companies/setMilestones";
+import { replaceCompanyAwards, replaceCompanyDecks } from "@/lib/companies/setAwardsAndDecks";
+import { DRAFT_AWARDS_KEY } from "@/lib/companies/awards";
+import { DRAFT_DECKS_KEY } from "@/lib/companies/companyDecks";
 import { readDraftBusinessDomains } from "@/lib/companies/companyRequirements";
 import { cleanupCompanyLogoFiles } from "@/lib/companies/logoFiles";
 import { isCompanyStage, isHqCountry, isCapitalType, readDraftCustomers } from "@/lib/companies/classification";
@@ -150,6 +153,16 @@ export async function applyCompanyDraft(
   /* ── ①' これまでの歩み（全置換）── 下書きにキーがあるときだけ。⚠️ 不正な行があれば反映を止める（黙って捨てない） */
   if (d[DRAFT_MILESTONES_KEY] !== undefined) {
     const r = await replaceCompanyMilestones(companyId, d[DRAFT_MILESTONES_KEY], `${label} これまでの歩み`);
+    if (!r.ok) return { ok: false, status: r.status, error: r.error, message: r.error };
+  }
+
+  /* ── ①' 受賞・認定と会社紹介資料（全置換。2026-11-28）── 下書きにキーがあるときだけ。⚠️ 不正な行があれば反映を止める */
+  if (d[DRAFT_AWARDS_KEY] !== undefined) {
+    const r = await replaceCompanyAwards(companyId, d[DRAFT_AWARDS_KEY], `${label} 受賞・認定`);
+    if (!r.ok) return { ok: false, status: r.status, error: r.error, message: r.error };
+  }
+  if (d[DRAFT_DECKS_KEY] !== undefined) {
+    const r = await replaceCompanyDecks(companyId, d[DRAFT_DECKS_KEY], `${label} 会社紹介資料`);
     if (!r.ok) return { ok: false, status: r.status, error: r.error, message: r.error };
   }
 

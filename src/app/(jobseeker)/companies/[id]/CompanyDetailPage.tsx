@@ -29,7 +29,8 @@ import { SecTitle } from "./SecTitle";
 import { DetailHero, HeroChip } from "@/components/detail/DetailHero";
 import { DetailSectionNav } from "@/components/detail/DetailSectionNav";
 import type { Milestone } from "@/lib/companies/milestones";
-import { MilestonesSection } from "./CompanyProfileSections";
+import { MilestonesSection, AwardsSection } from "./CompanyProfileSections";
+import type { Award } from "@/lib/companies/awards";
 import { BusinessSection, MissionSection, WorkstyleSection, BenefitTagsSection, ExternalLinksSection, PROFILE_CSS,
   hasBusinessSection, hasMissionSection, workstyleBoxes, benefitTags, type ExternalLink } from "./CompanyProfileSections";
 import MeetingFlowNote from "./MeetingFlowNote";
@@ -776,10 +777,10 @@ async function countCompanyFollowers(companyId: string): Promise<number> {
  * ⚠️ この公開ページ（ISR）は testMode = false のまま。ここで認証を読まないこと（下の注記）。
  */
 /* ★タブに無いセクションを「働く人」タブとして点ける（OB/OG など。2026-10-03 / 2026-11-26） */
-/* ★タブの中身（2026-11-28 / 柴さんの指示）: 概要＝事業内容・ミッション・沿革・組織体制 ／ 働く環境＝働き方・福利厚生・導入ツール・公開した情報 ／
+/* ★タブの中身（2026-11-28 / 柴さんの指示）: 概要＝事業内容・ミッション・沿革・受賞・認定・組織体制 ／ 働く環境＝働き方・福利厚生・導入ツール・公開した情報 ／
       働く人＝人の流れ・現役社員・OB/OG。「公式の発信」はどのタブにも入れない（空文字＝下線を付けない）。
    ⚠️ タブの id はそのグループで最初に出るセクションなので、別名の行き先も描くたびに決める（navAliases） */
-const OVERVIEW_IDS = ["business", "mission", "milestones", "org-teams"] as const;
+const OVERVIEW_IDS = ["business", "mission", "milestones", "awards", "org-teams"] as const;
 const WORK_ENV_IDS = ["workstyle", "benefits", "tools", "company-materials"] as const;
 function navAliases(overviewId: string | null, workEnvId: string | null): Record<string, string> {
   const a: Record<string, string> = {
@@ -823,7 +824,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   const companyId = resolvedId;
 
   const [photos, companyArticles, employees, companyPosts, companyTools,
-         articleIdRowsResult, materialItems, companyFlow, reasonRanking, followerCount, similarCompanies, externalLinksResult, milestonesResult] = await Promise.all([
+         articleIdRowsResult, materialItems, companyFlow, reasonRanking, followerCount, similarCompanies, externalLinksResult, milestonesResult, awardsResult] = await Promise.all([
     getCompanyPhotosCached(companyId),
     /* ⚠️ 採用担当者はサーバーで引かない（2026-11-26）。人の情報を ISR の HTML に入れないため、
           サイドバーの「話せる人」（CompanyContactsCard）がブラウザで /api/jobseeker/companies/[id]/contacts から取る */
@@ -860,7 +861,12 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
     /* ★これまでの歩み（2026-11-27）。会社の情報なのでページに焼いてよい */
     adminSupabase.from("ow_company_milestones").select("year, month, event, sort_order").eq("company_id", companyId)
       .order("sort_order", { ascending: true }),
+    /* ★受賞・認定（2026-11-28）。会社の情報なのでページに焼いてよい */
+    adminSupabase.from("ow_company_awards").select("name, issuer, year, url, sort_order").eq("company_id", companyId)
+      .order("sort_order", { ascending: true }),
   ]);
+  if (awardsResult.error) console.error("[company-detail] awards:", awardsResult.error.message);
+  const awards: Award[] = ((awardsResult.data ?? []) as Award[]).map((a) => ({ name: a.name, issuer: a.issuer, year: a.year, url: a.url }));
   if (milestonesResult.error) console.error("[company-detail] milestones:", milestonesResult.error.message);
   const milestones: Milestone[] = ((milestonesResult.data ?? []) as Milestone[]).map((m) => ({ year: m.year, month: m.month, event: m.event }));
   if (externalLinksResult.error) console.error("[company-detail] external_links:", externalLinksResult.error.message);
@@ -990,7 +996,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
   const hasWorkstyle = workstyleBoxes(detail).length > 0;
   const hasBenefits = benefitTags(detail).length > 0;
   /* ★概要＝事業内容・ミッション・沿革・組織体制（2026-11-28 に組織体制を働く環境から移した） */
-  const overviewFirstId = hasBusiness ? "business" : hasMissionSection(detail) ? "mission" : milestones.length > 0 ? "milestones" : hasOrgTeams ? "org-teams" : null;
+  const overviewFirstId = hasBusiness ? "business" : hasMissionSection(detail) ? "mission" : milestones.length > 0 ? "milestones" : awards.length > 0 ? "awards" : hasOrgTeams ? "org-teams" : null;
   /* ★働く環境＝働き方・福利厚生・導入ツール・公開した情報（2026-11-28 に公式の発信と組織体制を外した） */
   const workEnvFirstId = hasWorkstyle ? "workstyle" : hasBenefits ? "benefits" : companyTools.length > 0 ? "tools" : materialItems.length > 0 ? "company-materials" : null;
   return (
@@ -1071,6 +1077,8 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
               <BusinessSection company={company} detail={detail} photos={photos} />
               <MissionSection detail={detail} />
               <MilestonesSection items={milestones} />
+              {/* ★受賞・認定（2026-11-28）。これまでの歩みの後ろ。0件なら出さない */}
+              <AwardsSection items={awards} />
               {/* ⚠️ 組織体制は org_teams に入力がある会社だけ（部品の中で判定） */}
               <OrgTeamsSectionClient detail={detail} companyId={company.id} jobCount={company.job_count} />
 

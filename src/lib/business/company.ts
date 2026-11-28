@@ -1,4 +1,6 @@
 import { DRAFT_MILESTONES_KEY, capitalManToYen, capitalYenToMan, type MilestoneInput } from "@/lib/companies/milestones";
+import { DRAFT_AWARDS_KEY, type AwardInput } from "@/lib/companies/awards";
+import { DRAFT_DECKS_KEY, type DeckInput } from "@/lib/companies/companyDecks";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BizCompany } from "./mockCompany";
 import type { Json } from "@/lib/supabase/types";
@@ -169,6 +171,9 @@ export function transformDbToForm(
     publishedCustomerIds?: string[];
     /** ★いま公開されている「これまでの歩み」（ow_company_milestones）。下書きに無いときの初期値 */
     publishedMilestones?: MilestoneInput[];
+    /** ★いま公開されている受賞・認定と会社紹介資料（2026-11-28）。下書きに無いときの初期値 */
+    publishedAwards?: AwardInput[];
+    publishedDecks?: DeckInput[];
   } = {},
 ): BizCompany {
   const row = opts.withDraft ? applyDraft(rawRow) : rawRow;
@@ -196,6 +201,27 @@ export function transformDbToForm(
       }
       /* ⚠️ 公開中の値を渡されなかった（読み込めなかった・この画面以外）は null。空配列にしない */
       return opts.publishedMilestones ?? null;
+    })(),
+    /* ★受賞・認定・会社紹介資料（2026-11-28）。下書きにあれば下書き、無ければ公開中の値。読み込めなかったら null */
+    awards: (() => {
+      const draft = opts.withDraft ? rawRow.draft_data?.[DRAFT_AWARDS_KEY] : undefined;
+      if (Array.isArray(draft)) {
+        return draft.map((a) => {
+          const o = (a ?? {}) as Record<string, unknown>;
+          return { name: String(o.name ?? ""), issuer: String(o.issuer ?? ""), year: String(o.year ?? ""), url: String(o.url ?? "") };
+        });
+      }
+      return opts.publishedAwards ?? null;
+    })(),
+    decks: (() => {
+      const draft = opts.withDraft ? rawRow.draft_data?.[DRAFT_DECKS_KEY] : undefined;
+      if (Array.isArray(draft)) {
+        return draft.map((a) => {
+          const o = (a ?? {}) as Record<string, unknown>;
+          return { title: String(o.title ?? ""), url: String(o.url ?? "") };
+        });
+      }
+      return opts.publishedDecks ?? null;
     })(),
     businessDomainIds: draftDomains?.domain_ids ?? opts.publishedDomains?.ids ?? [],
     primaryBusinessDomainId: draftDomains ? draftDomains.primary_domain_id : (opts.publishedDomains?.primaryId ?? null),
@@ -269,6 +295,8 @@ export const COMPANY_BASIC_DRAFT_KEYS: readonly string[] = [
   "url", "careers_url", "logo_gradient", "logo_letter", "logo_url",
   /* ★これまでの歩み（2026-11-27）。表（ow_company_milestones）の書き込みは会社の管理者だけ（RLS と同じ） */
   DRAFT_MILESTONES_KEY,
+  /* ★受賞・認定と会社紹介資料（2026-11-28）。どちらも表の書き込みは会社の管理者だけ（RLS と同じ） */
+  DRAFT_AWARDS_KEY, DRAFT_DECKS_KEY,
 ];
 
 export function transformFormToDb(form: BizCompany): { [key: string]: Json | undefined } {
@@ -282,6 +310,9 @@ export function transformFormToDb(form: BizCompany): { [key: string]: Json | und
     ceo_message: form.ceoMessage.trim() || null,
     /* ⚠️ null（読み込めなかった）はキーを出さない（反映で触らない） */
     [DRAFT_MILESTONES_KEY]: form.milestones ?? undefined,
+    /* ★受賞・認定・会社紹介資料（2026-11-28）。⚠️ null（読み込めなかった）はキーを出さない（反映で触らない） */
+    [DRAFT_AWARDS_KEY]: form.awards ?? undefined,
+    [DRAFT_DECKS_KEY]: form.decks ?? undefined,
     /* ⚠️ 不正な値（数字でない）のときはキーを出さない（反映で触らない）。入力欄でも弾いている */
     capital_amount_yen: capitalManToYen(form.capitalMan),
     /* ⚠️ company_features / avg_age / avg_salary / funding_total / female_ratio / notification_emails は
@@ -480,7 +511,7 @@ export async function fetchCompanyForTenant(
   supabase: SupabaseClient,
   tenantId: string,
   currentPublishedGenres: string[] = [],
-  opts: { withDraft?: boolean; publishedDomains?: { ids: string[]; primaryId: string | null }; publishedCustomerIds?: string[]; publishedMilestones?: MilestoneInput[] } = {},
+  opts: { withDraft?: boolean; publishedDomains?: { ids: string[]; primaryId: string | null }; publishedCustomerIds?: string[]; publishedMilestones?: MilestoneInput[]; publishedAwards?: AwardInput[]; publishedDecks?: DeckInput[] } = {},
 ): Promise<BizCompany | null> {
   const { data, error } = await supabase
     .from("ow_companies")
