@@ -10,7 +10,8 @@ import { useEffect, useRef, useState } from "react";
  * ⚠️ 中身の無いセクションは呼び出し側で items から外す（押しても何も無いタブを出さない）。
  * ⚠️ 貼り付く位置（top）は globals.css の .cd-sticky-nav が持つ。インラインに戻さないこと。
  *
- * @param aliases タブに無いセクションを、どのタブとして点けるか（企業ページの OB/OG → 「働く人」など）
+ * @param aliases タブに無いセクションを、どのタブとして点けるか（企業ページの OB/OG → 「働く人」など）。
+ *   値を空文字にすると「そのセクションではどのタブにも下線を付けない」（企業ページの「公式の発信」。2026-11-28）
  */
 export type DetailNavItem = { id: string; label: string };
 
@@ -23,8 +24,8 @@ export function DetailSectionNav({ items, aliases = NO_ALIASES }: { items: Detai
 
   useEffect(() => {
     const ids = items.map((i) => i.id);
-    // 別名は「行き先のタブがあり、自分自身はタブに無い」ものだけ見張る
-    const watchIds = [...ids, ...Object.keys(aliases).filter((k) => ids.includes(aliases[k]) && !ids.includes(k))];
+    // 別名は「行き先のタブがあり（または空文字＝どのタブでもない）、自分自身はタブに無い」ものだけ見張る
+    const watchIds = [...ids, ...Object.keys(aliases).filter((k) => (aliases[k] === "" || ids.includes(aliases[k])) && !ids.includes(k))];
 
     const observer = new IntersectionObserver(
       (entries) => {

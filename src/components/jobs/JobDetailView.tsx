@@ -24,6 +24,7 @@ import { enterTestViewMode, jobPath, companyPath, TEST_COMPANY_NOTICE } from "@/
  *    プレビュー側にJSXをコピーしない。**差が出たらプレビューの意味が無くなる。**
  */
 import Link from "next/link";
+import { DetailSide } from "@/components/detail/DetailSide";
 import { notFound } from "next/navigation";
 import { permanentRedirect } from "next/navigation";
 import { cache } from "react";
@@ -478,8 +479,8 @@ export async function JobDetailView({
             </div>
 
             {/* ── サイドバー（1023px 以下は本文の下に同じ順で並ぶ） ── */}
-            <aside className="dt-side" aria-label="この募集の条件と担当者">
-              {/* ★行動カード（2026-11-26）。1024px 以上はヘッダーとタブの下に貼り付く（.dt-action） */}
+            <DetailSide ariaLabel="この募集の条件と担当者">
+              {/* ★行動カード（2026-11-26）。1024px 以上は欄全体（DetailSide）がヘッダーとタブの下に貼り付く */}
               {(actionPay || actionFacts.length > 0 || hasActions) && (
                 <div className="jd-card jd-side-card dt-action" data-state="job-action-card">
                   {actionPay && (
@@ -525,7 +526,7 @@ export async function JobDetailView({
                   </div>
                 </div>
               )}
-            </aside>
+            </DetailSide>
           </div>
         </div>
       </div>

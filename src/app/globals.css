@@ -2733,16 +2733,18 @@ nav[aria-label="メインナビゲーション"] a:focus-visible {
 
 /* ── ★企業詳細・募集詳細の2カラムと本文のカード（2026-11-26 / 柴さんの指示。2ページ共通）──
    本文はセクションごとに1枚のカード（.dt-card ＝ SectionCard。企業ページの .cd-sec も同じ見た目にする）。
-   サイドバーは 320px。一番上の行動カード（.dt-action）だけ、1024px 以上でヘッダーとタブの下に貼り付く。
-   ⚠️ 貼り付けるには .dt-side が行の高さまで伸びている必要がある（align-self: stretch）。外さないこと。
+   サイドバーは 320px。1024px 以上で、欄全体（.dt-side）がヘッダーとタブの下に貼り付く（2026-11-28）。
+   ⚠️ 欄全体が画面に収まるときだけ（DetailSide が data-fit を付ける）。収まらなければ普通にスクロールする。
+   ⚠️ 行動カード（.dt-action）だけを貼り付ける形に戻さないこと（下のカードの上に重なって中身を隠していた）。
+   ⚠️ 貼り付けるには .dt-side が中身の高さで止まっている必要がある（align-self: start）。stretch に戻さないこと。
    ⚠️ 1fr ではなく minmax(0,1fr)（長い英数字で列が広がり、375px ではみ出すのを防ぐ）。 */
 .dt-cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
 .dt-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .dt-card { padding: 28px var(--cd-pad-x, 32px); }
 .dt-stack .cd-sec { background: #fff; border: 1px solid var(--line); border-radius: 14px; }
-.dt-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; align-self: stretch; }
+.dt-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; align-self: start; }
 @media (min-width: 1024px) {
-  .dt-action { position: sticky; top: 132px; z-index: 5; }
+  .dt-side[data-fit="true"] { position: sticky; top: 132px; }
 }
 @media (max-width: 1023px) {
   .dt-cols { grid-template-columns: minmax(0, 1fr); }

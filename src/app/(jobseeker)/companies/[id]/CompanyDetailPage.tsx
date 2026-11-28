@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getCompanyFlowCached } from "@/lib/companyFlow/server";
 import { hasAnyFlowItem, toFlowSummary } from "@/lib/companyFlow/compute";
 import { CompanyFlowSection } from "./CompanyFlowSection";
+import { DetailSide } from "@/components/detail/DetailSide";
 import { CompanyReasonRanking } from "./CompanyReasonRanking";
 import { getCompanyReasonRanking } from "@/lib/joinDecision/server";
 import { enterTestViewMode, jobPath, companyPath, TEST_COMPANY_NOTICE } from "@/lib/jobs/testViewMode";
@@ -768,9 +769,20 @@ async function countCompanyFollowers(companyId: string): Promise<number> {
  * ⚠️ この公開ページ（ISR）は testMode = false のまま。ここで認証を読まないこと（下の注記）。
  */
 /* ★タブに無いセクションを「働く人」タブとして点ける（OB/OG など。2026-10-03 / 2026-11-26） */
-const NAV_ALIASES: Record<string, string> = {
-  alumni: "company-people", "current-employees": "company-people", "company-flow": "company-people", "company-reasons": "company-people",
-};
+/* ★タブの中身（2026-11-28 / 柴さんの指示）: 概要＝事業内容・ミッション・沿革・組織体制 ／ 働く環境＝働き方・福利厚生・導入ツール・公開した情報 ／
+      働く人＝人の流れ・現役社員・OB/OG。「公式の発信」はどのタブにも入れない（空文字＝下線を付けない）。
+   ⚠️ タブの id はそのグループで最初に出るセクションなので、別名の行き先も描くたびに決める（navAliases） */
+const OVERVIEW_IDS = ["business", "mission", "milestones", "org-teams"] as const;
+const WORK_ENV_IDS = ["workstyle", "benefits", "tools", "company-materials"] as const;
+function navAliases(overviewId: string | null, workEnvId: string | null): Record<string, string> {
+  const a: Record<string, string> = {
+    alumni: "company-people", "current-employees": "company-people", "company-flow": "company-people", "company-reasons": "company-people",
+    "official-links": "",
+  };
+  if (overviewId) for (const id of OVERVIEW_IDS) if (id !== overviewId) a[id] = overviewId;
+  if (workEnvId) for (const id of WORK_ENV_IDS) if (id !== workEnvId) a[id] = workEnvId;
+  return a;
+}
 
 export async function renderCompanyDetailPage(params: { id: string }, mode: boolean | { preview: { companyId: string; banner: React.ReactNode } }) {
   /* ★mode: false … 公開ページ ／ true … 検証用アカウント（/t/companies）／ { preview } … 担当者のプレビュー（/biz/company/preview） */
@@ -965,14 +977,15 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
 
   /* ★タブと本文の出し分けに使う（中身の無いタブ・セクションは出さない） */
   const hasBusiness = hasBusinessSection(company, detail, photos);
-  const hasMission = hasMissionSection(detail) || milestones.length > 0;
+  const hasOrgTeams = !!(detail.orgTeams && detail.orgTeams.length > 0);
   const hasJobs = detail.jobs.some((c) => c.items.length > 0);
   const hasPeople = !!(flowSummary || reasonRanking || employees.current.length > 0 || employees.alumni.length > 0);
   const hasWorkstyle = workstyleBoxes(detail).length > 0;
   const hasBenefits = benefitTags(detail).length > 0;
-  const hasOrgTeams = !!(detail.orgTeams && detail.orgTeams.length > 0);
-  const hasWorkEnv = hasWorkstyle || hasBenefits || companyTools.length > 0 || externalLinks.length > 0 || hasOrgTeams || materialItems.length > 0;
-  const workEnvFirstId = hasWorkstyle ? "workstyle" : hasBenefits ? "benefits" : companyTools.length > 0 ? "tools" : externalLinks.length > 0 ? "official-links" : hasOrgTeams ? "org-teams" : "company-materials";
+  /* ★概要＝事業内容・ミッション・沿革・組織体制（2026-11-28 に組織体制を働く環境から移した） */
+  const overviewFirstId = hasBusiness ? "business" : hasMissionSection(detail) ? "mission" : milestones.length > 0 ? "milestones" : hasOrgTeams ? "org-teams" : null;
+  /* ★働く環境＝働き方・福利厚生・導入ツール・公開した情報（2026-11-28 に公式の発信と組織体制を外した） */
+  const workEnvFirstId = hasWorkstyle ? "workstyle" : hasBenefits ? "benefits" : companyTools.length > 0 ? "tools" : materialItems.length > 0 ? "company-materials" : null;
   return (
     <>
       {/* ★検証用アカウントにだけ（2026-10-12）。⚠️ 検証用の会社の閲覧は数えない */}
@@ -1022,13 +1035,14 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
 
         {/* ★タブ（2026-11-26）。ヘッダーカードの下に置き、追従は今までどおり（CompanyStickyNav）。
                ⚠️ 新しいルートは作らない（同じページの中のアンカー）。中身の無いタブは出さない */}
-        <DetailSectionNav aliases={NAV_ALIASES} items={[
-          ...(hasBusiness || hasMission ? [{ id: hasBusiness ? "business" : hasMissionSection(detail) ? "mission" : "milestones", label: "概要" }] : []),
+        <DetailSectionNav aliases={navAliases(overviewFirstId, workEnvFirstId)} items={[
+          /* ★並びは 概要 → 募集 → 働く環境 → 働く人 → 記事・更新情報（2026-11-28 / 柴さんの指示で働く環境を働く人の前へ） */
+          ...(overviewFirstId ? [{ id: overviewFirstId, label: "概要" }] : []),
           /* ⚠️ タブに数字を入れない（2026-11-26） */
           ...(company.job_count > 0 && hasJobs ? [{ id: "jobs", label: "募集" }] : []),
+          ...(workEnvFirstId ? [{ id: workEnvFirstId, label: "働く環境" }] : []),
           /* ⚠️ 在籍者が1人でもいれば出す（閲覧者ごとの可視件数はサーバーでは分からない。タブは案内なので許容する） */
           ...(hasPeople ? [{ id: "company-people", label: "働く人" }] : []),
-          ...(hasWorkEnv ? [{ id: workEnvFirstId, label: "働く環境" }] : []),
           ...(updateItems.length > 0 ? [{ id: "updates", label: "記事・更新情報" }] : []),
         ]} />
 
@@ -1038,21 +1052,31 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
           className="cd-body px-4 md:px-12 pt-5 pb-10 md:pb-12"
         >
           {/* ★本文はセクションごとに1枚のカード（2026-11-26 / 柴さんの指示。.dt-stack .cd-sec が globals.css で枠を付ける）。
-                 サイドバーは一番上の行動カードだけ貼り付く（.dt-action） */}
+                 サイドバーは欄全体が貼り付く（画面に収まるときだけ。DetailSide） */}
           <div className="dt-cols">
             <div className="dt-stack" data-state="company-body">
               <style>{PROFILE_CSS}</style>
-              {/* ★並び（2026-11-26 / 柴さんの指示。フェーズ2）: 事業内容 → ミッション・カルチャー → 募集 → 働く人（現役社員・OB/OG）
-                     → 働き方 → 福利厚生 → 導入ツール → 公式の発信 → 組織体制（入力がある会社だけ）→ 企業が公開した情報 → 記事・更新情報。
-                     ⚠️ 中身の無いセクションは出さない（タブにも出さない） */}
+              {/* ★並び（2026-11-28 / 柴さんの指示）:
+                     概要（事業内容 → ミッション・カルチャー → これまでの歩み → 組織体制）→ 募集
+                     → 働く環境（働き方 → 福利厚生 → 導入ツール → 企業が公開した情報）
+                     → 働く人（つながり → 人の流れ・入社の決め手 → 現役社員 → OB・OG）→ 記事・更新情報 → 公式の発信（どのタブにも入れない）。
+                     ⚠️ 中身の無いセクションは出さない（タブにも出さない）。並びを変えたらタブ（navAliases）も合わせる */}
               <BusinessSection company={company} detail={detail} photos={photos} />
               <MissionSection detail={detail} />
               <MilestonesSection items={milestones} />
+              {/* ⚠️ 組織体制は org_teams に入力がある会社だけ（部品の中で判定） */}
+              <OrgTeamsSectionClient detail={detail} companyId={company.id} jobCount={company.job_count} />
 
               {/* 募集中のポジション */}
               <JobsSection company={company} detail={detail} />
 
-              {/* 3. この会社で働く人: つながり → 人の流れ → 入社の決め手 → 現役・OB/OG（2026-11-26 にここへ集めた）
+              {/* 働く環境。1つも無ければ何も出ない */}
+              <WorkstyleSection detail={detail} />
+              <BenefitTagsSection detail={detail} />
+              <ToolsSection tools={companyTools} />
+              <CompanyMaterialsSection items={materialItems} />
+
+              {/* この会社で働く人: つながり → 人の流れ → 入社の決め手 → 現役・OB/OG
                      ⚠️ 社員・つながりは閲覧者で変わるのでブラウザで取る（ページは ISR のまま）。0人なら何も出ない */}
               <div id="company-people" className="cd-people">
                 <div className="cd-optional"><CompanyConnections companyId={company.id} /></div>
@@ -1066,16 +1090,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                 <CompanyEmployeeSections companyId={company.id} limit={6} listHref={`${companyPath(companySlug ?? companyId)}/people`} />
               </div>
 
-              {/* 働く環境: 働き方 → 福利厚生 → 導入ツール → 公式の発信 → 組織体制 → 企業が公開した情報。1つも無ければ何も出ない */}
-              <WorkstyleSection detail={detail} />
-              <BenefitTagsSection detail={detail} />
-              <ToolsSection tools={companyTools} />
-              <ExternalLinksSection links={externalLinks} />
-              {/* ⚠️ 組織体制は org_teams に入力がある会社だけ（部品の中で判定） */}
-              <OrgTeamsSectionClient detail={detail} companyId={company.id} jobCount={company.job_count} />
-              <CompanyMaterialsSection items={materialItems} />
-
-              {/* 5. 記事・更新情報（企業からの投稿・取材記事・募集開始などを日付順に1本） */}
+              {/* 記事・更新情報（企業からの投稿・取材記事・募集開始などを日付順に1本） */}
               {updateItems.length > 0 && (
                 <section id="updates" className="cd-sec cd-sec-pad" data-state="company-updates">
                   <SecTitle>記事・更新情報</SecTitle>
@@ -1084,6 +1099,8 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                   </div>
                 </section>
               )}
+              {/* ★公式の発信はどのタブにも入れず、本文の最後に置く（2026-11-28 / 柴さんの指示）。締めの申し込みブロックだけがこの後に来る */}
+              <ExternalLinksSection links={externalLinks} />
               {/* ★企業の投稿が0件のときだけ、その会社の担当者に「記事を書く」を出す（担当者にしか見えない） */}
               {companyPosts.length === 0 && <div className="cd-optional"><CompanyStoriesStaffCta companyId={company.id} /></div>}
 
@@ -1114,7 +1131,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
             </div>
 
             {/* ── サイドバー（1023px 以下は本文の下に 行動 → a → b → c の順で並ぶ）── */}
-            <aside className="dt-side" aria-label="この会社の募集・担当者と会社概要">
+            <DetailSide ariaLabel="この会社の募集・担当者と会社概要">
               {/* ★行動カード（2026-11-26）。募集があれば「募集N件を見る」、無ければ小さいカードでフォローを案内する */}
               {company.job_count > 0 && hasJobs ? (
                 <div className="jd-card jd-side-card dt-action" data-state="company-action-card">
@@ -1165,7 +1182,7 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                   </ul>
                 </div>
               )}
-            </aside>
+            </DetailSide>
           </div>
         </div>
       </div>
