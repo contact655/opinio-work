@@ -4,6 +4,12 @@ import type React from "react";
  * ★企業詳細・募集詳細の冒頭のカード（2026-11-26 / 柴さんの指示。2ページ共通）。
  *   白いカードの中に、ロゴ → カテゴリ → 名前 → 正式社名（企業のみ）→ タグライン → 要点チップ → メタ行 → ボタン。
  *
+ * ★1024px 以上は横3列（2026-11-28 / 柴さんの指示。右側の空きをなくす）:
+ *     [ロゴ 88px] [本文（残りの幅をすべて・min-width 0）] [ボタン類（右上・最大36%・入らなければ折り返す）]
+ *   1023px 以下は縦並び（ロゴ 72px → 本文 → ボタン）のまま。
+ *   ⚠️ ロゴは呼び出し側が size 88 で渡し、1023px 以下はここで 72px に縮める（CompanyLogo の幅はインライン指定のため）。
+ *   ⚠️ 一番目立つボタンを actions の先頭に置くこと（企業＝フォロー、募集＝話を聞いてみたい）。
+ *
  * ⚠️ カバー画像は描かない。2026-11-26 時点で独自のカバー画像を持つ会社は0社（オフィス写真0・header_image_url 0）。
  *    入れる会社が出たら、ここに高さ120px以内で足す。
  * ⚠️ 値の無い行は描かない（「未登録」などを出さない）。
@@ -29,26 +35,31 @@ export function DetailHero({ logo, category, title, formalName, note, tagline, c
   return (
     <header className="jd-card dh" data-cd-hero data-state={state}>
       <div className="dh-body">
-        {logo}
-        {category && <div className="dh-cat">{category}</div>}
-        {note}
-        <h1 className="dh-title">{title}</h1>
-        {formalName && <p className="dh-formal">{formalName}</p>}
-        {tagline && <p className="dh-tagline">{tagline}</p>}
-        {chips && <div className="dh-chips" data-state={`${state}-chips`}>{chips}</div>}
-        {meta && meta.length > 0 && (
-          <p className="dh-meta" data-state={`${state}-meta`}>
-            {meta.map((m, i) => (
-              <span key={m}>{i > 0 && <span aria-hidden style={{ margin: "0 8px" }}>・</span>}<span style={{ whiteSpace: "nowrap" }}>{m}</span></span>
-            ))}
-          </p>
-        )}
+        <div className="dh-logo"><div className="dh-logo-in">{logo}</div></div>
+        <div className="dh-main">
+          {category && <div className="dh-cat">{category}</div>}
+          {note}
+          <h1 className="dh-title">{title}</h1>
+          {formalName && <p className="dh-formal">{formalName}</p>}
+          {tagline && <p className="dh-tagline">{tagline}</p>}
+          {chips && <div className="dh-chips" data-state={`${state}-chips`}>{chips}</div>}
+          {meta && meta.length > 0 && (
+            <p className="dh-meta" data-state={`${state}-meta`}>
+              {meta.map((m, i) => (
+                <span key={m}>{i > 0 && <span aria-hidden style={{ margin: "0 8px" }}>・</span>}<span style={{ whiteSpace: "nowrap" }}>{m}</span></span>
+              ))}
+            </p>
+          )}
+        </div>
         {actions && <div className="dh-actions" data-state={`${state}-actions`}>{actions}</div>}
       </div>
       <style>{`
         .dh { overflow: hidden; }
         .dh-body { padding: 24px 32px 26px; }
-        .dh-cat { margin-top: 14px; font-size: 14px; font-weight: 700; color: var(--ink-soft); overflow-wrap: anywhere; }
+        .dh-logo { width: 72px; height: 72px; }
+        .dh-logo-in { width: 88px; height: 88px; transform: scale(0.8182); transform-origin: top left; }
+        .dh-main { margin-top: 14px; min-width: 0; }
+        .dh-cat { font-size: 14px; font-weight: 700; color: var(--ink-soft); overflow-wrap: anywhere; }
         .dh-title { margin: 4px 0 0; font-size: 26px; font-weight: 700; color: var(--ink); line-height: 1.45; overflow-wrap: anywhere; }
         .dh-formal { margin: 2px 0 0; font-size: 14px; color: var(--ink-mute); overflow-wrap: anywhere; }
         .dh-tagline { margin: 10px 0 0; font-size: 15px; color: var(--ink); line-height: 1.75; max-width: 680px; }
@@ -57,7 +68,15 @@ export function DetailHero({ logo, category, title, formalName, note, tagline, c
         .dh-chip--strong { font-weight: 700; }
         .dh-chip svg { flex-shrink: 0; color: var(--ink-mute); }
         .dh-meta { margin: 12px 0 0; font-size: 13px; color: var(--ink-mute); line-height: 1.7; }
-        .dh-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 20px; }
+        .dh-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 20px; min-width: 0; }
+        @media (min-width: 1024px) {
+          .dh-body { display: flex; align-items: flex-start; gap: 24px; padding: 22px 28px; }
+          .dh-logo { flex: 0 0 88px; width: 88px; height: 88px; }
+          .dh-logo-in { transform: none; }
+          .dh-main { flex: 1 1 0; margin-top: 0; }
+          .dh-chips { margin-top: 12px; }
+          .dh-actions { flex: 0 1 auto; max-width: 36%; justify-content: flex-end; margin-top: 0; }
+        }
         @media (max-width: 640px) {
           .dh-body { padding: 18px 18px 22px; }
           .dh-title { font-size: 22px; }
