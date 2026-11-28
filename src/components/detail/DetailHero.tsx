@@ -4,11 +4,13 @@ import type React from "react";
  * ★企業詳細・募集詳細の冒頭のカード（2026-11-26 / 柴さんの指示。2ページ共通）。
  *   白いカードの中に、ロゴ → カテゴリ → 名前 → 正式社名（企業のみ）→ タグライン → 要点チップ → メタ行 → ボタン。
  *
- * ★1024px 以上は横3列（2026-11-28 / 柴さんの指示。右側の空きをなくす）:
- *     [ロゴ 88px] [本文（残りの幅をすべて・min-width 0）] [ボタン類（右上・最大36%・入らなければ折り返す）]
+ * ★1024px 以上は横2列（2026-11-28 / 柴さんの指示）:
+ *     [ロゴ 88px] [カテゴリ / 名前 / 正式社名 / タグライン / チップ / （メタ行）/ ボタン類]
+ *   ボタン類は本文の列の一番下に、本文と左端をそろえて横に並べる（チップとの間は16px。入らなければ折り返す）。
+ *   ⚠️ 同日の朝は右上に寄せた3列だったが、同日に本文の下へ移した。右上に戻さないこと。
  *   1023px 以下は縦並び（ロゴ 72px → 本文 → ボタン）のまま。
  *   ⚠️ ロゴは呼び出し側が size 88 で渡し、1023px 以下はここで 72px に縮める（CompanyLogo の幅はインライン指定のため）。
- *   ⚠️ 一番目立つボタンを actions の先頭に置くこと（企業＝フォロー、募集＝話を聞いてみたい）。
+ *   ⚠️ 一番目立つボタンを actions の先頭に置くこと（企業＝面談を受け付けていれば「話を聞く」・それ以外は「フォロー」、募集＝話を聞いてみたい）。
  *
  * ⚠️ カバー画像は描かない。2026-11-26 時点で独自のカバー画像を持つ会社は0社（オフィス写真0・header_image_url 0）。
  *    入れる会社が出たら、ここに高さ120px以内で足す。
@@ -50,8 +52,8 @@ export function DetailHero({ logo, category, title, formalName, note, tagline, c
               ))}
             </p>
           )}
+          {actions && <div className="dh-actions" data-state={`${state}-actions`}>{actions}</div>}
         </div>
-        {actions && <div className="dh-actions" data-state={`${state}-actions`}>{actions}</div>}
       </div>
       <style>{`
         .dh { overflow: hidden; }
@@ -75,7 +77,7 @@ export function DetailHero({ logo, category, title, formalName, note, tagline, c
           .dh-logo-in { transform: none; }
           .dh-main { flex: 1 1 0; margin-top: 0; }
           .dh-chips { margin-top: 12px; }
-          .dh-actions { flex: 0 1 auto; max-width: 36%; justify-content: flex-end; margin-top: 0; }
+          .dh-actions { margin-top: 16px; }
         }
         @media (max-width: 640px) {
           .dh-body { padding: 18px 18px 22px; }
