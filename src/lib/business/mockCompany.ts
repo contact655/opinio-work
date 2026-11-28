@@ -1,4 +1,6 @@
 import type { MilestoneInput } from "@/lib/companies/milestones";
+import type { AwardInput } from "@/lib/companies/awards";
+import type { DeckInput } from "@/lib/companies/companyDecks";
 import type { Benefit } from "@/lib/companies/benefits";
 // BizCompany — 企業側プロダクト用の型定義とモックデータ
 
@@ -36,6 +38,10 @@ export type BizCompany = {
   /** ★これまでの歩み（2026-11-27）。下書きのキーは `milestones`（lib/companies/milestones.ts）。管理者だけが編集する。
    *  ⚠️ null は「読み込めなかった」。そのときは下書きにキーを出さない（空で保存して既存の行を消さないため） */
   milestones: MilestoneInput[] | null;
+  /** ★受賞・認定（2026-11-28）。下書きのキーは `awards`。管理者だけが編集する。null は「読み込めなかった」 */
+  awards: AwardInput[] | null;
+  /** ★会社紹介資料（2026-11-28）。下書きのキーは `decks`（ow_company_external_links の type=deck）。管理者だけ。null は「読み込めなかった」 */
+  decks: DeckInput[] | null;
   /* ⚠️★企業の特徴（company_features）は 2026-10-12 に入力欄ごと外した（求職者に表示されないため）。
         列とデータ（77社）と開示充実順の計算はそのまま。**フォームに戻さないこと。** */
   /** ★事業領域（2026-10-12 から下書きに入れる。それまでは選ぶと即時保存だった）。

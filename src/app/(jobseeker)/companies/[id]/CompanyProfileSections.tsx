@@ -19,6 +19,9 @@ import { DefinitionRows } from "@/components/detail/DefinitionRows";
 import { SectionCard } from "@/components/detail/SectionCard";
 import { PhotoCarousel } from "./PhotoCarousel";
 import { milestoneDateLabel, sortMilestones, type Milestone } from "@/lib/companies/milestones";
+import { sortAwards, type Award } from "@/lib/companies/awards";
+import { deckDomain } from "@/lib/companies/companyDecks";
+import { externalLinkTypeLabel } from "@/lib/constants/externalLinkTypes";
 
 /** 主な製品を最初に出す数（残りは「ほかN製品を見る」） */
 const PRODUCTS_VISIBLE = 4;
@@ -50,6 +53,21 @@ export const PROFILE_CSS = `
   .cp-tl-dot { position: absolute; left: -4.5px; top: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--royal); }
   .cp-tl-date { font-size: 13px; font-weight: 700; color: var(--ink-soft); line-height: 1.8; white-space: nowrap; }
   .cp-tl-event { font-size: 15px; color: var(--ink); line-height: 1.8; overflow-wrap: anywhere; }
+  .cp-decks { display: grid; gap: 10px; margin-bottom: 12px; }
+  .cp-deck { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; text-decoration: none; color: var(--ink); background: var(--bg-tint); min-width: 0; }
+  .cp-deck-mark { flex-shrink: 0; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--royal); color: #fff; }
+  .cp-deck-body { flex: 1 1 auto; min-width: 0; }
+  .cp-deck-kind { display: block; font-size: 12px; font-weight: 700; color: var(--ink-mute); }
+  .cp-deck-title { display: block; margin-top: 2px; font-size: 16px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
+  .cp-deck-domain { display: block; margin-top: 2px; font-size: 12.5px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cp-deck-ext { flex-shrink: 0; color: var(--ink-mute); }
+  .cp-awards { margin: 0; padding: 0; list-style: none; }
+  .cp-award { display: grid; grid-template-columns: 72px minmax(0, 1fr); column-gap: 16px; padding: 12px 0; }
+  .cp-award + .cp-award { border-top: 1px solid var(--line); }
+  .cp-award-year { font-size: 13px; font-weight: 700; color: var(--ink-soft); line-height: 1.8; white-space: nowrap; }
+  .cp-award-name { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.7; overflow-wrap: anywhere; }
+  .cp-award-name a { color: var(--royal); text-decoration: none; }
+  .cp-award-issuer { margin-top: 2px; font-size: 13.5px; color: var(--ink-soft); line-height: 1.7; overflow-wrap: anywhere; }
   @media (max-width: 640px) {
     .cp-boxes { grid-template-columns: minmax(0, 1fr); }
     .cp-links { grid-template-columns: minmax(0, 1fr); }
@@ -167,6 +185,46 @@ export function MilestonesSection({ items }: { items: Milestone[] }) {
   );
 }
 
+// ─── 受賞・認定（2026-11-28） ─────────────────────────────────────────────
+
+/**
+ * ★受賞・認定。行の形は 年 ／ 正式名称 ／ 主催・認定した団体。url があれば名称をリンクにする。新しい年から順に。
+ * ⚠️ 企業が入れた値をそのまま出す（評価の言葉を足さない）。0件ならセクションごと出さない。
+ */
+export function AwardsSection({ items }: { items: Award[] }) {
+  if (items.length === 0) return null;
+  return (
+    <SectionCard id="awards" state="company-awards" title="受賞・認定">
+      <ul className="cp-awards">
+        {sortAwards(items).map((a, i) => {
+          const href = a.url ? safeHttpsUrl(a.url) : null;
+          return (
+            <li key={`${a.year}-${a.name}-${i}`} className="cp-award" data-state="company-award">
+              <span className="cp-award-year">{a.year}年</span>
+              <span style={{ minWidth: 0 }}>
+                <span className="cp-award-name" style={{ display: "block" }}>
+                  {href ? <a href={href} target="_blank" rel="noopener noreferrer nofollow">{a.name}</a> : a.name}
+                </span>
+                <span className="cp-award-issuer" style={{ display: "block" }}>{a.issuer}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </SectionCard>
+  );
+}
+
+/** https の URL だけ通す（受賞の根拠・会社紹介資料。保存側でも https に限っている） */
+function safeHttpsUrl(u: string): string | null {
+  try {
+    const p = new URL(u);
+    return p.protocol === "https:" ? p.href : null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── 6. 働き方 ───────────────────────────────────────────────────────────────
 
 type WorkBox = { key: string; label: string; value: string };
@@ -238,6 +296,7 @@ function linkKind(l: ExternalLink): { label: string; mark: string; color: string
   if (/instagram\.com$/.test(host)) return { label: "Instagram", mark: "IG", color: "#C13584" };
   if (/note\.com$/.test(host)) return { label: "note", mark: "n", color: "#41C9B4" };
   return { label: l.type === "video" ? "動画" : "ブログ", mark: "B", color: "var(--royal)" };
+  /* ⚠️ deck（会社紹介資料）はここに来ない（ExternalLinksSection が先に分けて大きいカードで出す） */
 }
 
 /** 表示するアカウント名。「X @SalesforceJapan」のように先頭に種類が付いていれば外す */
@@ -261,23 +320,47 @@ export function ExternalLinksSection({ links: rawLinks }: { links: ExternalLink[
     const url = safeHttpUrl(l.url);
     return url ? [{ ...l, url }] : [];
   });
-  if (links.length === 0) return null;
+  /* ★会社紹介資料（type=deck。2026-11-28）は一番上に大きいカードで出す。⚠️ 埋め込まない（iframe にしない）。https だけ */
+  const decks = links.filter((l) => l.type === "deck" && safeHttpsUrl(l.url));
+  const others = links.filter((l) => l.type !== "deck");
+  if (decks.length === 0 && others.length === 0) return null;
   return (
     <SectionCard id="official-links" state="company-official-links" title="公式の発信">
-      <div className="cp-links">
-        {links.map((l) => {
-          const k = linkKind(l);
-          return (
-            <a key={l.id} href={l.url} target="_blank" rel="noopener noreferrer nofollow" className="cp-link" data-state="official-link">
-              <span className="cp-link-mark" aria-hidden style={{ background: k.color }}>{k.mark}</span>
-              <span style={{ minWidth: 0 }}>
-                <span className="cp-link-kind">{k.label}</span>
-                <span className="cp-link-name">{accountName(l, k.label)}</span>
+      {decks.length > 0 && (
+        <div className="cp-decks" style={others.length === 0 ? { marginBottom: 0 } : undefined}>
+          {decks.map((l) => (
+            <a key={l.id} href={l.url} target="_blank" rel="noopener noreferrer" className="cp-deck" data-state="company-deck">
+              <span className="cp-deck-mark" aria-hidden>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+              </span>
+              <span className="cp-deck-body">
+                <span className="cp-deck-kind">{externalLinkTypeLabel("deck")}</span>
+                <span className="cp-deck-title">{(l.title || "").trim() || deckDomain(l.url)}</span>
+                <span className="cp-deck-domain">{deckDomain(l.url)}</span>
+              </span>
+              <span className="cp-deck-ext" aria-label="新しいタブで開く">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
               </span>
             </a>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
+      {others.length > 0 && (
+        <div className="cp-links">
+          {others.map((l) => {
+            const k = linkKind(l);
+            return (
+              <a key={l.id} href={l.url} target="_blank" rel="noopener noreferrer nofollow" className="cp-link" data-state="official-link">
+                <span className="cp-link-mark" aria-hidden style={{ background: k.color }}>{k.mark}</span>
+                <span style={{ minWidth: 0 }}>
+                  <span className="cp-link-kind">{k.label}</span>
+                  <span className="cp-link-name">{accountName(l, k.label)}</span>
+                </span>
+              </a>
+            );
+          })}
+        </div>
+      )}
     </SectionCard>
   );
 }

@@ -593,7 +593,7 @@ function AdminPostRow({
 }) {
   const [hovered, setHovered] = useState(false);
   const companyName = post.ow_companies?.name ?? "—";
-  const typeLabel = TYPE_LABELS[post.type as ContentType] ?? post.type;
+  const typeLabel = externalLinkTypeLabel(post.type) ?? post.type;
   const isEditor = post.created_by_role === "editor";
 
   return (

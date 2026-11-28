@@ -13,6 +13,8 @@ export const EXTERNAL_LINK_TYPES = [
   { value: "audio", label: "音声" },
   { value: "social", label: "SNS" },
   { value: "event", label: "イベント" },
+  /* ★会社紹介資料（採用ピッチ資料。2026-11-28）。企業が /biz/company から入れる（1社3件まで。lib/companies/companyDecks.ts） */
+  { value: "deck", label: "会社紹介資料" },
   { value: "other", label: "その他" },
 ] as const;
 
@@ -28,8 +30,9 @@ export function externalLinkTypeLabel(v: string | null | undefined): string | nu
   return EXTERNAL_LINK_TYPES.find((t) => t.value === v)?.label ?? null;
 }
 
-/** 運営の /admin/posts で選べる種類 */
-export const ADMIN_POST_TYPES: readonly ExternalLinkType[] = EXTERNAL_LINK_TYPES.map((t) => t.value);
+/** 運営の /admin/posts で選べる種類。
+ *  ⚠️ deck（会社紹介資料）は入れない。企業が自分で入れるもので、件数（3件）と https の決まりは /biz の保存が守る */
+export const ADMIN_POST_TYPES: readonly ExternalLinkType[] = EXTERNAL_LINK_TYPES.map((t) => t.value).filter((v) => v !== "deck");
 
 export function isAdminPostType(v: unknown): v is ExternalLinkType {
   return typeof v === "string" && (ADMIN_POST_TYPES as readonly string[]).includes(v);

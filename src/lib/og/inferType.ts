@@ -1,7 +1,7 @@
 import type { ExternalLinkType } from "@/lib/constants/externalLinkTypes";
 
 /** URL から推測できる種類（定義は lib/constants/externalLinkTypes.ts） */
-export type ContentType = ExternalLinkType;
+export type ContentType = Exclude<ExternalLinkType, "deck">;
 
 /**
  * URL のドメインからコンテンツ種別を推測する。
