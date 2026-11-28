@@ -377,6 +377,8 @@ function CompanyHeader({
 
   const actions = (
     <>
+      {/* ★フォローを先頭に置く（2026-11-28 / 柴さんの指示。冒頭のカードで一番目立つ位置） */}
+      <FollowButton companyId={company.id} tone="primary" />
       {company.accepting_casual_meetings && (
         <Link href={`/companies/${company.id}/casual-meeting`} data-state="cta-meeting"
           style={{
@@ -390,7 +392,6 @@ function CompanyHeader({
       )}
       {/* ★「話を聞いてみたい」（2026-10-27）。押せない会社・未ログインでは何も描かない（CompanyInterestButton の中で判定） */}
       <CompanyInterestButton companyId={company.id} />
-      <FollowButton companyId={company.id} tone="primary" />
       <BookmarkButton companyName={company.name} companyId={company.id} variant="pill" />
       {/* 共有は小さいアイコン（767px 以上）。767px 以下は「…」の中にある */}
       <span className="cd-links-row"><ShareButton companyName={company.name} companyId={company.id} iconOnly /></span>
@@ -436,7 +437,7 @@ function CompanyHeader({
         state="company-header"
         logo={
           <CompanyLogo name={company.name} logoUrl={company.logo_url} logoLetter={company.logo_letter}
-            logoGradient={company.gradient} companyUrl={company.url} size={72} borderRadius={14}
+            logoGradient={company.gradient} companyUrl={company.url} size={88} borderRadius={16}
             style={{ border: "1px solid var(--line)" }} />
         }
         category={industryLeaf ?? undefined}

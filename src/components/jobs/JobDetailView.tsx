@@ -394,7 +394,7 @@ export async function JobDetailView({
             state="job-header"
             logo={
               <CompanyLogo name={company.name} logoUrl={company.logo_url} logoLetter={company.logo_letter}
-                logoGradient={company.gradient} size={72} borderRadius={14}
+                logoGradient={company.gradient} size={88} borderRadius={16}
                 style={{ border: "1px solid var(--line)" }} />
             }
             category={companyHref
