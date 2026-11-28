@@ -916,7 +916,7 @@ export function CompanyEditClient({
                   <FormLabel>福利厚生</FormLabel>
                   {/* ⚠️ 項目ごとに詳細（任意）を持つ専用部品。RequirementsTagInput に戻さない */}
                   <BenefitsEditor items={form.benefitsTags} onChange={(items) => update("benefitsTags", items)} />
-                  <FormHint>企業ページに項目ごとに出ます。詳細を入れると、その項目を押したときに表示されます（任意）。</FormHint>
+                  <FormHint>企業ページにカテゴリごとに出ます。詳細（任意）は項目名の後ろに括弧で表示されます。</FormHint>
                 </FormGroup>
                 <SubHeading>所在地</SubHeading>
                 <div className="cpe-2col">

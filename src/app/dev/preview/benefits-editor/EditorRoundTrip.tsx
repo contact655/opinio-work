@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { BenefitsEditor } from "@/components/business/BenefitsEditor";
-import { BenefitsList } from "@/components/companies/BenefitsList";
+import { BenefitTagsSection, PROFILE_CSS } from "@/app/(jobseeker)/companies/[id]/CompanyProfileSections";
+import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import { serializeBenefits, normalizeBenefits, type Benefit } from "@/lib/companies/benefits";
 
 /**
@@ -23,8 +24,9 @@ import { serializeBenefits, normalizeBenefits, type Benefit } from "@/lib/compan
  */
 export function EditorRoundTrip() {
   const [items, setItems] = useState<Benefit[]>([
-    { name: "書籍・学習費用補助", detail: "年間65万円（学習機関の指定あり）" },
-    { name: "フルフレックス制度" },
+    { name: "書籍・学習費用補助", detail: "年間65万円（学習機関の指定あり）", category: "learning" },
+    { name: "フルフレックス制度", category: "workstyle" },
+    { name: "社員食堂" },
   ]);
 
   /* ⚠️ 実際に保存される形。`/biz` の PATCH が通すのと同じ関数を通す */
@@ -58,7 +60,9 @@ export function EditorRoundTrip() {
         <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", marginBottom: 8 }}>
           ③ 求職者側の見え方（読み戻して表示）
         </div>
-        {shown ? <BenefitsList benefits={shown} /> : (
+        <style>{PROFILE_CSS}</style>
+        {/* ★企業ページと同じ部品（2026-11-28 からカテゴリごとの表） */}
+        {shown ? <BenefitTagsSection detail={{ benefits: shown } as CompanyDetail} /> : (
           <p style={{ margin: 0, fontSize: 13, color: "var(--ink-mute)" }}>
             （0件。セクションごと出ないのが正しい）
           </p>

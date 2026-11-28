@@ -12,6 +12,7 @@ import type { BizCompany } from "@/lib/business/mockCompany";
 import { checkPublishable, publishBlockedMessage } from "@/lib/companies/publishable";
 import { COMPANY_SUSPENDED_MESSAGE } from "@/lib/business/scoutGate";
 import { applyCompanyDraft } from "@/lib/companies/applyDraft";
+import { hasInvalidBenefitCategory } from "@/lib/companies/benefits";
 
 
 // PUT /api/biz/company — 自動保存（draft_data に書き込み。本番カラムは触らない）
@@ -34,6 +35,12 @@ export async function PUT(req: Request) {
   const { companyId, owUserId } = ctx;
 
   try { requireCompanyAction(ctx.allMemberships, companyId, "company.page"); } catch { return permissionDeniedResponse(); }
+
+  /* ★福利厚生のカテゴリは決めた7つだけ（2026-11-28 / 柴さんの指示）。それ以外の値が来たら保存しない
+        （serializeBenefits は黙って落とすので、ここで先に断って気づけるようにする） */
+  if (hasInvalidBenefitCategory((body as Partial<BizCompany>).benefitsTags)) {
+    return NextResponse.json({ error: "福利厚生のカテゴリが正しくありません" }, { status: 400 });
+  }
 
   // フォーム値を DB カラム形式に変換して draft_data に保存
   // 本番カラム（name, mission など）は一切変更しない

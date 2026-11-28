@@ -13,6 +13,7 @@ import type { CompanyDetail } from "@/app/companies/[id]/mockDetailData";
 import type { CompanyPhoto } from "@/lib/supabase/queries";
 import { orderedBusinessDomains } from "@/types/genre";
 import { splitParenSuffix } from "@/lib/utils/parenSuffix";
+import { benefitCategoryOf, groupBenefitsByCategory, workstyleBoxKeyOf, type Benefit } from "@/lib/companies/benefits";
 import { WORK_STYLE_LABELS } from "@/lib/constants/workStyle";
 import { Markdown } from "@/components/common/Markdown";
 import { DefinitionRows } from "@/components/detail/DefinitionRows";
@@ -171,12 +172,41 @@ export function MilestonesSection({ items }: { items: Milestone[] }) {
 
 type WorkBox = { key: string; label: string; value: string };
 
-/** 働き方の要点（最大3つ）。⚠️ 企業が入力欄で入れられる値だけ（勤務時間制度・リモート） */
-export function workstyleBoxes(detail: CompanyDetail): WorkBox[] {
+/** 企業が入力欄で入れた働き方の値だけで作る枠（引き継ぎ前） */
+function baseWorkstyleBoxes(detail: CompanyDetail): WorkBox[] {
   const boxes: WorkBox[] = [];
   if (detail.workTimeSystem) boxes.push({ key: "time", label: "勤務時間", value: detail.workTimeSystem });
   if (detail.remoteWorkStatus) boxes.push({ key: "remote", label: "リモート", value: WORK_STYLE_LABELS[detail.remoteWorkStatus] ?? detail.remoteWorkStatus });
   return boxes.slice(0, 3);
+}
+
+/**
+ * ★福利厚生のうち「働き方」の枠に引き継ぐ項目（2026-11-28 / 柴さんの指示）。
+ *   category が workstyle（働き方・環境）で、出している枠（勤務時間／リモート）の話の項目だけ。
+ *   その項目は福利厚生の側から外し、括弧の中の補足（例: コアタイム 11:00-15:00）と detail を枠の値の後ろに続ける。
+ * ⚠️ 名前の語だけで外さない（「在宅勤務手当」はお金の手当なのに外れていた）。category を見る。
+ * ⚠️ 枠が出ていない会社では何も外さない（福利厚生の側にそのまま出す）。
+ * ⚠️ どの枠にも当たらない「働き方・環境」の項目（副業可など）は福利厚生の側に残す。
+ */
+function workstyleCarry(detail: CompanyDetail): { extras: Record<string, string[]>; moved: Set<number> } {
+  const keys = new Set(baseWorkstyleBoxes(detail).map((b) => b.key));
+  const extras: Record<string, string[]> = {};
+  const moved = new Set<number>();
+  (detail.benefits ?? []).forEach((b, i) => {
+    if (benefitCategoryOf(b) !== "workstyle") return;
+    const key = workstyleBoxKeyOf(b.name);
+    if (!key || !keys.has(key)) return;
+    moved.add(i);
+    const sub = splitParenSuffix(b.name).sub;
+    for (const t of [sub, b.detail]) if (t && !(extras[key] ?? []).includes(t)) (extras[key] ??= []).push(t);
+  });
+  return { extras, moved };
+}
+
+/** 働き方の要点（最大3つ）。⚠️ 企業が入力欄で入れられる値だけ（勤務時間制度・リモート）＋福利厚生から引き継いだ補足 */
+export function workstyleBoxes(detail: CompanyDetail): WorkBox[] {
+  const { extras } = workstyleCarry(detail);
+  return baseWorkstyleBoxes(detail).map((b) => (extras[b.key]?.length ? { ...b, value: `${b.value}（${extras[b.key].join("・")}）` } : b));
 }
 
 export function WorkstyleSection({ detail }: { detail: CompanyDetail }) {
@@ -198,27 +228,31 @@ export function WorkstyleSection({ detail }: { detail: CompanyDetail }) {
 
 // ─── 7. 福利厚生 ─────────────────────────────────────────────────────────────
 
-/** 働き方に出した項目と重なる福利厚生（フレックス・リモート）を除く */
-export function benefitTags(detail: CompanyDetail): { name: string; detail?: string }[] {
-  const boxes = workstyleBoxes(detail);
-  const hasTime = boxes.some((b) => b.key === "time");
-  const hasRemote = boxes.some((b) => b.key === "remote");
-  return (detail.benefits ?? []).filter((b) => {
-    if (hasTime && /フレックス|裁量労働/.test(b.name)) return false;
-    if (hasRemote && /リモート|在宅|テレワーク/.test(b.name)) return false;
-    return true;
-  });
+/** 福利厚生のうち、企業ページの「福利厚生」に出す項目（「働き方」に引き継いだ項目を除く） */
+export function benefitTags(detail: CompanyDetail): Benefit[] {
+  const { moved } = workstyleCarry(detail);
+  return (detail.benefits ?? []).filter((_, i) => !moved.has(i));
 }
 
+/**
+ * ★カテゴリごとの表（2026-11-28 / 柴さんの指示）。左にカテゴリ名、右にその項目のタグ。
+ *   カテゴリの順は BENEFIT_CATEGORIES。項目の無いカテゴリの行は出さない。カテゴリの無い項目は「その他」。
+ * ⚠️ 見出しの横に件数は出さない（柴さんの判断）。
+ */
 export function BenefitTagsSection({ detail }: { detail: CompanyDetail }) {
   const items = benefitTags(detail);
   if (items.length === 0) return null;
   return (
     <SectionCard id="benefits" state="company-benefits" title="福利厚生">
-      <ul className="cp-tags">
-        {/* 補足（detail）は押さずに読めるよう括弧で続ける */}
-        {items.map((b) => <li key={b.name} className="cp-tag">{b.detail ? `${b.name}（${b.detail}）` : b.name}</li>)}
-      </ul>
+      <DefinitionRows ariaLabel="福利厚生" rows={groupBenefitsByCategory(items).map((g) => ({
+        label: g.label,
+        value: (
+          <ul className="cp-tags" data-state={`benefit-cat-${g.key}`}>
+            {/* 補足（detail）は押さずに読めるよう括弧で続ける */}
+            {g.items.map((b) => <li key={b.name} className="cp-tag">{b.detail ? `${b.name}（${b.detail}）` : b.name}</li>)}
+          </ul>
+        ),
+      }))} />
     </SectionCard>
   );
 }
