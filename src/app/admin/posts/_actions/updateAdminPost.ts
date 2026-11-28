@@ -3,8 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { AdminActionResult } from "./createAdminPost";
+import { isAdminPostType } from "@/lib/constants/externalLinkTypes";
 
-const ALLOWED_POST_TYPES = new Set(["news", "blog", "story", "culture", "product", "event", "other"]);
+/* ★種類は lib/constants/externalLinkTypes.ts の1か所（2026-11-28）。ここに書き写さない。
+   ⚠️ それまでここだけ別の語彙（news / blog …）で、記事・動画・音声・SNS が「Invalid type」で保存できなかった */
 
 type UpdateData = {
   url: string;
@@ -28,8 +30,8 @@ export async function updateAdminPost(
   if (!isAdmin) return { success: false, error: "管理者権限が必要です" };
 
   // type allowlist check
-  if (!ALLOWED_POST_TYPES.has(data.type)) {
-    return { success: false, error: "Invalid type" };
+  if (!isAdminPostType(data.type)) {
+    return { success: false, error: "種類が正しくありません" };
   }
 
   function validateHttpsUrl(val: string | null | undefined): string | null {

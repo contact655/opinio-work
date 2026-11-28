@@ -3,6 +3,7 @@
 import { Fragment, useState, useTransition } from "react";
 import { fetchOgp } from "@/lib/og/fetchOgp";
 import { inferTypeFromUrl, type ContentType } from "@/lib/og/inferType";
+import { ADMIN_POST_TYPES, externalLinkTypeLabel } from "@/lib/constants/externalLinkTypes";
 import { createAdminPost } from "./_actions/createAdminPost";
 import { updateAdminPost } from "./_actions/updateAdminPost";
 import { deleteAdminPost } from "./_actions/deleteAdminPost";
@@ -34,14 +35,8 @@ type Props = {
 
 // ─── Type label / color ───────────────────────────────────────────────────────
 
-const TYPE_LABELS: Record<ContentType, string> = {
-  article: "記事",
-  video:   "動画",
-  audio:   "音声",
-  social:  "SNS",
-  event:   "イベント",
-  other:   "その他",
-};
+/* ★種類と表示名は lib/constants/externalLinkTypes.ts の1か所（2026-11-28） */
+const TYPE_LABELS = Object.fromEntries(ADMIN_POST_TYPES.map((t) => [t, externalLinkTypeLabel(t) ?? t])) as Record<string, string>;
 
 // ─── Helpers ─────────────────────────────────────────────────────────���───────
 
