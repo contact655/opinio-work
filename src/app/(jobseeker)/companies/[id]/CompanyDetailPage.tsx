@@ -377,18 +377,24 @@ function CompanyHeader({
 
   const actions = (
     <>
-      {/* ★フォローを先頭に置く（2026-11-28 / 柴さんの指示。冒頭のカードで一番目立つ位置） */}
-      <FollowButton companyId={company.id} tone="primary" />
-      {company.accepting_casual_meetings && (
-        <Link href={`/companies/${company.id}/casual-meeting`} data-state="cta-meeting"
-          style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: 40,
-            padding: "8px 20px", borderRadius: 10, fontSize: 14, fontWeight: 700,
-            background: MEETING_CTA_BG, color: MEETING_CTA_FG, textDecoration: "none", whiteSpace: "nowrap",
-            boxShadow: `0 3px 10px rgba(${MEETING_CTA_SHADOW_RGB},0.3)`,
-          }}>
-          話を聞く
-        </Link>
+      {/* ★先頭のボタンは会社の状態で切り替える（2026-11-28 / 柴さんの指示）:
+             カジュアル面談を受け付けている → 「話を聞く」（紺の塗り）が先頭、フォローは2番目（線だけ）
+             受け付けていない           → 「フォロー」（紺の線）が先頭
+          ⚠️ 条件は company.accepting_casual_meetings（isCasualMeetingOpen を通した値）だけ。右の行動カードと同じ値を見る */}
+      {company.accepting_casual_meetings ? (
+        <>
+          <Link href={`/companies/${company.id}/casual-meeting`} data-state="cta-meeting"
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: 40,
+              padding: "8px 20px", borderRadius: 10, fontSize: 14, fontWeight: 700,
+              background: "var(--royal)", color: "#fff", textDecoration: "none", whiteSpace: "nowrap",
+            }}>
+            話を聞く
+          </Link>
+          <FollowButton companyId={company.id} />
+        </>
+      ) : (
+        <FollowButton companyId={company.id} tone="primary" />
       )}
       {/* ★「話を聞いてみたい」（2026-10-27）。押せない会社・未ログインでは何も描かない（CompanyInterestButton の中で判定） */}
       <CompanyInterestButton companyId={company.id} />
@@ -1140,6 +1146,25 @@ export async function renderCompanyDetailPage(params: { id: string }, mode: bool
                     style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 44, padding: "10px 20px", borderRadius: 10, fontSize: 15, fontWeight: 700, background: "var(--royal)", color: "#fff", textDecoration: "none" }}>
                     募集{company.job_count}件を見る
                   </a>
+                  {/* ★募集があり、カジュアル面談も受け付けている会社（2026-11-28）。面談の入口も同じカードに置く */}
+                  {company.accepting_casual_meetings && (
+                    <Link href={`/companies/${company.id}/casual-meeting`} data-state="company-action-meeting-link"
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 44, marginTop: 10, padding: "10px 20px", borderRadius: 10, fontSize: 15, fontWeight: 700, background: "#fff", color: "var(--royal)", border: "1.5px solid var(--royal)", textDecoration: "none" }}>
+                      話を聞く
+                    </Link>
+                  )}
+                </div>
+              ) : company.accepting_casual_meetings ? (
+                /* ★募集は無いが、カジュアル面談を受け付けている会社（2026-11-28）。冒頭のカードと同じく「話を聞く」を先頭にする。
+                      ⚠️ 「受付中の募集はありません」だけを出すと、面談を受けていないように読める */
+                <div className="jd-card jd-side-card dt-action" data-state="company-action-meeting">
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>カジュアル面談を受け付けています</p>
+                  <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--ink-soft)" }}>選考とは別に、まずは話を聞けます</p>
+                  <Link href={`/companies/${company.id}/casual-meeting`} data-state="company-action-meeting-link"
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 44, marginTop: 12, padding: "10px 20px", borderRadius: 10, fontSize: 15, fontWeight: 700, background: "var(--royal)", color: "#fff", textDecoration: "none" }}>
+                    話を聞く
+                  </Link>
+                  <div style={{ marginTop: 10 }}><FollowButton companyId={company.id} label="フォローして新着を受け取る" /></div>
                 </div>
               ) : (
                 <div className="jd-card jd-side-card dt-action" data-state="company-action-nojobs">
